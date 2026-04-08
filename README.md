@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QRShift
+
+QRShift is a mobile-first QR-based staff attendance system for small businesses. Employees scan a store QR code to clock in and out without a login, while managers monitor live shift status and generate payroll-ready reports with decimal-hour totals.
+
+## Description
+
+QRShift is designed for quick demo use and lightweight business operations:
+
+- Employees use a QR code to access a scan page and record attendance.
+- Managers unlock a dashboard with a PIN to monitor current shift status.
+- Reports provide payroll-ready totals, per-shift breakdowns, employee filtering, and CSV export.
+
+## Features
+
+- QR-based clock in/out with no employee login required
+- Real-time shift dashboard for managers
+- Payroll-ready reporting with decimal hours and timesheet rows
+- Employee filtering and detailed timesheet views
+- CSV export for summary and payroll workflows
+- Demo data generation for private product demos
+
+## Tech Stack
+
+- Next.js (App Router)
+- Firebase / Firestore
+- TypeScript
+- Tailwind CSS
+- date-fns
+
+## Project Structure
+
+```text
+src/
+  app/
+    admin/        Admin onboarding and demo store creation
+    dashboard/    Live manager dashboard
+    reports/      Payroll-ready reporting screens
+    scan/         Employee QR scan flow
+  components/     Shared UI wrappers and compatibility exports
+  features/
+    reports/      Report types, processing, export logic, and UI components
+  lib/            Shared data access, time helpers, and demo data builders
+  types/          App-wide TypeScript domain types
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+- A Firebase project with Firestore enabled
+
+### Installation
+
+```bash
+npm install
+```
+
+### Environment Setup
+
+Create `.env.local` with your Firebase web app configuration:
+
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+```
+
+### Run Locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Employee Clock In / Clock Out
 
-## Learn More
+1. A manager creates a store and employee list.
+2. The system generates a unique QR code for that store.
+3. Employees scan the QR code and select their name.
+4. The scan page determines whether the next action is `IN` or `OUT`.
 
-To learn more about Next.js, take a look at the following resources:
+### Manager Dashboard and Reports
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Managers open the dashboard or reports URL using the store QR token.
+2. A manager PIN unlocks access.
+3. The dashboard shows live attendance status.
+4. Reports provide employee-level and all-staff payroll summaries with CSV export.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Demo Flow
 
-## Deploy on Vercel
+Use the admin page to create a demo store with realistic fake timelog data for customer demos and report testing.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Available Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run test
+```
+
+## Roadmap
+
+- Authentication and role-based access
+- Payroll integrations
+- Expanded admin management tools
+- Mobile app or installable PWA enhancements
+- Persistent report corrections workflow
+
+## Demo Release Notes
+
+This repository is prepared for a private `v1.0-demo` release:
+
+- report logic is modularized for easier iteration
+- demo seed data supports customer walkthroughs
+- CI validates linting and test execution on pushes and pull requests
+
+## License
+
+MIT
