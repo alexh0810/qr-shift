@@ -3,21 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F9FAF6;
+  --foreground: #1F2937;
+  --primary: #2B59FF;
+  --primary-dark: #1E40AF;
+  --secondary: #6366F1;
+  --success: #22C55E;
+  --error: #F97316;
+  --surface: #ffffff;
+  --surfacestroke: #f3f4f6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0B0E14;
+  --foreground: #F9FAF6;
+  --surface: #111827;
+  --surfacestroke: #1f2937;
+  /* We keep the vibrant primaries in dark mode to retain the aesthetic */
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {
