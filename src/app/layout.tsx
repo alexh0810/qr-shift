@@ -1,14 +1,31 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-const inter = Inter({ subsets: ["latin"], display: 'swap' });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-display",
+});
+
+const geist = localFont({
+  src: "./fonts/GeistVF.woff",
+  display: "swap",
+  variable: "--font-body",
+});
+
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  display: "swap",
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: "QRShift",
-  description: "Staff Attendance System",
+  description: "QR-based time tracking for small businesses.",
   manifest: "/manifest.json",
 };
 
@@ -24,7 +41,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body
-        className={`${inter.className} antialiased`}
+        className={`${spaceGrotesk.variable} ${geist.variable} ${geistMono.variable} font-body bg-background text-foreground antialiased`}
       >
         <ThemeProvider
           attribute="class"
