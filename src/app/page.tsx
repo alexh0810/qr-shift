@@ -18,9 +18,7 @@ import {
 import { BrandMark } from "@/components/BrandMark";
 import { HeroPreview } from "@/components/landing/HeroPreview";
 import { SectionBlock } from "@/components/landing/SectionBlock";
-
-const DEMO_BOOKING_URL = "https://calendly.com/your-handle";
-const CONTACT_EMAIL = "mailto:youremail@gmail.com?subject=QRShift%20Inquiry";
+import { siteConfig } from "@/lib/site-config";
 
 export default function Home() {
   const router = useRouter();
@@ -58,7 +56,7 @@ export default function Home() {
               QR-Based Attendance
             </span>
             <a
-              href="/admin/create-store"
+              href={siteConfig.INTERNAL_DEMO_PATH}
               className="inline-flex items-center justify-center rounded-full border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-text-muted transition-colors hover:border-border-strong hover:text-foreground"
             >
               Open Demo Admin
@@ -85,7 +83,7 @@ export default function Home() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
-                  href={DEMO_BOOKING_URL}
+                  href={siteConfig.DEMO_BOOKING_URL}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 text-base font-semibold text-white transition-all hover:bg-primary-dark"
@@ -94,7 +92,7 @@ export default function Home() {
                   Request a Demo
                 </a>
                 <a
-                  href={CONTACT_EMAIL}
+                  href={siteConfig.CONTACT_EMAIL}
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-border-strong bg-background px-6 py-4 text-base font-semibold text-foreground transition-colors hover:bg-surface"
                 >
                   <Mail className="h-5 w-5" />
@@ -251,7 +249,7 @@ export default function Home() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <a
-                href={DEMO_BOOKING_URL}
+                href={siteConfig.DEMO_BOOKING_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 text-base font-semibold text-white transition-all hover:bg-primary-dark"
@@ -260,7 +258,7 @@ export default function Home() {
                 Request a Demo
               </a>
               <a
-                href={CONTACT_EMAIL}
+                href={siteConfig.CONTACT_EMAIL}
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-border-strong bg-background px-6 py-4 text-base font-semibold text-foreground transition-colors hover:bg-surface"
               >
                 <Mail className="h-5 w-5" />
@@ -277,7 +275,7 @@ export default function Home() {
               Need to create a demo store or generate QR data?
             </p>
             <a
-              href="/admin/create-store"
+              href={siteConfig.INTERNAL_DEMO_PATH}
               className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"
             >
               Open Administrator Portal

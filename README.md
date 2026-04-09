@@ -98,6 +98,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Use the admin page to create a demo store with realistic fake timelog data for customer demos and report testing.
 
+### Landing Page CTAs
+
+The landing page reads its public and internal action targets from [site-config.ts](/Users/alex/projects/QRShift/src/lib/site-config.ts):
+
+- `DEMO_BOOKING_URL` powers the public Calendly `Request a Demo` action
+- `CONTACT_EMAIL` powers the public `Contact` mailto link
+- `INTERNAL_DEMO_PATH` keeps `/admin/create-store` available as the internal or founder-oriented demo entry
+
+The homepage should treat `Request a Demo` and `Contact` as public-facing actions, while `/admin/create-store` remains a secondary internal/demo path.
+
 ## Available Scripts
 
 ```bash
