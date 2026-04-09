@@ -116,7 +116,7 @@ export default function Home() {
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-muted">
                     Live visibility
                   </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">Know who's working</p>
+                  <p className="mt-2 text-xl font-semibold text-foreground">Know who&apos;s working</p>
                 </div>
                 <div className="rounded-[24px] border border-surfacestroke bg-background/75 p-4">
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-muted">
