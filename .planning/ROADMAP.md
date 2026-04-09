@@ -31,7 +31,7 @@ This roadmap turns QRShift from a functional attendance demo into a sharper prod
 Plans:
 - [x] 01-01: Define the QRShift brand direction, design tokens, and component rules
 - [x] 01-02: Refactor shared styling entry points to support the new visual system
-- [ ] 01-03: Document how the new patterns should be used across future screens
+- [x] 01-03: Document how the new patterns should be used across future screens
 
 ### Phase 2: Landing Page
 **Goal**: Ship a landing page inside the existing app that explains QRShift quickly and converts visitors into demo or contact actions.
