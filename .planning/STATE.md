@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 2 planning complete
-last_updated: "2026-04-09T16:48:00Z"
-last_activity: 2026-04-09 -- Phase 02 planning complete
+stopped_at: Phase 2 execution complete
+last_updated: "2026-04-09T17:10:44Z"
+last_activity: 2026-04-09 -- Phase 02 execution complete
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 12
-  completed_plans: 3
-  percent: 25
+  completed_plans: 6
+  percent: 50
 ---
 
 # Project State
@@ -21,34 +21,35 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Clock in with a QR code. No apps. No logins. Payroll-ready in seconds.
-**Current focus:** Phase 2 - Landing Page
+**Current focus:** Phase 3 - Product Rebrand
 
 ## Current Position
 
-Phase: 2 of 4 (Landing Page)
-Plan: 0 of 3 in current phase
-Status: Ready to execute
-Last activity: 2026-04-09 -- Phase 02 planning complete
+Phase: 3 of 4 (Product Rebrand)
+Plan: 0 of 4 in current phase
+Status: Ready to plan
+Last activity: 2026-04-09 -- Phase 02 execution complete
 
-Progress: [███░░░░░░░] 25%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3
+- Total plans completed: 6
 - Average duration: 10 min
-- Total execution time: 0.5 hours
+- Total execution time: 0.9 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3 | 29 min | 10 min |
+| 02 | 3 | 32 min | 11 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 8 min, 10 min, 11 min
+- Last 5 plans: 10 min, 11 min, 8 min, 16 min, 8 min
 - Trend: Stable
 
 ## Accumulated Context
@@ -61,7 +62,8 @@ Recent decisions affecting current work:
 - [Init]: Landing page lives inside the existing Next.js app
 - [Init]: Demo polish comes before pilot-hardening
 - [Phase 1]: QRShift now has a locked token, typography, and motif system
-- [Phase 1]: The root route can serve as a branded proof surface while landing-page work expands it
+- [Phase 2]: QRShift now has a fuller one-page landing experience on `/`
+- [Phase 2]: Public CTA values now come from shared site config instead of inline route constants
 
 ### Pending Todos
 
@@ -71,10 +73,10 @@ None yet.
 
 - Client-side access control remains demo-only and should not be mistaken for production security
 - Core attendance and reporting flows must not regress during the UI refresh
-- Phase 2 still needs real Calendly and contact targets instead of placeholder destinations
+- Replace placeholder Calendly and contact values in `src/lib/site-config.ts` before external demos
 
 ## Session Continuity
 
-Last session: 2026-04-09T16:48:00Z
-Stopped at: Phase 2 planning complete
-Resume file: .planning/phases/02-landing-page/02-01-PLAN.md
+Last session: 2026-04-09T17:10:44Z
+Stopped at: Phase 2 execution complete
+Resume file: None

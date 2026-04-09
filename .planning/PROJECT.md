@@ -2,7 +2,7 @@
 
 ## What This Is
 
-QRShift is a simple, QR-based time tracking tool for small businesses to replace paper timesheets and generate payroll-ready reports. Employees clock in and out by scanning a QR code with no app installs or logins, while managers monitor shifts and export clean attendance data. The current milestone is turning the demo into a sharper product experience through a public landing page and a more unified, recognizable QRShift visual identity, and Phase 1 has already established the shared brand foundation for that work.
+QRShift is a simple, QR-based time tracking tool for small businesses to replace paper timesheets and generate payroll-ready reports. Employees clock in and out by scanning a QR code with no app installs or logins, while managers monitor shifts and export clean attendance data. The current milestone is turning the demo into a sharper product experience through a public landing page and a more unified, recognizable QRShift visual identity, and Phases 1 and 2 have already established the brand foundation and public-facing landing page for that work.
 
 ## Core Value
 
@@ -17,11 +17,11 @@ Clock in with a QR code. No apps. No logins. Payroll-ready in seconds.
 - ✓ Managers can generate payroll-ready reports and export CSV data — existing
 - ✓ QRShift has a documented brand system with shared typography, color tokens, and structured UI rules — Phase 1
 - ✓ QRShift has reusable styling primitives and a branded proof surface to guide later screens — Phase 1
+- ✓ Visitors can understand QRShift, see core benefits, and identify best-fit business types from the homepage — Phase 2
+- ✓ The homepage now exposes public demo and contact CTAs while keeping an internal demo path secondary — Phase 2
 
 ### Active
 
-- [ ] Visitors can understand QRShift within 10 seconds from a landing page inside the existing app
-- [ ] Visitors can request a demo through Calendly and contact the founder through a direct email CTA
 - [ ] The product UI feels clean, operational, and distinctly QRShift across the landing page and core demo flows
 - [ ] The demo feels polished enough for customer and investor conversations while preserving the current lightweight attendance workflow
 
@@ -60,8 +60,8 @@ Best-fit customers for this version are small cafés and bubble tea shops, takea
 |----------|-----------|---------|
 | Keep the landing page inside the existing Next.js app | Lowest-cost way to add a public business face without creating a second system | ✓ Confirmed |
 | Optimize for demo-readiness before pilot-hardening | The immediate need is customer-facing polish and trust during conversations | ✓ Confirmed |
-| Use Calendly for demo booking | It gives a fast, no-custom-backend conversion path that notifies the founder automatically | ⚠️ Pending implementation |
-| Use direct email for contact CTA | It keeps contact simple and avoids building a form backend for v1 | ⚠️ Pending implementation |
+| Use Calendly for demo booking | It gives a fast, no-custom-backend conversion path that notifies the founder automatically | ✓ Implemented via site config |
+| Use direct email for contact CTA | It keeps contact simple and avoids building a form backend for v1 | ✓ Implemented via site config |
 | Focus on small single-location businesses with hourly staff | This segment matches the current lightweight product shape and founder capacity | ✓ Confirmed |
 | Keep QR + PIN as the current access model for this milestone | The goal is polish and positioning, not an auth-system rewrite | ✓ Confirmed |
 
@@ -83,4 +83,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after Phase 1 completion*
+*Last updated: 2026-04-09 after Phase 2 completion*

@@ -7,10 +7,10 @@
 
 ### Marketing Site
 
-- [ ] **MKTG-01**: Visitor can understand what QRShift does within 10 seconds of landing on the homepage
-- [ ] **MKTG-02**: Visitor can see QRShift's core benefits and best-fit business types without leaving the homepage
-- [ ] **MKTG-03**: Visitor can request a demo through a Calendly call-to-action from the homepage
-- [ ] **MKTG-04**: Visitor can contact the founder through a direct email call-to-action from the homepage
+- [x] **MKTG-01**: Visitor can understand what QRShift does within 10 seconds of landing on the homepage
+- [x] **MKTG-02**: Visitor can see QRShift's core benefits and best-fit business types without leaving the homepage
+- [x] **MKTG-03**: Visitor can request a demo through a Calendly call-to-action from the homepage
+- [x] **MKTG-04**: Visitor can contact the founder through a direct email call-to-action from the homepage
 
 ### Brand System
 
@@ -22,7 +22,7 @@
 
 - [ ] **UX-01**: Existing scan, dashboard, reports, and admin demo flows remain functional after the visual refresh
 - [ ] **UX-02**: Core product screens remain clear and usable on both mobile and desktop after redesign
-- [ ] **UX-03**: The landing page gives first-time visitors a clear path into the product demo experience
+- [x] **UX-03**: The landing page gives first-time visitors a clear path into the product demo experience
 
 ### Demo Release
 
@@ -75,11 +75,11 @@
 |-------------|-------|--------|
 | BRAND-01 | Phase 1 | Complete |
 | BRAND-03 | Phase 1 | Complete |
-| MKTG-01 | Phase 2 | Pending |
-| MKTG-02 | Phase 2 | Pending |
-| MKTG-03 | Phase 2 | Pending |
-| MKTG-04 | Phase 2 | Pending |
-| UX-03 | Phase 2 | Pending |
+| MKTG-01 | Phase 2 | Complete |
+| MKTG-02 | Phase 2 | Complete |
+| MKTG-03 | Phase 2 | Complete |
+| MKTG-04 | Phase 2 | Complete |
+| UX-03 | Phase 2 | Complete |
 | BRAND-02 | Phase 3 | Pending |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |
@@ -93,4 +93,4 @@
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after Phase 1 completion*
+*Last updated: 2026-04-09 after Phase 2 completion*

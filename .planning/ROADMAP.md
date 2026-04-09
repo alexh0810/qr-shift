@@ -11,7 +11,7 @@ This roadmap turns QRShift from a functional attendance demo into a sharper prod
 - Decimal phases (2.1, 2.2): Urgent insertions if needed later
 
 - [x] **Phase 1: Brand Foundation** - Define QRShift's visual language and shared UI primitives (completed 2026-04-09)
-- [ ] **Phase 2: Landing Page** - Ship a public-facing homepage that explains the product fast and drives contact
+- [x] **Phase 2: Landing Page** - Ship a public-facing homepage that explains the product fast and drives contact (completed 2026-04-09)
 - [ ] **Phase 3: Product Rebrand** - Apply the new identity and usability polish to the core demo flows
 - [ ] **Phase 4: Demo Release** - Validate the polished experience and prepare it for private demo sharing
 
@@ -43,12 +43,12 @@ Plans:
   2. The homepage clearly highlights the core product value and ideal customer fit.
   3. Visitors can request a demo through Calendly from the homepage.
   4. Visitors can contact the founder through the email call-to-action.
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 Plans:
-- [ ] 02-01: Create the landing page content structure and messaging hierarchy
-- [ ] 02-02: Implement the homepage sections, responsive layout, and conversion CTAs
-- [ ] 02-03: Connect the landing page cleanly to the product demo entry points
+- [x] 02-01: Create the landing page content structure and messaging hierarchy
+- [x] 02-02: Implement the homepage sections, responsive layout, and conversion CTAs
+- [x] 02-03: Connect the landing page cleanly to the product demo entry points
 
 ### Phase 3: Product Rebrand
 **Goal**: Apply the new QRShift identity and UX polish across the demo app without breaking core attendance and reporting behavior.
@@ -87,6 +87,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Brand Foundation | 3/3 | Complete | 2026-04-09 |
-| 2. Landing Page | 0/3 | Not started | - |
+| 2. Landing Page | 3/3 | Complete | 2026-04-09 |
 | 3. Product Rebrand | 0/4 | Not started | - |
 | 4. Demo Release | 0/2 | Not started | - |
