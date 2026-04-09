@@ -2,7 +2,7 @@
 
 ## What This Is
 
-QRShift is a simple, QR-based time tracking tool for small businesses to replace paper timesheets and generate payroll-ready reports. Employees clock in and out by scanning a QR code with no app installs or logins, while managers monitor shifts and export clean attendance data. The next release focuses on turning the current demo into a sharper product experience through a public landing page and a more unified, recognizable QRShift visual identity.
+QRShift is a simple, QR-based time tracking tool for small businesses to replace paper timesheets and generate payroll-ready reports. Employees clock in and out by scanning a QR code with no app installs or logins, while managers monitor shifts and export clean attendance data. The current milestone is turning the demo into a sharper product experience through a public landing page and a more unified, recognizable QRShift visual identity, and Phase 1 has already established the shared brand foundation for that work.
 
 ## Core Value
 
@@ -15,6 +15,8 @@ Clock in with a QR code. No apps. No logins. Payroll-ready in seconds.
 - ✓ Employees can clock in and out through a QR-based flow without logging in — existing
 - ✓ Managers can view who is currently working from a store dashboard — existing
 - ✓ Managers can generate payroll-ready reports and export CSV data — existing
+- ✓ QRShift has a documented brand system with shared typography, color tokens, and structured UI rules — Phase 1
+- ✓ QRShift has reusable styling primitives and a branded proof surface to guide later screens — Phase 1
 
 ### Active
 
@@ -56,12 +58,12 @@ Best-fit customers for this version are small cafés and bubble tea shops, takea
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Keep the landing page inside the existing Next.js app | Lowest-cost way to add a public business face without creating a second system | — Pending |
-| Optimize for demo-readiness before pilot-hardening | The immediate need is customer-facing polish and trust during conversations | — Pending |
-| Use Calendly for demo booking | It gives a fast, no-custom-backend conversion path that notifies the founder automatically | — Pending |
-| Use direct email for contact CTA | It keeps contact simple and avoids building a form backend for v1 | — Pending |
-| Focus on small single-location businesses with hourly staff | This segment matches the current lightweight product shape and founder capacity | — Pending |
-| Keep QR + PIN as the current access model for this milestone | The goal is polish and positioning, not an auth-system rewrite | ⚠️ Revisit |
+| Keep the landing page inside the existing Next.js app | Lowest-cost way to add a public business face without creating a second system | ✓ Confirmed |
+| Optimize for demo-readiness before pilot-hardening | The immediate need is customer-facing polish and trust during conversations | ✓ Confirmed |
+| Use Calendly for demo booking | It gives a fast, no-custom-backend conversion path that notifies the founder automatically | ⚠️ Pending implementation |
+| Use direct email for contact CTA | It keeps contact simple and avoids building a form backend for v1 | ⚠️ Pending implementation |
+| Focus on small single-location businesses with hourly staff | This segment matches the current lightweight product shape and founder capacity | ✓ Confirmed |
+| Keep QR + PIN as the current access model for this milestone | The goal is polish and positioning, not an auth-system rewrite | ✓ Confirmed |
 
 ## Evolution
 
@@ -81,4 +83,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after initialization*
+*Last updated: 2026-04-09 after Phase 1 completion*
