@@ -171,3 +171,17 @@ Motion should reinforce confidence and responsiveness.
 
 - Marketing surfaces can push the display font and motif system harder than product screens.
 - Even in marketing, the design should stay deliberate and structured rather than theatrical.
+
+## Do / Don't
+
+### Do
+
+- Do use QR geometry as a structural accent in headers, section frames, badges, and highlighted panels.
+- Do keep operational surfaces readable first, especially in scan, dashboard, and report contexts.
+- Do use the electric accent palette to create emphasis, hierarchy, and a recognizable QRShift signature.
+
+### Don't
+
+- Don't place busy QR-inspired patterns behind dense content, forms, or tables.
+- Don't let the electric palette overpower text readability or become the only source of visual hierarchy.
+- Don't soften the interface into oversized rounded, consumer-app styling that weakens the crisp structured language.
