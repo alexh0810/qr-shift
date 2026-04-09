@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
   CalendarDays,
+  Check,
   CheckCircle2,
   FileSpreadsheet,
   Layers3,
@@ -51,17 +51,9 @@ export default function Home() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-12">
         <header className="sticky top-4 z-20 flex flex-col gap-5 rounded-[32px] border border-surfacestroke bg-surface/90 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <BrandMark />
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-surfacestroke bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-              QR-Based Attendance
-            </span>
-            <a
-              href={siteConfig.INTERNAL_DEMO_PATH}
-              className="inline-flex items-center justify-center rounded-full border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-text-muted transition-colors hover:border-border-strong hover:text-foreground"
-            >
-              Open Demo Admin
-            </a>
-          </div>
+          <span className="w-fit rounded-full border border-surfacestroke bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
+            QR-Based Attendance
+          </span>
         </header>
 
         <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
@@ -234,6 +226,46 @@ export default function Home() {
         </SectionBlock>
 
         <SectionBlock
+          eyebrow="What customers get"
+          title="Built to make time tracking easier to trust day to day."
+          description="The product is designed to remove the friction around attendance tracking while still giving owners the information they actually need to run payroll and manage shifts."
+        >
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[
+              {
+                title: "Faster staff adoption",
+                body: "Teams can start scanning without app installs, passwords, or extra onboarding overhead.",
+              },
+              {
+                title: "Cleaner payroll handoff",
+                body: "Worked time is already shaped into report-friendly decimal-hour exports for payroll use.",
+              },
+              {
+                title: "More confidence on busy days",
+                body: "Managers can check who is on shift in real time instead of relying on paper or memory.",
+              },
+              {
+                title: "Simple setup for small teams",
+                body: "QRShift is built for owner-led businesses that need a lightweight tool, not a heavyweight platform rollout.",
+              },
+            ].map(({ title, body }) => (
+              <div
+                key={title}
+                className="rounded-[24px] border border-surfacestroke bg-background/80 p-5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <Check className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-lg font-semibold text-foreground">{title}</p>
+                </div>
+                <p className="mt-3 text-sm leading-7 text-text-muted">{body}</p>
+              </div>
+            ))}
+          </div>
+        </SectionBlock>
+
+        <SectionBlock
           eyebrow="Request a demo"
           title="See how QRShift can replace paper timesheets in your business."
           description="If you want a quick walkthrough, book a demo. If you would rather start with a conversation, send an email directly."
@@ -265,22 +297,6 @@ export default function Home() {
                 Contact
               </a>
             </div>
-          </div>
-
-          <div className="relative mt-8 rounded-[24px] border border-dashed border-surfacestroke bg-background/70 px-5 py-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-              Internal Demo Access
-            </p>
-            <p className="mt-3 text-base font-semibold text-foreground">
-              Need to create a demo store or generate QR data?
-            </p>
-            <a
-              href={siteConfig.INTERNAL_DEMO_PATH}
-              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"
-            >
-              Open Administrator Portal
-              <ArrowRight className="h-4 w-4" />
-            </a>
           </div>
         </SectionBlock>
       </div>
