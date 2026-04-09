@@ -3,32 +3,97 @@
 @tailwind utilities;
 
 :root {
-  --background: #F9FAF6;
-  --foreground: #1F2937;
-  --primary: #2B59FF;
-  --primary-dark: #1E40AF;
-  --secondary: #6366F1;
-  --success: #22C55E;
-  --error: #F97316;
-  --surface: #ffffff;
-  --surfacestroke: #f3f4f6;
+  --color-bg-canvas: #f4f7fb;
+  --color-bg-elevated: #edf2ff;
+  --color-surface: #ffffff;
+  --color-text-primary: #0f172a;
+  --color-text-muted: #5b6478;
+  --color-accent-electric: #245cff;
+  --color-accent-signal: #1ed7b5;
+  --color-border-soft: #dbe2f0;
+  --color-border-strong: #8da0c8;
+  --radius-panel: 24px;
+  --radius-control: 18px;
+  --shadow-panel: 0 20px 60px rgba(15, 23, 42, 0.08);
+
+  --background: var(--color-bg-canvas);
+  --foreground: var(--color-text-primary);
+  --primary: var(--color-accent-electric);
+  --primary-dark: #163dba;
+  --secondary: var(--color-accent-signal);
+  --success: #1ec97d;
+  --error: #ff6b47;
+  --surface: var(--color-surface);
+  --surfacestroke: var(--color-border-soft);
 }
 
 .dark {
-  --background: #0B0E14;
-  --foreground: #F9FAF6;
-  --surface: #111827;
-  --surfacestroke: #1f2937;
-  /* We keep the vibrant primaries in dark mode to retain the aesthetic */
+  --color-bg-canvas: #08101f;
+  --color-bg-elevated: #0e1930;
+  --color-surface: #111c34;
+  --color-text-primary: #eff4ff;
+  --color-text-muted: #8e9bb8;
+  --color-accent-electric: #6b8bff;
+  --color-accent-signal: #45e6c7;
+  --color-border-soft: #233352;
+  --color-border-strong: #536a97;
+  --shadow-panel: 0 20px 60px rgba(3, 8, 20, 0.45);
+
+  --background: var(--color-bg-canvas);
+  --foreground: var(--color-text-primary);
+  --surface: var(--color-surface);
+  --surfacestroke: var(--color-border-soft);
+}
+
+@layer base {
+  body {
+    color: var(--color-text-primary);
+    background:
+      radial-gradient(circle at top left, color-mix(in srgb, var(--color-accent-electric) 12%, transparent) 0, transparent 32%),
+      linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-canvas) 24%, var(--color-bg-canvas) 100%);
+    font-family: var(--font-body), system-ui, sans-serif;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent-electric) 28%, white);
+    color: var(--color-text-primary);
+  }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  min-height: 100vh;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .font-display {
+    font-family: var(--font-display), system-ui, sans-serif;
+  }
+
+  .font-body {
+    font-family: var(--font-body), system-ui, sans-serif;
+  }
+
+  .font-mono-brand {
+    font-family: var(--font-mono), monospace;
+  }
+
+  .border-border-strong {
+    border-color: var(--color-border-strong);
+  }
+
+  .text-text-muted {
+    color: var(--color-text-muted);
+  }
+
+  .qr-grid-accent {
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--color-accent-electric) 14%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-accent-electric) 14%, transparent) 1px, transparent 1px);
+    background-size: 18px 18px;
+    background-position: center;
   }
 }
