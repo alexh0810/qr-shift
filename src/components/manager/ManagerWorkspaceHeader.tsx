@@ -1,13 +1,13 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-type HeaderAction =
-  | React.ReactNode
-  | {
-      label: string;
-      href: string;
-      icon?: React.ReactNode;
-    };
+interface HeaderLinkAction {
+  label: string;
+  href: string;
+  icon?: React.ReactNode;
+}
+
+type HeaderAction = React.ReactNode | HeaderLinkAction;
 
 export interface ManagerWorkspaceNavItem {
   label: string;
@@ -24,12 +24,21 @@ interface ManagerWorkspaceHeaderProps {
   statusBadge?: React.ReactNode;
 }
 
+function isHeaderLinkAction(action: HeaderAction): action is HeaderLinkAction {
+  return (
+    typeof action === "object" &&
+    action !== null &&
+    "label" in action &&
+    "href" in action
+  );
+}
+
 function renderAction(action?: HeaderAction, tone: "primary" | "secondary" = "secondary") {
   if (!action) {
     return null;
   }
 
-  if ("label" in action) {
+  if (isHeaderLinkAction(action)) {
     return (
       <Link
         href={action.href}
