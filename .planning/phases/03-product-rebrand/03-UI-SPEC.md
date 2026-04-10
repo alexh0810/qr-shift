@@ -63,11 +63,12 @@ Layout rhythm rules:
 | Body | 16px | 500 | 1.5 |
 | Label | 14px | 700 | 1.4 |
 | Heading | 28px | 700 | 1.15 |
-| Display | 40px desktop / 34px mobile | 700 | 1.0 |
+| Display | 40px | 700 | 1.0 |
 
 Typography rules:
 - Use only two weights in Phase 3: `500` for body and `700` for emphasis, headings, labels, and totals.
 - `Space Grotesk` is reserved for workspace page titles, scan success headlines, and selective branded callouts. Do not use it in dense tables, filter controls, or forms.
+- `Display` is one responsive token. It may scale fluidly on smaller screens, but it must not introduce an additional named font size in the contract.
 - `Geist` remains the default for table headings, row content, form labels, filters, buttons, empty states, and helper text.
 - `Geist Mono` is required for PIN entry, time values, duration totals, CSV/export-oriented metrics, and QR/store token displays.
 - Dashboard and reports section labels should use uppercase micro-labels sparingly, with clear spacing and no decorative overuse.
