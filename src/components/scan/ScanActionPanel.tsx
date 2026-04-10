@@ -80,6 +80,15 @@ export function ScanActionPanel({
         </span>
       </div>
 
+      <div className="mt-4 rounded-[20px] border border-primary/10 bg-primary/5 px-4 py-3">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+          Next action
+        </p>
+        <p className="mt-2 text-base font-bold text-foreground">
+          {nextAction === "IN" ? "Clock in to start this shift." : "Clock out to end this shift."}
+        </p>
+      </div>
+
       <div className="mt-6 rounded-[20px] border border-surfacestroke bg-background px-4 py-4">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
           Current status
@@ -116,7 +125,7 @@ export function ScanActionPanel({
         {actionLoading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : (
-          `Clock ${nextAction}`
+          nextAction === "IN" ? "Clock In Now" : "Clock Out Now"
         )}
       </button>
 

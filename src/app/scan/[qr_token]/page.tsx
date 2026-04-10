@@ -136,7 +136,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
           <BrandMark showWordmark={false} />
           <Loader2 className="mt-6 h-8 w-8 animate-spin text-primary" />
           <p className="mt-4 text-sm font-medium text-text-muted">
-            Loading your QRShift scan screen...
+            Loading your QRShift clock screen...
           </p>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
               {store?.name ?? "QRShift"}
             </h1>
             <p className="mt-2 text-sm font-medium text-text-muted">
-              Choose your name, check your status, and confirm the next action.
+              Choose your name, check your current status, then confirm your next action.
             </p>
           </div>
         </header>
@@ -191,7 +191,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
               No employees found for this store.
             </p>
             <p className="mt-2 text-sm font-medium text-text-muted">
-              Add employees in the manager workspace, then reopen this QR link.
+              Ask your manager to add employees, then reopen this QR link.
             </p>
           </div>
         ) : (
