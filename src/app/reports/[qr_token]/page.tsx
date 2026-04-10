@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { endOfDay, endOfWeek, format, isWithinInterval, startOfDay, startOfWeek } from "date-fns";
 import { Download, Loader2, LogOut, RefreshCw, Sparkles } from "lucide-react";
-import Link from "next/link";
 
 import PinGuard from "@/components/PinGuard";
 import { ManagerWorkspaceHeader } from "@/components/manager/ManagerWorkspaceHeader";
