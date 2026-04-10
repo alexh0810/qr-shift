@@ -4,7 +4,19 @@ import { useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { nanoid } from "nanoid";
 import { createDemoStoreWithTimelogs, createStoreAndEmployees } from "@/lib/db";
-import { Loader2, Download, Store as StoreIcon, PlusCircle, CheckCircle2, FlaskConical } from "lucide-react";
+import {
+  Loader2,
+  Download,
+  Store as StoreIcon,
+  PlusCircle,
+  CheckCircle2,
+  FlaskConical,
+  ShieldCheck,
+  QrCode,
+  ArrowRight,
+  AlertCircle,
+  RefreshCcw,
+} from "lucide-react";
 
 export default function AdminCreateStore() {
   const [storeName, setStoreName] = useState("");
@@ -13,30 +25,46 @@ export default function AdminCreateStore() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
-  
+  const [storeCreationError, setStoreCreationError] = useState("");
+  const [demoStoreError, setDemoStoreError] = useState("");
+
   const qrRef = useRef<SVGSVGElement>(null);
+
+  const resetFlow = () => {
+    setSuccess(false);
+    setStoreName("");
+    setPin("");
+    setEmployeesInput("");
+    setGeneratedToken(null);
+    setStoreCreationError("");
+    setDemoStoreError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeName.trim() || !employeesInput.trim() || !pin.trim()) return;
 
+    setStoreCreationError("");
+    setDemoStoreError("");
     setLoading(true);
     try {
       const token = nanoid(10); // 10 chars is secure enough and short
-      const names = employeesInput.split("\n").filter(n => n.trim().length > 0);
-      
+      const names = employeesInput.split("\n").filter((n) => n.trim().length > 0);
+
       await createStoreAndEmployees(storeName, token, pin, names);
-      
+
       setGeneratedToken(token);
       setSuccess(true);
     } catch {
-      alert("Failed to create store. Check console.");
+      setStoreCreationError("Failed to create store. Check the details and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleCreateDemoStore = async () => {
+    setStoreCreationError("");
+    setDemoStoreError("");
     setLoading(true);
     try {
       const token = nanoid(10);
@@ -48,7 +76,7 @@ export default function AdminCreateStore() {
       setGeneratedToken(token);
       setSuccess(true);
     } catch {
-      alert("Failed to create demo store. Check console.");
+      setDemoStoreError("Failed to create demo store. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -90,147 +118,273 @@ export default function AdminCreateStore() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-secondary p-6 flex flex-col items-center">
-      <div className="max-w-xl w-full">
-        <header className="mb-8 text-center mt-8">
-          <div className="w-16 h-16 bg-white/20 text-white rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <StoreIcon className="w-8 h-8" />
+    <div className="min-h-screen bg-[linear-gradient(180deg,rgba(36,92,255,0.08),rgba(244,247,251,0)_28%),var(--background)] px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <header className="overflow-hidden rounded-[var(--radius-panel)] border border-surfacestroke bg-surface shadow-[var(--shadow-panel)]">
+          <div className="grid gap-6 px-5 py-6 sm:px-8 sm:py-8 lg:grid-cols-[1.3fr_0.9fr] lg:items-end">
+            <div className="space-y-4">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[color:rgba(36,92,255,0.18)] bg-[color:rgba(36,92,255,0.08)] text-primary">
+                <StoreIcon className="h-6 w-6" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                  QRShift Internal Setup
+                </p>
+                <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  Create a store, seed a demo, and hand off a working QR in one pass.
+                </h1>
+                <p className="max-w-2xl text-sm text-text-muted sm:text-base">
+                  This route is for owner-led setup only. Store creation, demo seeding, and QR export all stay in the existing QRShift flow.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="rounded-[var(--radius-panel)] border border-surfacestroke bg-background px-4 py-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Guardrails
+                </div>
+                <p className="mt-2 text-sm text-foreground">Required fields and numeric PIN constraints stay intact.</p>
+              </div>
+              <div className="rounded-[var(--radius-panel)] border border-surfacestroke bg-background px-4 py-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                  <QrCode className="h-4 w-4 text-primary" />
+                  Output
+                </div>
+                <p className="mt-2 text-sm text-foreground">Every successful setup ends with a scan-ready QR and token.</p>
+              </div>
+              <div className="rounded-[var(--radius-panel)] border border-surfacestroke bg-background px-4 py-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-text-muted">
+                  <FlaskConical className="h-4 w-4 text-primary" />
+                  Demo Seed
+                </div>
+                <p className="mt-2 text-sm text-foreground">Fake timelogs remain available for dashboard and report walkthroughs.</p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white">Create New Store</h1>
-          <p className="text-white/70 mt-2">Admin Onboarding Portal</p>
         </header>
 
-        {success && generatedToken ? (
-          <div className="bg-surface p-8 rounded-[32px] shadow-xl border border-surfacestroke text-center animate-in slide-in-from-bottom-4">
-            <div className="flex justify-center mb-6">
-              <CheckCircle2 className="w-16 h-16 text-success" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Store Created!</h2>
-            <p className="text-foreground/60 mb-8">
-              Store <strong>{storeName}</strong> has been created with its employees.
-            </p>
-
-            <div className="bg-background p-6 rounded-2xl inline-block mb-6 border border-surfacestroke">
-              <QRCodeSVG 
-                value={`${window.location.origin}/scan/${generatedToken}`}
-                size={200}
-                level="H"
-                includeMargin
-                ref={qrRef}
-              />
-              <p className="text-sm text-foreground/50 font-mono mt-4 break-all max-w-[200px] mx-auto">
-                {generatedToken}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <section className="rounded-[var(--radius-panel)] border border-surfacestroke bg-surface px-5 py-6 shadow-[var(--shadow-panel)] sm:px-6 sm:py-7">
+            <div className="mb-6 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Setup Details
+              </p>
+              <h2 className="font-display text-2xl font-bold text-foreground">Store onboarding</h2>
+              <p className="text-sm text-text-muted">
+                Add the store name, choose a manager PIN, and paste one employee per line.
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 max-w-sm mx-auto">
-              <button
-                onClick={downloadQR}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-full font-bold hover:bg-primary-dark transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                Download printable QR
-              </button>
-              
-              <button
-                onClick={() => {
-                  setSuccess(false);
-                  setStoreName("");
-                  setEmployeesInput("");
-                  setGeneratedToken(null);
-                }}
-                className="w-full text-foreground/50 font-medium py-3 hover:text-foreground transition-colors"
-              >
-                Create another store
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="bg-surface p-8 rounded-[32px] shadow-xl border border-surfacestroke">
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-foreground/80 mb-2">
-                  Store Name
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={storeName}
-                  onChange={e => setStoreName(e.target.value)}
-                  placeholder="e.g. Downtown Coffee"
-                  className="w-full p-3 bg-background text-foreground border border-surfacestroke rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                />
+            {!success ? (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-foreground/80">Store Name</label>
+                  <input
+                    required
+                    type="text"
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    placeholder="e.g. Downtown Coffee"
+                    className="h-11 w-full rounded-[var(--radius-control)] border border-surfacestroke bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-[color:rgba(36,92,255,0.2)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-foreground/80">Manager PIN</label>
+                  <input
+                    required
+                    type="text"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    placeholder="e.g. 1234"
+                    className="h-11 w-full rounded-[var(--radius-control)] border border-surfacestroke bg-background px-4 font-mono text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-[color:rgba(36,92,255,0.2)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-foreground/80">Employee Names</label>
+                  <p className="mb-2 text-xs text-text-muted">Enter one name per line. Example: Alice, Bob, Charlie.</p>
+                  <textarea
+                    required
+                    value={employeesInput}
+                    onChange={(e) => setEmployeesInput(e.target.value)}
+                    placeholder={"Alice\nBob\nCharlie"}
+                    rows={7}
+                    className="w-full rounded-[var(--radius-control)] border border-surfacestroke bg-background px-4 py-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-[color:rgba(36,92,255,0.2)]"
+                  />
+                </div>
+
+                {storeCreationError ? (
+                  <div className="rounded-[var(--radius-control)] border border-[color:rgba(255,107,71,0.3)] bg-[color:rgba(255,107,71,0.08)] px-4 py-3 text-sm text-foreground">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[color:#ff6b47]" />
+                      <p>{storeCreationError}</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {demoStoreError ? (
+                  <div className="rounded-[var(--radius-control)] border border-[color:rgba(255,107,71,0.3)] bg-[color:rgba(255,107,71,0.08)] px-4 py-3 text-sm text-foreground">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[color:#ff6b47]" />
+                      <p>{demoStoreError}</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-col gap-3 lg:flex-row">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="min-h-[44px] h-11 flex-1 rounded-[var(--radius-control)] bg-primary px-4 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      {loading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <>
+                          <PlusCircle className="h-5 w-5" />
+                          Create Store & Generate QR
+                        </>
+                      )}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCreateDemoStore}
+                    disabled={loading}
+                    className="min-h-[44px] h-11 flex-1 rounded-[var(--radius-control)] border border-surfacestroke bg-background px-4 text-sm font-bold text-foreground transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      {loading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <>
+                          <FlaskConical className="h-5 w-5" />
+                          Create demo store
+                        </>
+                      )}
+                    </span>
+                  </button>
+                </div>
+
+                <p className="text-xs text-text-muted">
+                  Demo data includes multiple shifts, a missing clock-out, a cross-day shift, and a micro-shift for report testing.
+                </p>
+              </form>
+            ) : (
+              <div className="space-y-5">
+                <div className="rounded-[var(--radius-panel)] border border-[color:rgba(30,215,181,0.26)] bg-[color:rgba(30,215,181,0.08)] px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[color:#1ed7b5]" />
+                    <div>
+                      <h3 className="font-display text-xl font-bold text-foreground">Store ready</h3>
+                      <p className="mt-1 text-sm text-text-muted">
+                        <span className="font-bold text-foreground">{storeName}</span> is set up and the QR link is ready to share.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-[var(--radius-panel)] border border-surfacestroke bg-background px-4 py-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Store token</p>
+                    <p className="mt-2 break-all font-mono text-base font-bold text-foreground">{generatedToken}</p>
+                  </div>
+                  <div className="rounded-[var(--radius-panel)] border border-surfacestroke bg-background px-4 py-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Next step</p>
+                    <p className="mt-2 text-sm text-foreground">Print the QR, place it near the shift start point, and test one scan flow.</p>
+                  </div>
+                </div>
+
+                <div className="rounded-[var(--radius-panel)] border border-dashed border-surfacestroke bg-background px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Setup notes</p>
+                  <div className="mt-3 space-y-2 text-sm text-foreground">
+                    <div className="flex items-start gap-2">
+                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <p>Scan URL: <span className="font-mono text-xs sm:text-sm">{`${window.location.origin}/scan/${generatedToken}`}</span></p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <p>Manager PIN stays on the store record exactly as entered.</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <p>Demo stores include seeded shifts for dashboard and payroll report walkthroughs.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 lg:flex-row">
+                  <button
+                    onClick={downloadQR}
+                    className="min-h-[44px] h-11 flex-1 rounded-[var(--radius-control)] bg-primary px-4 text-sm font-bold text-white transition hover:brightness-110"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <Download className="h-5 w-5" />
+                      Download printable QR
+                    </span>
+                  </button>
+                  <button
+                    onClick={resetFlow}
+                    className="min-h-[44px] h-11 flex-1 rounded-[var(--radius-control)] border border-surfacestroke bg-background px-4 text-sm font-bold text-foreground transition hover:border-primary hover:text-primary"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <RefreshCcw className="h-4 w-4" />
+                      Create another store
+                    </span>
+                  </button>
+                </div>
               </div>
+            )}
+          </section>
 
-              <div>
-                <label className="block text-sm font-bold text-foreground/80 mb-2">
-                  Manager PIN
-                </label>
-                <input
-                  required
-                  type="text"
-                  pattern="[0-9]*"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={pin}
-                  onChange={e => setPin(e.target.value)}
-                  placeholder="e.g. 1234"
-                  className="w-full p-3 bg-background text-foreground border border-surfacestroke rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-foreground/80 mb-2">
-                  Employee Names
-                </label>
-                <p className="text-xs text-foreground/50 mb-2">Enter one name per line.</p>
-                <textarea
-                  required
-                  value={employeesInput}
-                  onChange={e => setEmployeesInput(e.target.value)}
-                  placeholder="Alice&#10;Bob&#10;Charlie"
-                  rows={6}
-                  className="w-full p-3 bg-background text-foreground border border-surfacestroke rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-white py-4 px-4 rounded-full font-bold hover:bg-primary-dark transition-transform active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100"
-              >
-                {loading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <PlusCircle className="w-5 h-5" />
-                    Create Store & Generate QR
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCreateDemoStore}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-secondary text-white py-4 px-4 rounded-full font-bold hover:opacity-90 transition-transform active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100"
-              >
-                {loading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <FlaskConical className="w-5 h-5" />
-                    Create demo store with fake reports data
-                  </>
-                )}
-              </button>
-
-              <p className="text-xs text-foreground/50 text-center">
-                Demo data includes multiple shifts, a missing clock-out, a cross-day shift, and a micro-shift for report testing.
+          <aside className="rounded-[var(--radius-panel)] border border-surfacestroke bg-surface px-5 py-6 shadow-[var(--shadow-panel)] sm:px-6 sm:py-7">
+            <div className="mb-6 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                QR Delivery
+              </p>
+              <h2 className="font-display text-2xl font-bold text-foreground">Success surface</h2>
+              <p className="text-sm text-text-muted">
+                The QR, token, and immediate handoff actions stay visible here after setup.
               </p>
             </div>
-          </form>
-        )}
+
+            {success && generatedToken ? (
+              <div className="space-y-5">
+                <div className="flex justify-center rounded-[var(--radius-panel)] border border-surfacestroke bg-background px-4 py-5">
+                  <div className="rounded-[24px] border border-surfacestroke bg-white p-4 shadow-sm">
+                    <QRCodeSVG
+                      value={`${window.location.origin}/scan/${generatedToken}`}
+                      size={220}
+                      level="H"
+                      includeMargin
+                      ref={qrRef}
+                    />
+                  </div>
+                </div>
+                <div className="rounded-[var(--radius-panel)] border border-surfacestroke bg-background px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Printable label</p>
+                  <p className="mt-2 text-lg font-bold text-foreground">{storeName}</p>
+                  <p className="mt-1 break-all font-mono text-sm text-text-muted">{generatedToken}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-[var(--radius-panel)] border border-dashed border-surfacestroke bg-background px-4 py-5">
+                <p className="text-sm font-bold text-foreground">Nothing generated yet.</p>
+                <p className="mt-2 text-sm text-text-muted">
+                  Once you create a store or seed a demo, QRShift will show the generated QR, token, and handoff checklist here.
+                </p>
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
     </div>
   );
