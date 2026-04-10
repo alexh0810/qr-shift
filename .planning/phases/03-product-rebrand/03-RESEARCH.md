@@ -342,17 +342,17 @@ export default function Loading() {
 | A1 | A new component library would add unnecessary migration overhead for this phase. [ASSUMED] | Standard Stack / Alternatives Considered | Low; the planner might over-constrain implementation style, but the locked UI contract still rules out introducing one by default. |
 | A2 | Rebuilding reports UI from scratch would increase regression risk more than wrapping existing modules. [ASSUMED] | Standard Stack / Alternatives Considered | Medium; if the current report components prove too rigid, the planner may need to allow broader presentation refactors while preserving behavior. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should the manager shell be a shared component only, or a deeper App Router layout refactor?**
+1. **RESOLVED 2026-04-10: The manager shell should be implemented as shared components, not as an App Router layout refactor in Phase 3.**
    - What we know: Existing paths already work, and the phase value is visual coherence rather than routing changes. [VERIFIED: ROADMAP.md] [VERIFIED: codebase grep]
-   - What's unclear: Whether the planner wants the smallest-risk component extraction or a route-tree cleanup while touching the same pages. [VERIFIED: codebase grep]
-   - Recommendation: Plan for shared components first; only escalate to route-tree changes if duplication remains materially high after shell extraction. [VERIFIED: codebase grep]
+   - Resolution: Use shared `ManagerWorkspaceShell` and `ManagerWorkspaceHeader` primitives for dashboard and reports, preserving route structure while enabling the deep redesign required by D-04. [VERIFIED: 03-01-PLAN.md] [VERIFIED: 03-03-PLAN.md]
+   - Why this closes the question: It keeps regression risk lower for realtime dashboard/report behavior while still forcing a workspace-level redesign instead of isolated cosmetic edits. [VERIFIED: 03-CONTEXT.md] [VERIFIED: 03-03-PLAN.md]
 
-2. **Should Phase 3 include replacing the placeholder CTA values in `src/lib/site-config.ts`?**
+2. **RESOLVED 2026-04-10: Phase 3 should not include replacing the placeholder CTA values in `src/lib/site-config.ts`.**
    - What we know: `STATE.md` flags placeholder Calendly/contact values as an active concern before external demos. [VERIFIED: STATE.md]
-   - What's unclear: That concern affects demo readiness, but it is not one of Phase 3’s locked requirement IDs. [VERIFIED: REQUIREMENTS.md]
-   - Recommendation: Keep it visible as follow-on or Phase 4 unless the planner wants a small opportunistic cleanup task. [VERIFIED: REQUIREMENTS.md] [VERIFIED: STATE.md]
+   - Resolution: Leave CTA-value replacement out of Phase 3 because it is not required by `BRAND-02`, `UX-01`, or `UX-02`, and the current phase is scoped to product-surface redesign rather than site-config content changes. [VERIFIED: REQUIREMENTS.md] [VERIFIED: ROADMAP.md]
+   - Why this closes the question: It preserves scope fidelity to the locked Phase 3 decisions while keeping the CTA cleanup visible as follow-on work before external demos. [VERIFIED: STATE.md]
 
 ## Environment Availability
 
