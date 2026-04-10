@@ -1,9 +1,10 @@
 {
-  "name": "Shiftly",
-  "short_name": "Shiftly",
+  "name": "QRShift",
+  "short_name": "QRShift",
+  "description": "QR-based time tracking for small businesses. Clock in with a QR code. No apps. No logins. Payroll-ready in seconds.",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#22C55E",
+  "theme_color": "#2B59FF",
   "icons": [
     {
       "src": "/icons/icon-192.png",
