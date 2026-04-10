@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { endOfDay, endOfWeek, format, isWithinInterval, startOfDay, startOfWeek } from "date-fns";
-import { ArrowLeft, Loader2, LogOut, RefreshCw, Share } from "lucide-react";
+import { Download, Loader2, LogOut, RefreshCw, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import PinGuard from "@/components/PinGuard";
+import { ManagerWorkspaceHeader } from "@/components/manager/ManagerWorkspaceHeader";
+import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShell";
 import { AllEmployeesTimesheetTable } from "@/features/reports/components/AllEmployeesTimesheetTable";
 import { EmployeeReportDetail } from "@/features/reports/components/EmployeeReportDetail";
 import { EmployeeSelect } from "@/features/reports/components/EmployeeSelect";
@@ -184,69 +186,122 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
 
   return (
     <PinGuard qr_token={params.qr_token}>
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-5xl mx-auto">
-          <header className="mb-8 sticky top-3 z-10 flex flex-col gap-4 rounded-[32px] border border-surfacestroke bg-surface/95 p-6 shadow-xl backdrop-blur md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-3">
-                <Link
-                  href={`/dashboard/${params.qr_token}`}
-                  className="rounded-full bg-surfacestroke p-2 text-foreground/40 transition-colors hover:text-foreground/70"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Link>
-                <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem(`store_${params.qr_token}_unlocked`);
-                    window.location.reload();
-                  }}
-                  className="ml-1 text-foreground/40 transition-colors hover:text-error"
-                  title="Lock Reports"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
+      <ManagerWorkspaceShell
+        qrToken={params.qr_token}
+        currentPath={`/reports/${params.qr_token}`}
+      >
+        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+          <ManagerWorkspaceHeader
+            eyebrow="Scan -> Monitor -> Export"
+            title={`${store?.name ?? "QRShift"} Reports`}
+            description="Review payroll-ready rows, keep local edit behavior explicit, and export the selected date range from the same manager workspace."
+            primaryAction={{
+              label: "Back to Dashboard",
+              href: `/dashboard/${params.qr_token}`,
+            }}
+            secondaryAction={
+              <button
+                onClick={() => {
+                  localStorage.removeItem(`store_${params.qr_token}_unlocked`);
+                  window.location.reload();
+                }}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-background"
+                title="Lock manager access"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Lock manager access</span>
+              </button>
+            }
+            statusBadge={
+              <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+                <Sparkles className="h-4 w-4" />
+                <span>{reportData.length} report group{reportData.length === 1 ? "" : "s"}</span>
               </div>
-              <p className="text-sm text-foreground/60">{store?.name} Timesheets</p>
-            </div>
+            }
+          />
 
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <div className="flex w-full items-center rounded-2xl border border-surfacestroke bg-surfacestroke p-1 sm:w-auto">
-                <input
-                  type="date"
-                  value={dateStrStart}
-                  onChange={(event) => setDateStrStart(event.target.value)}
-                  className="w-full flex-1 border-none bg-transparent px-1 text-[13px] font-medium text-foreground outline-none sm:text-sm"
-                />
-                <span className="px-1 text-sm text-foreground/40">to</span>
-                <input
-                  type="date"
-                  value={dateStrEnd}
-                  onChange={(event) => setDateStrEnd(event.target.value)}
-                  className="w-full flex-1 border-none bg-transparent px-1 text-[13px] font-medium text-foreground outline-none sm:text-sm"
-                />
+          <section className="rounded-[28px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
+                    Export controls
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-foreground">
+                    Selected payroll range
+                  </h2>
+                </div>
+                <p className="max-w-2xl text-sm font-medium leading-6 text-text-muted">
+                  Adjusting times below updates this browser&apos;s export output only. The current in-memory edit model is unchanged.
+                </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={fetchAndCalculate}
-                  disabled={calculating}
-                  className="flex h-10 flex-1 items-center justify-center rounded-full bg-primary p-2.5 text-white transition-colors active:scale-95 hover:bg-primary-dark disabled:opacity-70 sm:flex-none"
-                >
-                  <RefreshCw className={`w-5 h-5 ${calculating ? "animate-spin" : ""}`} />
-                </button>
-                {reportData.length > 0 ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:justify-end">
+                <div className="flex min-h-[44px] flex-col gap-2 rounded-[20px] border border-surfacestroke bg-background px-3 py-3 sm:flex-row sm:items-center">
+                  <input
+                    type="date"
+                    value={dateStrStart}
+                    onChange={(event) => setDateStrStart(event.target.value)}
+                    className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
+                  />
+                  <span className="px-1 text-center text-sm font-semibold text-text-muted">to</span>
+                  <input
+                    type="date"
+                    value={dateStrEnd}
+                    onChange={(event) => setDateStrEnd(event.target.value)}
+                    className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <button
-                    onClick={downloadCsv}
-                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-white transition-colors active:scale-95 hover:bg-primary-dark sm:flex-none"
+                    onClick={fetchAndCalculate}
+                    disabled={calculating}
+                    className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface disabled:opacity-70"
                   >
-                    <Share className="w-4 h-4" />
-                    <span>Export</span>
+                    <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
+                    <span>{calculating ? "Refreshing" : "Refresh range"}</span>
                   </button>
-                ) : null}
+                  {reportData.length > 0 ? (
+                    <button
+                      onClick={downloadCsv}
+                      className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Export Payroll Report</span>
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
-          </header>
+          </section>
+
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">Employees</p>
+              <p className="mt-4 font-mono-brand text-3xl font-bold tracking-[-0.04em] text-foreground">{employees.length.toString().padStart(2, "0")}</p>
+              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">People included in the current workspace.</p>
+            </article>
+            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">Report Rows</p>
+              <p className="mt-4 font-mono-brand text-3xl font-bold tracking-[-0.04em] text-foreground">
+                {reportData.reduce((total, report) => total + report.timesheetRows.length, 0).toString().padStart(2, "0")}
+              </p>
+              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">Rows visible before CSV export.</p>
+            </article>
+            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">Payroll Total</p>
+              <p className="mt-4 font-mono-brand text-3xl font-bold tracking-[-0.04em] text-foreground">{globalSummary.totalHoursDecimal.toFixed(2)} h</p>
+              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">Decimal hours across the selected period.</p>
+            </article>
+            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">View</p>
+              <p className="mt-4 text-2xl font-bold tracking-[-0.04em] text-foreground">
+                {selectedEmployeeId === "ALL" ? "All Employees" : selectedReport?.name ?? "Employee Detail"}
+              </p>
+              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">Switch between workspace-wide and single-person review.</p>
+            </article>
+          </section>
 
           <div className="mb-6">
             <EmployeeSelect
@@ -258,7 +313,7 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
           </div>
 
           {error ? (
-            <div className="mb-6 rounded-2xl bg-error/10 p-4 text-center font-medium text-error shadow-sm">
+            <div className="rounded-[22px] border border-[color:color-mix(in_srgb,var(--error)_24%,var(--color-border-soft))] bg-error/10 px-4 py-4 text-sm font-semibold text-error">
               {error}
             </div>
           ) : null}
@@ -273,14 +328,26 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
                 />
 
                 {reportData.length > 0 ? (
-                  <div className="rounded-3xl border border-surfacestroke bg-surface p-6 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/45">
-                      Total Hours (All Employees)
-                    </p>
-                    <ReportSummaryCards
-                      totalHours={globalSummary.totalHoursDecimal}
-                      durationLabel={globalSummary.display}
-                    />
+                  <div className="rounded-[28px] border border-surfacestroke bg-surface p-5 shadow-[var(--shadow-panel)] sm:p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
+                          All employees summary
+                        </p>
+                        <h3 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-foreground">
+                          Export-ready totals
+                        </h3>
+                      </div>
+                      <p className="max-w-xl text-sm font-medium leading-6 text-text-muted">
+                        Totals below reflect the same local row edits shown in the table and the CSV export.
+                      </p>
+                    </div>
+                    <div className="mt-5">
+                      <ReportSummaryCards
+                        totalHours={globalSummary.totalHoursDecimal}
+                        durationLabel={globalSummary.display}
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -294,7 +361,7 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
             )}
           </div>
         </div>
-      </div>
+      </ManagerWorkspaceShell>
     </PinGuard>
   );
 }
