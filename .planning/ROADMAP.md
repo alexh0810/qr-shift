@@ -62,10 +62,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Refresh shared layout, navigation, and cross-app presentation patterns
-- [ ] 03-02: Rework the scan flow and success states with the new identity
-- [ ] 03-03: Redesign dashboard and reporting surfaces for clarity and consistency
-- [ ] 03-04: Polish admin and demo setup screens plus empty and error states
+- [ ] 03-01-PLAN.md - Create shared manager workspace primitives, rebrand manager boundary surfaces, and add the Phase 3 smoke checklist
+- [ ] 03-02-PLAN.md - Rebrand the standalone scan flow while preserving QR-based clock actions
+- [ ] 03-03-PLAN.md - Unify dashboard and reports in one manager workspace and rebuild the landing preview from the redesigned product
+- [ ] 03-04-PLAN.md - Polish the admin setup route and correct installed-app branding metadata
 
 ### Phase 4: Demo Release
 **Goal**: Make the product coherent and trustworthy enough for private customer and investor demos.
