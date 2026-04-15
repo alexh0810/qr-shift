@@ -34,9 +34,9 @@ export function ScanActionPanel({
   const currentStatusLabel =
     nextAction === "OUT"
       ? latestTimestamp
-        ? `Working since ${format(latestTimestamp, "hh:mm a")}`
+        ? `Clocked in since ${format(latestTimestamp, "hh:mm a")}`
         : "Working right now"
-      : "Not working";
+      : "Clocked out right now";
 
   if (successMessage) {
     return (
@@ -56,7 +56,7 @@ export function ScanActionPanel({
         <p className="mt-3 text-sm font-medium text-text-muted">
           {nextAction === "IN"
             ? `Have a good shift, ${firstName}.`
-            : `You're all set, ${firstName}.`}
+            : `You're all set, ${firstName}. You can step away from the clock station.`}
         </p>
       </section>
     );

@@ -136,7 +136,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
           <BrandMark showWordmark={false} />
           <Loader2 className="mt-6 h-8 w-8 animate-spin text-primary" />
           <p className="mt-4 text-sm font-medium text-text-muted">
-            Loading your QRShift clock screen...
+            Loading your QRShift clock station...
           </p>
         </div>
       </div>
