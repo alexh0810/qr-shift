@@ -12,16 +12,20 @@ type HeaderAction = React.ReactNode | HeaderLinkAction;
 export interface ManagerWorkspaceNavItem {
   label: string;
   href: string;
+  active?: boolean;
 }
 
 interface ManagerWorkspaceHeaderProps {
   eyebrow?: string;
   title: string;
   description?: string;
+  meta?: React.ReactNode;
   navItems?: ManagerWorkspaceNavItem[];
   primaryAction?: HeaderAction;
   secondaryAction?: HeaderAction;
   statusBadge?: React.ReactNode;
+  supportingContent?: React.ReactNode;
+  className?: string;
 }
 
 function isHeaderLinkAction(action: HeaderAction): action is HeaderLinkAction {
@@ -61,13 +65,18 @@ export function ManagerWorkspaceHeader({
   eyebrow,
   title,
   description,
+  meta,
   navItems,
   primaryAction,
   secondaryAction,
   statusBadge,
+  supportingContent,
+  className = "",
 }: ManagerWorkspaceHeaderProps) {
   return (
-    <header className="rounded-[28px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6 sm:py-6">
+    <header
+      className={`rounded-[28px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6 sm:py-6 ${className}`.trim()}
+    >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl space-y-3">
@@ -88,6 +97,7 @@ export function ManagerWorkspaceHeader({
                   {description}
                 </p>
               ) : null}
+              {meta ? <div className="pt-1">{meta}</div> : null}
             </div>
           </div>
 
@@ -105,12 +115,21 @@ export function ManagerWorkspaceHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className="inline-flex min-h-11 items-center rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface"
+                aria-current={item.active ? "page" : undefined}
+                className={`inline-flex min-h-11 items-center rounded-[18px] border px-4 py-2 text-sm font-semibold transition-colors ${
+                  item.active
+                    ? "border-primary bg-primary text-white"
+                    : "border-surfacestroke bg-background text-foreground hover:border-border-strong hover:bg-surface"
+                }`}
               >
                 {item.label}
               </Link>
             ))}
           </div>
+        ) : null}
+
+        {supportingContent ? (
+          <div className="border-t border-surfacestroke pt-4">{supportingContent}</div>
         ) : null}
       </div>
     </header>
