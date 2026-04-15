@@ -40,19 +40,23 @@ export function ScanActionPanel({
 
   if (successMessage) {
     return (
-      <section className="rounded-[var(--radius-panel)] border border-secondary/30 bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]">
+      <section
+        aria-live="polite"
+        className="rounded-[var(--radius-panel)] border border-secondary/30 bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]"
+      >
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-secondary/15 text-secondary">
           <CheckCircle2 className="h-10 w-10" strokeWidth={2.5} />
         </div>
-        <p className="mt-6 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-          Clocked
+        <p className="mt-6 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
+          QRShift updated
         </p>
-        <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
+        <h2 className="mt-6 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
           {successMessage}
         </h2>
         <p className="mt-3 text-sm font-medium text-text-muted">
-          {nextAction === "IN" ? "Have a good shift" : "You&apos;re all set"},{" "}
-          {firstName}.
+          {nextAction === "IN"
+            ? `Have a good shift, ${firstName}.`
+            : `You're all set, ${firstName}.`}
         </p>
       </section>
     );
@@ -68,11 +72,14 @@ export function ScanActionPanel({
           <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
             {firstName}
           </h2>
+          <p className="mt-2 text-sm font-medium text-text-muted">
+            Review the current status, then confirm the next clock action.
+          </p>
         </div>
         <span
           className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${
             nextAction === "OUT"
-              ? "border-primary/20 bg-primary/10 text-primary"
+              ? "border-secondary/25 bg-secondary/10 text-secondary"
               : "border-surfacestroke bg-background text-text-muted"
           }`}
         >
@@ -85,7 +92,9 @@ export function ScanActionPanel({
           Next action
         </p>
         <p className="mt-2 text-base font-bold text-foreground">
-          {nextAction === "IN" ? "Clock in to start this shift." : "Clock out to end this shift."}
+          {nextAction === "IN"
+            ? "Clock in to start this shift."
+            : "Clock out to end this shift."}
         </p>
       </div>
 
@@ -106,7 +115,10 @@ export function ScanActionPanel({
       </div>
 
       {errorMessage ? (
-        <div className="mt-4 rounded-[20px] border border-error/20 bg-error/10 px-4 py-3 text-sm font-medium text-error">
+        <div
+          aria-live="polite"
+          className="mt-4 rounded-[20px] border border-error/20 bg-error/10 px-4 py-3 text-sm font-medium text-error"
+        >
           {errorMessage}
         </div>
       ) : null}

@@ -6,7 +6,7 @@ import { Store, Employee, Timelog } from "@/types";
 import { BrandMark } from "@/components/BrandMark";
 import { ScanEmployeeCard } from "@/components/scan/ScanEmployeeCard";
 import { ScanActionPanel } from "@/components/scan/ScanActionPanel";
-import { CircleAlert, Loader2 } from "lucide-react";
+import { CircleAlert, Loader2, QrCode, ScanLine } from "lucide-react";
 
 export default function ScanPage({ params }: { params: { qr_token: string } }) {
   const [store, setStore] = useState<Store | null>(null);
@@ -146,23 +146,52 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
   return (
     <div className="min-h-screen bg-background px-4 py-5 pb-12">
       <div className="mx-auto flex max-w-md flex-col gap-5">
-        <header className="rounded-[var(--radius-panel)] border border-border-strong bg-surface px-5 py-6 shadow-[var(--shadow-panel)]">
-          <BrandMark />
-          <div className="mt-6">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-text-muted">
-              Scan to clock in or out
-            </p>
-            <h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
-              {store?.name ?? "QRShift"}
-            </h1>
-            <p className="mt-2 text-sm font-medium text-text-muted">
-              Choose your name, check your current status, then confirm your next action.
-            </p>
+        <header className="overflow-hidden rounded-[var(--radius-panel)] border border-border-strong bg-surface shadow-[var(--shadow-panel)]">
+          <div className="border-b border-surfacestroke px-5 py-5">
+            <div className="flex items-start justify-between gap-4">
+              <BrandMark />
+              <div className="qr-grid-accent flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-surfacestroke bg-background text-primary">
+                <QrCode className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-6">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-text-muted">
+                Scan to clock in or out
+              </p>
+              <h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
+                {store?.name ?? "QRShift"}
+              </h1>
+              <p className="mt-2 text-sm font-medium text-text-muted">
+                Choose your name, check your current status, and confirm the next action.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
+            <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                <ScanLine className="h-4 w-4 text-primary" />
+                Employee flow
+              </div>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                Select your name to see whether you should clock in or out.
+              </p>
+            </div>
+            <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                QRShift clock station
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                No app, no login, just the next shift action for this store.
+              </p>
+            </div>
           </div>
         </header>
 
         {!selectedEmployee && error ? (
-          <div className="rounded-[20px] border border-error/20 bg-error/10 px-4 py-4 text-sm font-medium text-error">
+          <div
+            aria-live="polite"
+            className="rounded-[20px] border border-error/20 bg-error/10 px-4 py-4 text-sm font-medium text-error"
+          >
             <div className="flex items-start gap-3">
               <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
               <p>{error}</p>
@@ -195,7 +224,15 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <section className="flex flex-col gap-3">
+            <div className="rounded-[20px] border border-surfacestroke bg-surface px-4 py-4 shadow-[var(--shadow-panel)]">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
+                Team list
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                Pick your name to review your current status and next action.
+              </p>
+            </div>
             {employees.map((emp) => (
               <ScanEmployeeCard
                 key={emp.id}
@@ -204,7 +241,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
                 onSelect={handleSelectEmployee}
               />
             ))}
-          </div>
+          </section>
         )}
       </div>
     </div>
