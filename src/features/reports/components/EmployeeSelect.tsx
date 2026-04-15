@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { Employee } from "@/types";
 
 interface EmployeeSelectProps {
@@ -16,16 +17,14 @@ export function EmployeeSelect({
   disabled = false,
 }: EmployeeSelectProps) {
   return (
-    <div className="rounded-[24px] border border-surfacestroke bg-surface px-4 py-4 shadow-[var(--shadow-panel)] sm:px-5">
+    <WorkspacePanel
+      eyebrow="Employee filter"
+      title="Switch between workspace and single-person review"
+      description="Move between all rows and one employee detail view without leaving the shared manager workspace."
+      className="rounded-[24px]"
+      bodyClassName="pt-0"
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-            Employee filter
-          </p>
-          <p className="text-sm font-medium leading-6 text-text-muted">
-            Switch between all rows and one employee detail view without leaving the workspace.
-          </p>
-        </div>
         <p className="text-sm font-semibold text-foreground">
           {employees.length} employee{employees.length === 1 ? "" : "s"}
         </p>
@@ -49,6 +48,6 @@ export function EmployeeSelect({
           ))}
         </select>
       </label>
-    </div>
+    </WorkspacePanel>
   );
 }

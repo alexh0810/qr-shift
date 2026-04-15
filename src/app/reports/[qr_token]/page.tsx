@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { endOfDay, endOfWeek, format, isWithinInterval, startOfDay, startOfWeek } from "date-fns";
-import { Download, Loader2, LogOut, RefreshCw, Sparkles } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, LogOut, RefreshCw } from "lucide-react";
 
 import PinGuard from "@/components/PinGuard";
 import { ManagerWorkspaceHeader } from "@/components/manager/ManagerWorkspaceHeader";
 import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShell";
+import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
+import { WorkspaceStatCard } from "@/components/manager/WorkspaceStatCard";
 import { AllEmployeesTimesheetTable } from "@/features/reports/components/AllEmployeesTimesheetTable";
 import { EmployeeReportDetail } from "@/features/reports/components/EmployeeReportDetail";
 import { EmployeeSelect } from "@/features/reports/components/EmployeeSelect";
-import { ReportSummaryCards } from "@/features/reports/components/ReportSummaryCards";
 import { buildReportData, rebuildEmployeeReport, summarizeEmployeeReports, updateRowTime } from "@/features/reports/data-processing";
 import { buildReportsCsv } from "@/features/reports/export";
 import { MissingOutStrategy } from "@/features/reports/types";
@@ -43,7 +44,6 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
       const filterStart = startOfDay(new Date(dateStrStart));
       const filterEnd = endOfDay(new Date(dateStrEnd));
       const allLogs = await getStoreTimelogs(store.id);
-
       const now = new Date();
       const missingOutStrategy: MissingOutStrategy = isWithinInterval(now, {
         start: filterStart,
@@ -166,6 +166,38 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
       : calculating
         ? "Calculating..."
         : "No shifts logged in this period.";
+  const totalRows = reportData.reduce((total, report) => total + report.timesheetRows.length, 0);
+  const reportSummaryCards = [
+    {
+      label: "Payroll total",
+      value: `${globalSummary.totalHoursDecimal.toFixed(2)} h`,
+      description: globalSummary.display,
+      icon: <FileSpreadsheet className="h-4 w-4" />,
+      valueClassName: "text-[2rem] sm:text-[2.15rem]",
+    },
+    {
+      label: "Employees",
+      value: reportData.length.toString().padStart(2, "0"),
+      description: "People included in the current workspace range.",
+      icon: <FileSpreadsheet className="h-4 w-4" />,
+    },
+    {
+      label: "Rows",
+      value: totalRows.toString().padStart(2, "0"),
+      description: "Timesheet rows currently visible before export.",
+      icon: <RefreshCw className="h-4 w-4" />,
+    },
+    {
+      label: "View",
+      value: selectedEmployeeId === "ALL" ? "ALL" : "1:1",
+      description:
+        selectedEmployeeId === "ALL"
+          ? "Workspace-wide payroll review."
+          : selectedReport?.name ?? "Single employee detail view.",
+      icon: <Download className="h-4 w-4" />,
+      valueClassName: "text-[2rem] sm:text-[2.15rem]",
+    },
+  ];
 
   if (loading) {
     return (
@@ -194,6 +226,11 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
             eyebrow="Scan -> Monitor -> Export"
             title={`${store?.name ?? "QRShift"} Reports`}
             description="Review payroll-ready rows, keep local edit behavior explicit, and export the selected date range from the same manager workspace."
+            meta={
+              <p className="text-sm font-medium text-text-muted">
+                {format(new Date(dateStrStart), "MMM d, yyyy")} to {format(new Date(dateStrEnd), "MMM d, yyyy")}
+              </p>
+            }
             primaryAction={{
               label: "Back to Dashboard",
               href: `/dashboard/${params.qr_token}`,
@@ -213,93 +250,74 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
             }
             statusBadge={
               <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                <Sparkles className="h-4 w-4" />
+                <FileSpreadsheet className="h-4 w-4" />
                 <span>{reportData.length} report group{reportData.length === 1 ? "" : "s"}</span>
               </div>
             }
+            supportingContent={
+              <p className="max-w-3xl text-sm font-medium leading-6 text-text-muted">
+                Adjusting times below updates this browser&apos;s export output only. The local edit
+                model and CSV behavior remain unchanged during this redesign.
+              </p>
+            }
           />
 
-          <section className="rounded-[28px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-                    Export controls
-                  </p>
-                  <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-foreground">
-                    Selected payroll range
-                  </h2>
-                </div>
-                <p className="max-w-2xl text-sm font-medium leading-6 text-text-muted">
-                  Adjusting times below updates this browser&apos;s export output only. The current in-memory edit model is unchanged.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:justify-end">
-                <div className="flex min-h-[44px] flex-col gap-2 rounded-[20px] border border-surfacestroke bg-background px-3 py-3 sm:flex-row sm:items-center">
-                  <input
-                    type="date"
-                    value={dateStrStart}
-                    onChange={(event) => setDateStrStart(event.target.value)}
-                    className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
-                  />
-                  <span className="px-1 text-center text-sm font-semibold text-text-muted">to</span>
-                  <input
-                    type="date"
-                    value={dateStrEnd}
-                    onChange={(event) => setDateStrEnd(event.target.value)}
-                    className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row">
+          <WorkspacePanel
+            eyebrow="Export controls"
+            title="Selected payroll range"
+            description="Stacked controls stay phone-safe, while tables keep deliberate horizontal overflow on larger views."
+            headerActions={
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={fetchAndCalculate}
+                  disabled={calculating}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface disabled:opacity-70"
+                >
+                  <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
+                  <span>{calculating ? "Refreshing" : "Refresh range"}</span>
+                </button>
+                {reportData.length > 0 ? (
                   <button
-                    onClick={fetchAndCalculate}
-                    disabled={calculating}
-                    className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface disabled:opacity-70"
+                    onClick={downloadCsv}
+                    className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
                   >
-                    <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
-                    <span>{calculating ? "Refreshing" : "Refresh range"}</span>
+                    <Download className="h-4 w-4" />
+                    <span>Export Payroll Report</span>
                   </button>
-                  {reportData.length > 0 ? (
-                    <button
-                      onClick={downloadCsv}
-                      className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Export Payroll Report</span>
-                    </button>
-                  ) : null}
-                </div>
+                ) : null}
+              </div>
+            }
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="flex min-h-[44px] flex-col gap-2 rounded-[20px] border border-surfacestroke bg-background px-3 py-3 sm:flex-row sm:items-center">
+                <input
+                  type="date"
+                  value={dateStrStart}
+                  onChange={(event) => setDateStrStart(event.target.value)}
+                  className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
+                />
+                <span className="px-1 text-center text-sm font-semibold text-text-muted">to</span>
+                <input
+                  type="date"
+                  value={dateStrEnd}
+                  onChange={(event) => setDateStrEnd(event.target.value)}
+                  className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
+                />
               </div>
             </div>
-          </section>
+          </WorkspacePanel>
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">Employees</p>
-              <p className="mt-4 font-mono-brand text-3xl font-bold tracking-[-0.04em] text-foreground">{employees.length.toString().padStart(2, "0")}</p>
-              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">People included in the current workspace.</p>
-            </article>
-            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">Report Rows</p>
-              <p className="mt-4 font-mono-brand text-3xl font-bold tracking-[-0.04em] text-foreground">
-                {reportData.reduce((total, report) => total + report.timesheetRows.length, 0).toString().padStart(2, "0")}
-              </p>
-              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">Rows visible before CSV export.</p>
-            </article>
-            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">Payroll Total</p>
-              <p className="mt-4 font-mono-brand text-3xl font-bold tracking-[-0.04em] text-foreground">{globalSummary.totalHoursDecimal.toFixed(2)} h</p>
-              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">Decimal hours across the selected period.</p>
-            </article>
-            <article className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">View</p>
-              <p className="mt-4 text-2xl font-bold tracking-[-0.04em] text-foreground">
-                {selectedEmployeeId === "ALL" ? "All Employees" : selectedReport?.name ?? "Employee Detail"}
-              </p>
-              <p className="mt-2 text-sm font-medium leading-6 text-text-muted">Switch between workspace-wide and single-person review.</p>
-            </article>
+            {reportSummaryCards.map((card) => (
+              <WorkspaceStatCard
+                key={card.label}
+                label={card.label}
+                value={card.value}
+                description={card.description}
+                icon={card.icon}
+                valueClassName={card.valueClassName}
+              />
+            ))}
           </section>
 
           <div className="mb-6">
@@ -325,30 +343,6 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
                   emptyMessage={allEmployeesEmptyMessage}
                   onTimeChange={updateTimesheetRow}
                 />
-
-                {reportData.length > 0 ? (
-                  <div className="rounded-[28px] border border-surfacestroke bg-surface p-5 shadow-[var(--shadow-panel)] sm:p-6">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                      <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-                          All employees summary
-                        </p>
-                        <h3 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-foreground">
-                          Export-ready totals
-                        </h3>
-                      </div>
-                      <p className="max-w-xl text-sm font-medium leading-6 text-text-muted">
-                        Totals below reflect the same local row edits shown in the table and the CSV export.
-                      </p>
-                    </div>
-                    <div className="mt-5">
-                      <ReportSummaryCards
-                        totalHours={globalSummary.totalHoursDecimal}
-                        durationLabel={globalSummary.display}
-                      />
-                    </div>
-                  </div>
-                ) : null}
               </div>
             ) : (
               <EmployeeReportDetail

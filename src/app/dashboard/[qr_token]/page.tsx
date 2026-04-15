@@ -6,7 +6,6 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import {
   ArrowRight,
   CheckCircle2,
-  Circle,
   Clock3,
   Loader2,
   LogOut,
@@ -19,10 +18,11 @@ import InstallPrompt from "@/components/InstallPrompt";
 import PinGuard from "@/components/PinGuard";
 import { ManagerWorkspaceHeader } from "@/components/manager/ManagerWorkspaceHeader";
 import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShell";
+import { ShiftStatusPanel } from "@/components/manager/ShiftStatusPanel";
+import { WorkspaceStatCard } from "@/components/manager/WorkspaceStatCard";
 import { getEmployeesByStoreId, getStoreByQrToken } from "@/lib/db";
 import { db } from "@/lib/firebase";
 import { Employee, Store, Timelog } from "@/types";
-import Link from "next/link";
 
 export default function DashboardPage({ params }: { params: { qr_token: string } }) {
   const [store, setStore] = useState<Store | null>(null);
@@ -30,6 +30,12 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [employeeStatus, setEmployeeStatus] = useState<Record<string, Timelog>>({});
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let unsubscribeTimelogs: () => void;
@@ -77,6 +83,7 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
           },
           () => {
             setError("Real-time listener failed to connect.");
+            setLoading(false);
           },
         );
       } catch {
@@ -116,38 +123,61 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
   const onShiftEmployees = employees.filter((employee) => employeeStatus[employee.id]?.type === "IN");
   const offShiftEmployees = employees.filter((employee) => employeeStatus[employee.id]?.type !== "IN");
 
-  const renderStatusTime = (log: Timelog) => (
-    <span className="text-xs text-text-muted">
-      since {format(log.timestamp, "h:mm a")} ({formatDistanceToNow(log.timestamp, { addSuffix: true })})
-    </span>
-  );
-
   const summaryCards = [
     {
-      label: "Scan",
+      label: "Scan ready",
       value: employees.length.toString().padStart(2, "0"),
-      detail: "Employees can clock in without apps or logins.",
-      icon: ScanLine,
+      description: "Employees can clock in without apps or logins.",
+      icon: <ScanLine className="h-4 w-4" />,
     },
     {
-      label: "Monitor",
+      label: "On shift",
       value: onShiftEmployees.length.toString().padStart(2, "0"),
-      detail: "Live attendance updates stay visible for the whole shift.",
-      icon: Radar,
+      description: "Live attendance updates stay visible throughout the day.",
+      icon: <Radar className="h-4 w-4" />,
     },
     {
-      label: "On Shift",
-      value: onShiftEmployees.length.toString().padStart(2, "0"),
-      detail: "Current headcount ready for owner check-ins.",
-      icon: CheckCircle2,
-    },
-    {
-      label: "Off Shift",
+      label: "Off shift",
       value: offShiftEmployees.length.toString().padStart(2, "0"),
-      detail: "Finished staff remain easy to review before export.",
-      icon: Clock3,
+      description: "Finished staff remain easy to review before export.",
+      icon: <Clock3 className="h-4 w-4" />,
+    },
+    {
+      label: "Export route",
+      value: "CSV",
+      description: "Move straight into payroll-ready reports from the same workspace.",
+      icon: <Users className="h-4 w-4" />,
+      valueClassName: "text-[2rem] sm:text-[2.15rem]",
     },
   ];
+
+  const onShiftItems = onShiftEmployees.map((employee) => {
+    const log = employeeStatus[employee.id];
+
+    return {
+      id: employee.id,
+      name: employee.name,
+      detail: log
+        ? `Clocked in ${format(log.timestamp, "h:mm a")} · ${formatDistanceToNow(log.timestamp, { addSuffix: true })}`
+        : "Currently active.",
+      statusLabel: "IN",
+      tone: "active" as const,
+    };
+  });
+
+  const offShiftItems = offShiftEmployees.map((employee) => {
+    const log = employeeStatus[employee.id];
+
+    return {
+      id: employee.id,
+      name: employee.name,
+      detail: log
+        ? `Last activity ${format(log.timestamp, "MMM d, h:mm a")}`
+        : "No recent activity yet.",
+      statusLabel: "OUT",
+      tone: "idle" as const,
+    };
+  });
 
   return (
     <PinGuard qr_token={params.qr_token}>
@@ -160,8 +190,13 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
 
           <ManagerWorkspaceHeader
             eyebrow="Scan -> Monitor -> Export"
-            title={`${store.name} Dashboard`}
+            title={store.name}
             description="Monitor live attendance, keep manager access local to this device, and move into payroll-ready exports without leaving the shared workspace."
+            meta={
+              <p className="text-sm font-medium text-text-muted">
+                Active on {format(now, "EEEE, MMM d, yyyy")} at {format(now, "h:mm a")}
+              </p>
+            }
             primaryAction={{
               label: "Open Reports",
               href: `/reports/${params.qr_token}`,
@@ -183,178 +218,55 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
             statusBadge={
               <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
                 <Radar className="h-4 w-4" />
-                <span>{onShiftEmployees.length} active now</span>
+                <span>{onShiftEmployees.length} on shift</span>
+              </div>
+            }
+            supportingContent={
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground">
+                  <ScanLine className="h-4 w-4 text-primary" />
+                  <span>Scan stays employee-simple</span>
+                </div>
+                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+                  <Radar className="h-4 w-4" />
+                  <span>Monitor is the workspace anchor</span>
+                </div>
+                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground">
+                  <ArrowRight className="h-4 w-4 text-primary" />
+                  <span>Reports keeps export one tap away</span>
+                </div>
               </div>
             }
           />
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((card) => {
-              const Icon = card.icon;
-
-              return (
-                <article
-                  key={card.label}
-                  className="rounded-[24px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)]"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-                      {card.label}
-                    </p>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-[16px] border border-surfacestroke bg-background text-primary">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                  </div>
-                  <p className="mt-4 font-mono-brand text-3xl font-bold tracking-[-0.04em] text-foreground">
-                    {card.value}
-                  </p>
-                  <p className="mt-2 text-sm font-medium leading-6 text-text-muted">
-                    {card.detail}
-                  </p>
-                </article>
-              );
-            })}
-          </section>
-
-          <section className="rounded-[28px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6">
-            <div className="flex flex-col gap-4 border-b border-surfacestroke pb-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-                  Workspace story
-                </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-foreground">
-                  Dashboard keeps Monitor at the center
-                </h2>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground">
-                  <ScanLine className="h-4 w-4 text-primary" />
-                  <span>Scan</span>
-                </div>
-                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                  <Radar className="h-4 w-4" />
-                  <span>Monitor</span>
-                </div>
-                <Link
-                  href={`/reports/${params.qr_token}`}
-                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface"
-                >
-                  <Users className="h-4 w-4 text-primary" />
-                  <span>Export in Reports</span>
-                </Link>
-              </div>
-            </div>
-            <p className="pt-5 text-sm font-medium leading-6 text-text-muted sm:text-base">
-              Live status stays grouped for quick decisions on phone-width and desktop screens, without forcing horizontal page scrolling.
-            </p>
+            {summaryCards.map((card) => (
+              <WorkspaceStatCard
+                key={card.label}
+                label={card.label}
+                value={card.value}
+                description={card.description}
+                icon={card.icon}
+                valueClassName={card.valueClassName}
+              />
+            ))}
           </section>
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <section className="rounded-[28px] border border-surfacestroke bg-surface shadow-[var(--shadow-panel)]">
-              <div className="flex flex-col gap-2 border-b border-surfacestroke px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[16px] bg-success/12 text-success">
-                    <CheckCircle2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">On Shift</h2>
-                    <p className="text-sm font-medium text-text-muted">
-                      {onShiftEmployees.length} active right now
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {onShiftEmployees.length === 0 ? (
-                <div className="px-5 py-10 text-center text-sm font-medium text-text-muted sm:px-6">
-                  No one is currently clocked in.
-                </div>
-              ) : (
-                <ul className="divide-y divide-surfacestroke">
-                  {onShiftEmployees.map((employee) => {
-                    const log = employeeStatus[employee.id];
-                    return (
-                      <li
-                        key={employee.id}
-                        className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-success/15 bg-success/10">
-                            <span className="text-base font-bold text-success">
-                              {employee.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-base font-bold text-foreground">{employee.name}</p>
-                            {log ? renderStatusTime(log) : null}
-                          </div>
-                        </div>
-                        <span className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-success px-4 py-2 text-[11px] font-bold uppercase tracking-[0.24em] text-white">
-                          IN
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-
-            <section className="rounded-[28px] border border-surfacestroke bg-surface shadow-[var(--shadow-panel)]">
-              <div className="flex flex-col gap-2 border-b border-surfacestroke px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[16px] bg-background text-text-muted">
-                    <Circle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">Off Shift</h2>
-                    <p className="text-sm font-medium text-text-muted">
-                      {offShiftEmployees.length} available or finished
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {offShiftEmployees.length === 0 ? (
-                <div className="px-5 py-10 text-center text-sm font-medium text-text-muted sm:px-6">
-                  Everyone is on shift.
-                </div>
-              ) : (
-                <ul className="divide-y divide-surfacestroke">
-                  {offShiftEmployees.map((employee) => {
-                    const log = employeeStatus[employee.id];
-                    return (
-                      <li
-                        key={employee.id}
-                        className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-surfacestroke bg-background">
-                            <span className="text-base font-bold text-text-muted">
-                              {employee.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-base font-bold text-foreground">{employee.name}</p>
-                            {log ? (
-                              <span className="text-xs font-medium text-text-muted">
-                                Last activity: {format(log.timestamp, "MMM d, h:mm a")}
-                              </span>
-                            ) : (
-                              <span className="text-xs font-medium text-text-muted">
-                                No recent activity yet.
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <span className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-surfacestroke bg-background px-4 py-2 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-                          OUT
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+            <ShiftStatusPanel
+              title="On Shift"
+              description={`${onShiftEmployees.length} active now`}
+              emptyMessage="No one is currently clocked in."
+              icon={CheckCircle2}
+              items={onShiftItems}
+            />
+            <ShiftStatusPanel
+              title="Off Shift"
+              description={`${offShiftEmployees.length} not clocked in`}
+              emptyMessage="Everyone is currently on shift."
+              icon={Clock3}
+              items={offShiftItems}
+            />
           </div>
         </div>
       </ManagerWorkspaceShell>
