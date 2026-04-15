@@ -2,84 +2,101 @@
 phase: 03-product-rebrand
 plan: "01"
 subsystem: ui
-tags: [nextjs, react, tailwind, pwa, branding]
+tags: [react, nextjs, tailwind, manager-workspace, pwa]
 requires:
   - phase: 01-brand-foundation
-    provides: semantic color tokens, QRShift typography, and brand primitives
+    provides: Shared QRShift brand tokens, typography, and panel language
   - phase: 02-landing-page
-    provides: public-facing QRShift visual language to align product surfaces with
+    provides: Public landing framing that now needs real product UI reuse
 provides:
-  - shared manager workspace shell and header primitives for dashboard and reports
-  - branded manager PIN gate that keeps the current client-side demo unlock model
-  - branded install prompt and a reusable Phase 3 route smoke checklist
-affects: [dashboard, reports, scan, admin, phase-3-followups]
+  - Shared manager workspace shell and header primitives for dashboard, reports, and landing preview framing
+  - Reusable workspace panel and stat card components for shipped manager surfaces
+  - Branded demo-boundary copy for manager unlock and install affordances, plus a Phase 3 smoke checklist
+affects: [landing-preview, dashboard, reports, manager-access, manual-qa]
 tech-stack:
   added: []
-  patterns: [shared manager workspace primitives, branded boundary surfaces, manual route smoke checklist]
+  patterns: [shared manager workspace primitives, demo-honest boundary copy, manual smoke verification artifact]
 key-files:
   created:
-    - src/components/manager/ManagerWorkspaceShell.tsx
-    - src/components/manager/ManagerWorkspaceHeader.tsx
+    - src/components/manager/WorkspacePanel.tsx
+    - src/components/manager/WorkspaceStatCard.tsx
     - .planning/phases/03-product-rebrand/03-SMOKE-CHECKLIST.md
   modified:
+    - src/components/manager/ManagerWorkspaceShell.tsx
+    - src/components/manager/ManagerWorkspaceHeader.tsx
     - src/components/PinGuard.tsx
     - src/components/InstallPrompt.tsx
 key-decisions:
-  - "Keep manager workspace chrome limited to dashboard and reports so scan and admin stay outside the manager shell."
-  - "Keep PIN and install behavior unchanged while making the copy explicit that manager access remains demo-only."
+  - "Keep manager UI unification at the component layer so dashboard, reports, and landing preview can share shipped primitives without route refactors."
+  - "Frame the manager PIN gate explicitly as a device-level demo unlock to preserve the current boundary without overstating security."
 patterns-established:
-  - "Manager workspace shell: max-w-5xl canvas, mobile-first padding, and direct Dashboard/Reports navigation."
-  - "Manager workspace header: shared eyebrow/title/description/nav/action/status contract for later route adoption."
+  - "Manager workspace chrome owns framing and nav, while route pages keep their existing data and business logic."
+  - "Operational manager surfaces use bordered panels and mono metric cards instead of route-local bespoke blocks."
 requirements-completed: [BRAND-02, UX-01, UX-02]
-duration: 5 min
-completed: 2026-04-10
+duration: 1 min
+completed: 2026-04-15
 ---
 
-# Phase 03 Plan 01: Product Rebrand Summary
+# Phase 03 Plan 01: Manager Workspace Foundations Summary
 
-**Shared manager workspace primitives, branded demo access surfaces, and a Phase 3 smoke checklist for scan, dashboard, reports, and admin routes**
+**Shared manager workspace primitives, demo-honest unlock/install boundaries, and a Phase 3 smoke checklist for real UI landing-preview fidelity**
 
 ## Performance
 
-- **Duration:** 5 min
-- **Started:** 2026-04-10T14:05:12Z
-- **Completed:** 2026-04-10T14:09:54Z
+- **Duration:** 1 min
+- **Started:** 2026-04-15T15:15:40+03:00
+- **Completed:** 2026-04-15T15:16:39+03:00
 - **Tasks:** 2
-- **Files modified:** 5
+- **Files modified:** 7
 
 ## Accomplishments
 
-- Added reusable `ManagerWorkspaceShell` and `ManagerWorkspaceHeader` components so dashboard and reports can move into one connected manager workspace in later plans.
-- Reworked `PinGuard` and `InstallPrompt` into calmer QRShift operational cards while keeping client-side PIN unlock, `localStorage`, and `beforeinstallprompt` behavior intact.
-- Added a manual smoke checklist covering `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, and `/admin/create-store` on mobile and desktop, including the reinstall the PWA note.
+- Expanded the manager shell and header so dashboard, reports, and future landing preview framing can share the same workspace contract.
+- Added reusable `WorkspacePanel` and `WorkspaceStatCard` components for real QRShift manager surface composition.
+- Refreshed `PinGuard` and `InstallPrompt` copy/styling around the current demo model and documented Phase 3 route smoke checks.
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **Task 1: Create the shared manager workspace primitives** - `e45f6f0` (feat)
-2. **Task 2: Rebrand manager boundary surfaces and add the Phase 3 smoke checklist** - `02f6bf7` (feat)
+1. **Task 1: Expand the manager workspace primitives for route and landing reuse** - `568bb54` (feat)
+2. **Task 2: Refresh manager boundary surfaces and write the Phase 3 smoke checklist** - `e2b3910` (feat)
 
 ## Files Created/Modified
 
-- `src/components/manager/ManagerWorkspaceShell.tsx` - Shared manager workspace wrapper with bounded layout and Dashboard/Reports navigation.
-- `src/components/manager/ManagerWorkspaceHeader.tsx` - Shared header contract with eyebrow, nav, actions, and status badge slots.
-- `src/components/PinGuard.tsx` - Rebranded demo manager unlock surface with explicit copy about the current client-side access model.
-- `src/components/InstallPrompt.tsx` - Rebranded deferred PWA install card that preserves browser install event handling.
-- `.planning/phases/03-product-rebrand/03-SMOKE-CHECKLIST.md` - Manual regression checklist for the main Phase 3 routes.
+- `src/components/manager/ManagerWorkspaceShell.tsx` - Added configurable nav and framing slots while preserving the max-width manager shell.
+- `src/components/manager/ManagerWorkspaceHeader.tsx` - Added active nav styling plus extra meta/supporting slots for shared workspace headers.
+- `src/components/manager/WorkspacePanel.tsx` - New reusable bordered panel wrapper for manager surfaces.
+- `src/components/manager/WorkspaceStatCard.tsx` - New reusable mono-metric card primitive for shared stats.
+- `src/components/PinGuard.tsx` - Preserved `getStoreByQrToken` and localStorage unlock semantics while clarifying demo-only device unlock copy.
+- `src/components/InstallPrompt.tsx` - Preserved `beforeinstallprompt` behavior while aligning the install affordance to the manager shell.
+- `.planning/phases/03-product-rebrand/03-SMOKE-CHECKLIST.md` - Added exact route and viewport verification steps, including landing preview fidelity and PWA reinstall guidance.
 
 ## Decisions Made
 
-- Limited the new manager workspace primitives to dashboard and reports so the scan and admin surfaces continue to respect the phase boundary.
-- Kept the PIN gate intentionally honest about demo-only access rather than implying production authentication.
+- Kept the plan scoped to shared UI primitives and boundary copy only, leaving route data fetching and business logic untouched.
+- Added preview-friendly shell/header slots instead of introducing landing-only manager variants, so the landing page can reuse shipped product framing directly.
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 3 - Blocking] Corrected GSD metadata after live-tree summary overcount**
+- **Found during:** Summary and state update
+- **Issue:** The current main worktree already contained untracked Phase 3 summary files, so the GSD `state update-progress`, `roadmap update-plan-progress`, and `requirements mark-complete` flow overstated actual completion.
+- **Fix:** Manually corrected `STATE.md`, `ROADMAP.md`, and `REQUIREMENTS.md` to reflect that only `03-01` is complete.
+- **Files modified:** `.planning/STATE.md`, `.planning/ROADMAP.md`, `.planning/REQUIREMENTS.md`, `.planning/phases/03-product-rebrand/03-product-rebrand-01-SUMMARY.md`
+- **Verification:** Checked resulting roadmap and state values against the actual completed plan count and current Phase 3 plan list.
+- **Committed in:** metadata commit
+
+---
+
+**Total deviations:** 1 auto-fixed (1 blocking)
+**Impact on plan:** Corrected planning metadata only. Product code scope remained unchanged.
 
 ## Issues Encountered
 
-- Parallel `git add` calls briefly created transient `.git/index.lock` contention. Resolved by staging the remaining files serially before committing Task 2.
+- The current main worktree already contained uncommitted Phase 3 edits across route files. Work was limited to the 03-01-owned component and planning files and committed on top of that live tree state.
 
 ## User Setup Required
 
@@ -87,15 +104,11 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 
-- Dashboard and reports now have shared workspace APIs ready for direct adoption in later Phase 3 plans.
-- Manual regression steps are documented so follow-up UI work can be checked against the same route coverage.
+- Ready for `03-02` to apply the shared manager primitives across dashboard, reports, and landing preview composition.
+- Manual QA now has an explicit checklist for `/`, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, and `/admin/create-store`.
 
 ## Self-Check: PASSED
 
-- Found summary file `.planning/phases/03-product-rebrand/03-product-rebrand-01-SUMMARY.md`
-- Found task commit `e45f6f0`
-- Found task commit `02f6bf7`
-
 ---
 *Phase: 03-product-rebrand*
-*Completed: 2026-04-10*
+*Completed: 2026-04-15*

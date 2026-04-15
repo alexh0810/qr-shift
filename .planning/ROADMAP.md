@@ -59,12 +59,12 @@ Plans:
   1. The scan, dashboard, reports, and admin screens remain functional after the redesign.
   2. Core product surfaces feel visually consistent with the landing page and shared design system.
   3. The app remains clear and usable on both mobile and desktop after the refresh.
-**Plans**: 4 plans
+**Plans**: 1/4 plans complete
 
 Plans:
-- [ ] 03-01-PLAN.md - Create shared manager workspace primitives, rebrand manager boundary surfaces, and add the Phase 3 smoke checklist
-- [ ] 03-02-PLAN.md - Rebrand the standalone scan flow while preserving QR-based clock actions
-- [ ] 03-03-PLAN.md - Unify dashboard and reports in one manager workspace and rebuild the landing preview from the redesigned product
+- [x] 03-01-PLAN.md - Expand shared manager workspace primitives for direct route and landing-preview reuse, rebrand manager boundaries, and add the Phase 3 smoke checklist
+- [ ] 03-02-PLAN.md - Deepen the standalone scan flow as branded shipped UI that can be framed on the landing page without invented variants
+- [ ] 03-03-PLAN.md - Unify dashboard and reports in one manager workspace and rebuild the landing preview from actual product components
 - [ ] 03-04-PLAN.md - Polish the admin setup route and correct installed-app branding metadata
 
 ### Phase 4: Demo Release
@@ -88,5 +88,5 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Brand Foundation | 3/3 | Complete | 2026-04-09 |
 | 2. Landing Page | 3/3 | Complete | 2026-04-09 |
-| 3. Product Rebrand | 0/4 | Not started | - |
+| 3. Product Rebrand | 1/4 | In Progress | - |
 | 4. Demo Release | 0/2 | Not started | - |
