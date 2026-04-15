@@ -4,7 +4,7 @@
   "description": "QR-based time tracking for small businesses. Clock in with a QR code. No apps. No logins. Payroll-ready in seconds.",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2B59FF",
+  "theme_color": "#245cff",
   "icons": [
     {
       "src": "/icons/icon-192.png",
