@@ -1,39 +1,50 @@
 # Phase 03 Smoke Checklist
 
-Use this checklist after Phase 3 UI changes land. Verify on one phone-width viewport and one desktop-width viewport.
+Use this checklist after Phase 3 UI work and before external demos. Verify each route at one phone width and one desktop width.
 
-## Setup
+## Viewports
 
-1. Open a fresh browser session or private window.
-2. If QRShift was already installed to the home screen, reinstall the PWA after manifest or icon changes so the latest branding is visible.
-3. Use a valid demo `qr_token` that has store, employee, and timelog data available.
+- Mobile: `390 x 844`
+- Desktop: `1440 x 900`
 
-## `/scan/[qr_token]`
+## Route Checks
 
-1. Visit `/scan/[qr_token]` on a phone-width viewport.
-2. Confirm the page loads without manager workspace navigation and remains focused on clock in/out.
-3. Confirm employee selection, current status messaging, and scan actions still work.
-4. Repeat on a desktop-width viewport and confirm spacing still feels readable without stretching the main scan card too wide.
+### `/`
 
-## `/dashboard/[qr_token]`
+- Confirm the landing page loads without redirecting unless local session resume intentionally applies.
+- Confirm the hero tells the `Scan -> Monitor -> Export` story and the dashboard is the dominant preview.
+- Confirm the landing preview uses shipped product components rather than a conceptual mock panel or invented dashboard cards.
+- Confirm the landing preview framing is decorative only: no conceptual mock data blocks, fake sidebars, or alternate manager navigation patterns.
 
-1. Visit `/dashboard/[qr_token]`.
-2. Confirm the manager PIN gate appears first on a locked browser, unlock still works, and locking the workspace clears access on refresh.
-3. Confirm the install prompt can appear when supported and dismiss cleanly.
-4. Confirm live attendance groups still separate on-shift and off-shift employees correctly.
-5. Check phone-width and desktop-width layouts to ensure header controls, cards, and lists remain usable.
+### `/scan/[qr_token]`
 
-## `/reports/[qr_token]`
+- Confirm the scan route stays standalone and does not show manager workspace navigation.
+- Confirm the employee can pick a name, see the next action clearly, and complete the clock flow.
+- Confirm loading, success, and error states stay readable on mobile and desktop widths.
 
-1. Visit `/reports/[qr_token]`.
-2. Confirm the same manager PIN unlock behavior still applies if the device is locked.
-3. Change the date range, refresh calculations, switch employee views, and verify report data still updates.
-4. Export a CSV and confirm the download still succeeds.
-5. Check phone-width and desktop-width layouts, including horizontal table overflow where needed.
+### `/dashboard/[qr_token]`
 
-## `/admin/create-store`
+- Confirm the manager shell loads with branded workspace framing and dashboard navigation.
+- Confirm `PinGuard` still blocks access until the manager PIN is entered.
+- Confirm the unlock copy states this is a demo gate on the current device and does not imply full authentication.
+- Confirm the dashboard still shows current on-shift and off-shift status correctly.
+- Confirm the lock action clears the local device unlock and requires the PIN again.
+- Confirm the install banner can appear from `beforeinstallprompt`, matches the workspace styling, and can be dismissed.
 
-1. Visit `/admin/create-store`.
-2. Confirm the form still creates a store and generates a QR code without browser alert regressions.
-3. Confirm helper copy, hierarchy, and spacing stay readable on phone-width and desktop-width viewports.
-4. If store creation seeds demo data, confirm the seeded flow still points to a working `/scan/[qr_token]` path.
+### `/reports/[qr_token]`
+
+- Confirm the reports page uses the same manager shell language as the dashboard.
+- Confirm the date range controls, refresh action, employee filter, inline edits, and `Export Payroll Report` still work.
+- Confirm totals, counts, and table content remain readable on mobile and desktop widths.
+- Confirm the lock action still removes the device unlock and returns the route to `PinGuard`.
+
+### `/admin/create-store`
+
+- Confirm the admin route remains separate from the manager workspace and scan route.
+- Confirm store creation still works, including QR generation and PIN creation.
+- Confirm the page hierarchy, helper copy, and form controls remain usable on mobile and desktop widths.
+
+## PWA Reinstall Note
+
+- If an already-installed PWA still shows old branding, reinstall the PWA and reopen the route checks above.
+- Confirm the installed app name, icon treatment, and launch surface match QRShift after reinstall the PWA on the test device.

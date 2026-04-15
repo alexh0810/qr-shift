@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { getStoreByQrToken } from "@/lib/db";
-import { ArrowRight, Loader2, Lock, ShieldAlert } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Store } from "@/types";
 
 export default function PinGuard({ qr_token, children }: { qr_token: string, children: React.ReactNode }) {
@@ -56,7 +56,7 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
           <BrandMark />
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm font-medium text-text-muted">
-            Loading manager workspace access…
+            Loading workspace...
           </p>
         </div>
       </div>
@@ -71,48 +71,31 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
     <div className="min-h-screen bg-background px-4 py-8 sm:px-6">
       <div className="mx-auto flex w-full max-w-md flex-col gap-5">
         <div className="rounded-[32px] border border-surfacestroke bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_72%,var(--color-surface))] p-5 shadow-[var(--shadow-panel)] sm:p-6">
-          <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="mb-6 flex items-start justify-between gap-4">
             <BrandMark />
-            <div className="inline-flex items-center gap-2 rounded-full border border-surfacestroke bg-surface px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-              <Lock className="h-3.5 w-3.5 text-primary" />
-              Manager gate
-            </div>
+            <span className="rounded-full border border-surfacestroke bg-background px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
+              Demo gate
+            </span>
           </div>
 
           <div className="mb-6 space-y-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-              Demo access only
+              Manager workspace
             </p>
             <h1 className="font-display text-[clamp(2rem,5vw,2.5rem)] font-bold tracking-[-0.05em] text-foreground">
-              Unlock manager workspace
+              Unlock this device
             </h1>
-            <p className="text-sm font-medium leading-6 text-text-muted sm:text-base">
-              This PIN only reopens the demo manager view on this device. It is not a production authentication system.
+            <p className="text-base font-semibold text-foreground">
+              {store?.name || "QRShift workspace"}
             </p>
-          </div>
-
-          <div className="mb-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <div className="rounded-[24px] border border-surfacestroke bg-surface px-4 py-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Store
-              </p>
-              <p className="mt-2 text-lg font-bold tracking-[-0.03em] text-foreground">
-                {store?.name || "QRShift demo workspace"}
-              </p>
-            </div>
-            <div className="rounded-[24px] border border-dashed border-border-strong bg-background px-4 py-4 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Demo PIN
-              </p>
-              <p className="mt-2 font-mono-brand text-2xl font-bold tracking-[0.34em] text-primary">
-                {store?.pin || "1234"}
-              </p>
-            </div>
+            <p className="max-w-sm text-sm font-medium leading-6 text-text-muted">
+              Use the manager PIN to reopen this demo workspace on this browser. This keeps the
+              current QRShift route boundary, but it is not full account authentication.
+            </p>
           </div>
 
           {error ? (
-            <div className="mb-5 flex items-start gap-3 rounded-[22px] border border-[color:color-mix(in_srgb,var(--error)_28%,var(--color-border-soft))] bg-error/10 px-4 py-3 text-left">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-error" />
+            <div className="mb-5 rounded-[22px] border border-[color:color-mix(in_srgb,var(--error)_28%,var(--color-border-soft))] bg-error/10 px-4 py-3 text-left">
               <p className="text-sm font-semibold text-error">{error}</p>
             </div>
           ) : null}
@@ -136,6 +119,13 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
               />
             </label>
 
+            <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
+              <p className="text-sm font-medium leading-6 text-text-muted">
+                QRShift stores the unlocked state on this device with local browser storage. Lock
+                the workspace when you finish on a shared phone, tablet, or laptop.
+              </p>
+            </div>
+
             <button
               type="submit"
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-base font-bold text-white transition-colors hover:bg-primary-dark"
@@ -144,20 +134,6 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>
-
-          <div className="mt-5 rounded-[22px] border border-surfacestroke bg-surface px-4 py-4">
-            <p className="text-sm font-medium leading-6 text-text-muted">
-              Use <span className="font-semibold text-foreground">Lock manager access</span> inside dashboard or reports to clear this device and require the PIN again.
-            </p>
-          </div>
-        </div>
-        <div className="rounded-[28px] border border-surfacestroke bg-surface px-5 py-4 shadow-[var(--shadow-panel)]">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-            Shared-device note
-          </p>
-          <p className="mt-2 text-sm font-medium leading-6 text-text-muted">
-            Access is stored in this browser with localStorage for demo convenience. Re-lock the workspace before leaving a shared phone or tablet.
-          </p>
         </div>
       </div>
     </div>

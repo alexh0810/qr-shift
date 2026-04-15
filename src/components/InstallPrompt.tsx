@@ -50,13 +50,14 @@ export default function InstallPrompt() {
             </div>
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                Install QRShift
+                Workspace install
               </p>
               <p className="mt-1 text-sm font-semibold text-foreground sm:text-base">
-                Keep the workspace one tap away on shared phones and tablets.
+                Keep this QRShift workspace one tap away on shared phones and tablets.
               </p>
               <p className="mt-1 text-sm font-medium text-text-muted">
-                This uses the browser&apos;s install flow and keeps the current QRShift session behavior.
+                This uses the browser&apos;s `beforeinstallprompt` flow and keeps the current
+                QRShift session behavior on this device.
               </p>
             </div>
           </div>
@@ -67,7 +68,7 @@ export default function InstallPrompt() {
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
             >
               <ArrowDownToLine className="h-4 w-4" />
-              <span>Install app</span>
+              <span>Install QRShift</span>
             </button>
             <button
               onClick={() => setShowPrompt(false)}
