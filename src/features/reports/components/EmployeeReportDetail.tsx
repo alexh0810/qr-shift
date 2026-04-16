@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 
+import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { formatPayrollDuration } from "@/lib/time-calculation";
 import { Employee } from "@/types";
 import { EmployeeReport } from "../types";
@@ -38,24 +39,22 @@ export function EmployeeReportDetail({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] border border-surfacestroke bg-surface p-5 shadow-[var(--shadow-panel)] sm:p-6">
+      <WorkspacePanel
+        eyebrow="Employee detail"
+        title={selectedReport?.name ?? "No data"}
+        description={
+          selectedReport
+            ? `${selectedReport.dailySummaries.length} worked day(s) in the selected period.`
+            : isValidSelection
+              ? "No shifts logged in this period."
+              : "Invalid employee selection."
+        }
+      >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-[-0.04em] text-foreground">
-              {selectedReport?.name ?? "No data"}
-            </h2>
-            <p className="mt-1 text-sm font-medium leading-6 text-text-muted">
-              {selectedReport
-                ? `${selectedReport.dailySummaries.length} worked day(s) in selected period`
-                : isValidSelection
-                  ? "No shifts logged in this period."
-                  : "Invalid employee selection."}
-            </p>
-            <p className="mt-3 text-sm font-medium leading-6 text-text-muted">
-              Edits here stay local to this browser session and affect the exported report you
-              download from this workspace.
-            </p>
-          </div>
+          <p className="max-w-2xl text-sm font-medium leading-6 text-text-muted">
+            Edits here stay local to this browser session and affect the exported report you
+            download from this workspace.
+          </p>
 
           <div className="min-w-full lg:min-w-[320px]">
             <ReportSummaryCards
@@ -64,9 +63,14 @@ export function EmployeeReportDetail({
             />
           </div>
         </div>
-      </div>
+      </WorkspacePanel>
 
-      <div className="overflow-hidden rounded-[28px] border border-surfacestroke bg-surface shadow-[var(--shadow-panel)]">
+      <WorkspacePanel
+        eyebrow="Timesheet rows"
+        title="Editable shift details"
+        description="Keep payroll rows readable and export-ready while making local corrections."
+        bodyClassName="p-0"
+      >
         {isPhoneWidth ? (
           <div className="space-y-4 p-4">
             {!hasDetailData || !selectedReport ? (
@@ -153,76 +157,89 @@ export function EmployeeReportDetail({
           </div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="min-w-[640px] w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-surfacestroke bg-background">
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">Date</th>
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">Clock In</th>
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">Clock Out</th>
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">Duration</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surfacestroke">
-              {!hasDetailData ? (
-                <tr>
-                  <td colSpan={4} className="px-5 py-12 text-center text-sm font-medium text-text-muted md:px-6">
-                    {mobileEmptyMessage}
-                  </td>
+            <table className="min-w-[640px] w-full border-collapse text-left">
+              <thead>
+                <tr className="border-y border-surfacestroke bg-background">
+                  <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
+                    Date
+                  </th>
+                  <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
+                    Clock In
+                  </th>
+                  <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
+                    Clock Out
+                  </th>
+                  <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
+                    Duration
+                  </th>
                 </tr>
-              ) : (
-                selectedReport.timesheetRows.map((row, index) => (
-                  <tr key={`${row.employeeId}-${row.date}-${row.clockIn}-${index}`} className="transition-colors hover:bg-background">
-                    <td className="px-5 py-4 md:px-6">
-                      <p className="font-semibold text-foreground">
-                        {format(row.clockInAt, "EEE, MMM d, yyyy")}
-                      </p>
-                      {row.note ? (
-                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-error">{row.note}</p>
-                      ) : null}
-                    </td>
-                    <td className="px-5 py-4 font-medium text-foreground md:px-6">
-                      <input
-                        type="time"
-                        value={row.clockIn}
-                        onChange={(event) =>
-                          onTimeChange(selectedReport.employee.id, index, "clockIn", event.target.value)
-                        }
-                        className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
-                      />
-                    </td>
-                    <td className="px-5 py-4 font-medium text-foreground md:px-6">
-                      <input
-                        type="time"
-                        value={row.clockOut}
-                        onChange={(event) =>
-                          onTimeChange(selectedReport.employee.id, index, "clockOut", event.target.value)
-                        }
-                        className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
-                      />
-                    </td>
-                    <td className="px-5 py-4 md:px-6">
-                      <p className="font-mono-brand font-semibold text-foreground">
-                        {formatPayrollDuration(row.durationMinutes)}
-                      </p>
+              </thead>
+              <tbody className="divide-y divide-surfacestroke">
+                {!hasDetailData ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-12 text-center text-sm font-medium text-text-muted md:px-6">
+                      {mobileEmptyMessage}
                     </td>
                   </tr>
-                ))
-              )}
-              {hasDetailData ? (
-                <tr className="bg-background/70">
-                  <td className="px-5 py-4 font-bold text-foreground md:px-6" colSpan={3}>
-                    Total
-                  </td>
-                  <td className="px-5 py-4 font-mono-brand font-bold text-foreground md:px-6">
-                    {formatPayrollDuration(selectedReport.totalMinutes)}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+                ) : (
+                  selectedReport.timesheetRows.map((row, index) => (
+                    <tr
+                      key={`${row.employeeId}-${row.date}-${row.clockIn}-${index}`}
+                      className="transition-colors hover:bg-background"
+                    >
+                      <td className="px-5 py-4 md:px-6">
+                        <p className="font-semibold text-foreground">
+                          {format(row.clockInAt, "EEE, MMM d, yyyy")}
+                        </p>
+                        {row.note ? (
+                          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-error">
+                            {row.note}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="px-5 py-4 font-medium text-foreground md:px-6">
+                        <input
+                          type="time"
+                          value={row.clockIn}
+                          onChange={(event) =>
+                            onTimeChange(selectedReport.employee.id, index, "clockIn", event.target.value)
+                          }
+                          className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
+                        />
+                      </td>
+                      <td className="px-5 py-4 font-medium text-foreground md:px-6">
+                        <input
+                          type="time"
+                          value={row.clockOut}
+                          onChange={(event) =>
+                            onTimeChange(selectedReport.employee.id, index, "clockOut", event.target.value)
+                          }
+                          className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
+                        />
+                      </td>
+                      <td className="px-5 py-4 md:px-6">
+                        <p className="font-mono-brand font-semibold text-foreground">
+                          {formatPayrollDuration(row.durationMinutes)}
+                        </p>
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {hasDetailData ? (
+                  <tr className="bg-background/70">
+                    <td className="px-5 py-4 font-bold text-foreground md:px-6" colSpan={3}>
+                      Total
+                    </td>
+                    <td className="px-5 py-4 font-mono-brand font-bold text-foreground md:px-6">
+                      {formatPayrollDuration(selectedReport.totalMinutes)}
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
         )}
-      </div>
+      </WorkspacePanel>
     </div>
   );
 }

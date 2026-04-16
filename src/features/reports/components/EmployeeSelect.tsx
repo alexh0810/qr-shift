@@ -20,7 +20,7 @@ export function EmployeeSelect({
     <WorkspacePanel
       eyebrow="Employee filter"
       title="Switch between workspace and single-person review"
-      description="Move between all rows and one employee detail view without leaving the shared manager workspace."
+      description="Move between all rows and one employee detail view."
       className="rounded-[24px]"
       bodyClassName="pt-0"
     >
