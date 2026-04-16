@@ -9,81 +9,77 @@ requires:
   - phase: 02-landing-page
     provides: Product positioning and shared QRShift CTA language
 provides:
-  - Branded internal admin setup surface for store creation and demo seeding
-  - Installed app metadata aligned to the live QRShift accent token
+  - Tighter branded internal admin setup surface for store creation and demo seeding
+  - Verified installed app metadata aligned to QRShift branding
 affects: [admin, pwa, branding, demo-setup]
 tech-stack:
   added: []
   patterns: [inline error surfaces for admin setup, branded internal-tool layout on existing client route]
 key-files:
   created: []
-  modified: [public/manifest.json, src/app/admin/create-store/page.tsx]
+  modified: [src/app/admin/create-store/page.tsx, .planning/phases/03-product-rebrand/03-product-rebrand-04-SUMMARY.md]
 key-decisions:
-  - "Treated the current main worktree as source of truth and left the admin route unchanged because it already satisfied the 03-04 contract."
-  - "Aligned manifest theme metadata to the canonical electric accent token in globals.css instead of the older meta color value."
+  - "Removed helper copy that did not change user behavior while preserving all admin setup logic and validation."
+  - "Recorded Task 2 as a verification-only commit because manifest branding was already compliant in this worktree."
 patterns-established:
-  - "Admin-only flows can stay visually distinct from the manager workspace while still using QRShift typography, borders, and action styling."
-  - "Sequential execution on the main tree should document pre-satisfied tasks explicitly rather than manufacturing redundant diffs."
+  - "Admin-only flows can stay visually distinct from manager workspace chrome while using QRShift type, borders, and action styling."
+  - "Parallel plan execution can use an explicit empty commit when a scoped task is already satisfied and only needs verification."
 requirements-completed: [BRAND-02, UX-01, UX-02]
-duration: 6 min
-completed: 2026-04-15
+duration: 10 min
+completed: 2026-04-16
 ---
 
 # Phase 03 Plan 04: Admin Tool Rebrand Summary
 
-**Branded internal admin setup remains intact on the live main tree, and the installed PWA identity now uses the canonical QRShift accent token**
+**QRShift internal setup copy is tighter, and the install-surface branding is verified to match the current product identity**
 
 ## Performance
 
-- **Duration:** 6 min
-- **Started:** 2026-04-15T12:21:00Z
-- **Completed:** 2026-04-15T12:27:35Z
+- **Duration:** 10 min
+- **Completed:** 2026-04-16
 - **Tasks:** 2
-- **Files modified:** 1
+- **Files modified:** 2
 
 ## Accomplishments
 
-- Verified that `/admin/create-store` already meets the Phase 3 branded internal-tool contract in the current main worktree, including inline errors, QR rendering, demo seeding, and mobile/desktop layout support.
-- Updated `public/manifest.json` so the installed app shell uses the same electric accent token defined in `src/app/globals.css`.
-- Revalidated the plan with `npm test` plus the task-specific `rg` checks for admin flow behavior and manifest branding.
+- Tightened `src/app/admin/create-store/page.tsx` by removing helper text that added noise without changing behavior.
+- Kept the owner-only setup route distinct from dashboard and reports while preserving `nanoid(10)`, `createStoreAndEmployees`, `createDemoStoreWithTimelogs`, `QRCodeSVG`, QR download, and inline error handling.
+- Verified `public/manifest.json` already matches the required QRShift name, description, icon paths, and `#245cff` theme color.
+- Revalidated the plan with `npm test` and the task-level `rg` assertions.
 
 ## Task Commits
 
-Each task was handled against the current main worktree:
-
-1. **Task 1: Rework the admin create-store route into a branded internal tool** - No new commit required; the current worktree already satisfied the task criteria at execution start.
-2. **Task 2: Correct PWA identity metadata to match the QRShift rebrand** - `492ef21` (fix)
+1. **Task 1: Rework the admin create-store route into a branded internal tool** - `f9b202b` (`feat`)
+2. **Task 2: Correct installed-app branding metadata to match QRShift** - `1bb617a` (`chore`, verification-only empty commit)
 
 ## Files Created/Modified
 
-- `src/app/admin/create-store/page.tsx` - Verified as already compliant with the branded internal-tool, inline-error, and responsive layout requirements in the live tree.
-- `public/manifest.json` - Updated `theme_color` from `#2B59FF` to `#245cff` to match the canonical QRShift accent token.
+- `src/app/admin/create-store/page.tsx` - Removed non-essential helper copy and tightened the seeded-demo handoff note.
+- `public/manifest.json` - Verified unchanged and already compliant with the plan contract.
+- `.planning/phases/03-product-rebrand/03-product-rebrand-04-SUMMARY.md` - Refreshed to reflect this execution run.
 
 ## Decisions Made
 
-- Treated the current main worktree as authoritative, per the execution brief, and avoided reworking the admin page just to manufacture a task diff.
-- Kept the manifest scope limited to branding metadata only, preserving icon paths, manifest path, and positioning copy exactly as required.
+- Kept the admin-route change presentation-only to respect the plan threat mitigation around preserved validation and existing db helper calls.
+- Used an atomic empty commit for Task 2 instead of manufacturing a redundant manifest diff.
 
 ## Deviations from Plan
 
-None - plan intent was completed exactly, with Task 1 already present in the live worktree and Task 2 applied as a minimal branding correction.
+### Auto-fixed Issues
 
-## Issues Encountered
+None.
 
-- The existing summary draft for `03-04` did not match this sequential execution state, so it was refreshed to reflect the current main-tree run accurately.
-- The worktree contains unrelated in-progress Phase 3 changes; they were left untouched and excluded from this plan's code commit.
+### Execution Notes
 
-## User Setup Required
+- Task 2 required no file edit because `public/manifest.json` was already in the exact branded state required by the plan.
+- Existing unrelated worktree changes were left untouched, including `.planning/STATE.md` and `.planning/ROADMAP.md`, per the execution brief.
 
-None - no external service configuration required.
+## Known Stubs
 
-## Next Phase Readiness
-
-- The owner-only admin setup route and installed PWA identity now match the QRShift rebrand on the current main tree.
-- Already-installed PWAs may still need a refresh or reinstall before device shells pick up the updated manifest theme color.
+None.
 
 ## Self-Check: PASSED
 
 - Verified summary target exists: `.planning/phases/03-product-rebrand/03-product-rebrand-04-SUMMARY.md`
-- Verified task commit exists: `492ef21`
+- Verified task commits exist: `f9b202b`, `1bb617a`
 - Verified plan-level checks passed: `npm test` and admin/manifest `rg` assertions
