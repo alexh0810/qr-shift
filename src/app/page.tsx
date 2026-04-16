@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, Clock3, Download, Mail, ShieldCheck } from "lucide-react";
+import { CalendarDays, CheckCircle2, Download, Mail, ShieldCheck } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { ProductPreviewFrame } from "@/components/landing/ProductPreviewFrame";
 import { SectionBlock } from "@/components/landing/SectionBlock";
