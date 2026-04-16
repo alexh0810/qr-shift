@@ -1,213 +1,175 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  CalendarDays,
-  Check,
-  CheckCircle2,
-  FileSpreadsheet,
-  Layers3,
-  Loader2,
-  Mail,
-  ScanLine,
-  ShieldCheck,
-  Smartphone,
-  Users,
-} from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, Download, Mail, ShieldCheck } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
-import { HeroPreview } from "@/components/landing/HeroPreview";
+import { ProductPreviewFrame } from "@/components/landing/ProductPreviewFrame";
 import { SectionBlock } from "@/components/landing/SectionBlock";
+import { ShiftStatusPanel } from "@/components/manager/ShiftStatusPanel";
+import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
+import { WorkspaceStatCard } from "@/components/manager/WorkspaceStatCard";
+import { ScanActionPanel } from "@/components/scan/ScanActionPanel";
 import { siteConfig } from "@/lib/site-config";
 
 export default function Home() {
-  const router = useRouter();
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    const lastDash = localStorage.getItem("last_dashboard_token");
-    const lastScan = localStorage.getItem("last_scan_token");
-    
-    // Auto-resume sessions if they launch the PWA from home screen
-    if (lastScan) {
-      router.replace(`/scan/${lastScan}`);
-    } else if (lastDash) {
-      router.replace(`/dashboard/${lastDash}`);
-    } else {
-      setChecking(false);
-    }
-  }, [router]);
-
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-background px-5 py-5 text-foreground sm:px-8 lg:px-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-12">
-        <header className="sticky top-4 z-20 flex flex-col gap-5 rounded-[32px] border border-surfacestroke bg-surface/90 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-4 pb-8">
+        <header className="grid gap-3 rounded-[26px] border border-surfacestroke bg-surface/90 p-4 shadow-[var(--shadow-panel)] lg:grid-cols-[auto_1fr_auto] lg:items-center">
           <BrandMark />
-          <span className="w-fit rounded-full border border-surfacestroke bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-            QR-Based Attendance
-          </span>
+          <div className="hidden justify-center lg:flex">
+            <span className="inline-flex min-h-[34px] items-center rounded-full border border-surfacestroke bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
+              Scan -&gt; Monitor -&gt; Export
+            </span>
+          </div>
+          <a
+            href={siteConfig.DEMO_BOOKING_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-[38px] w-fit items-center justify-center rounded-full border border-primary bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white hover:bg-primary-dark"
+          >
+            Book Demo
+          </a>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="relative overflow-hidden rounded-[36px] border border-surfacestroke bg-surface px-6 py-8 shadow-[var(--shadow-panel)] sm:px-8 sm:py-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(36,92,255,0.16),transparent_38%),linear-gradient(135deg,rgba(30,215,181,0.08),transparent_45%)]" />
-            <div className="relative max-w-2xl">
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-                <ScanLine className="h-4 w-4" />
-                No Apps. No Logins.
-              </p>
-              <h1 className="font-display max-w-3xl text-5xl font-bold tracking-[-0.07em] text-foreground sm:text-6xl lg:text-[4.6rem]">
-                Clock in with a QR code. Payroll-ready in seconds.
-              </h1>
-              <p className="mt-6 max-w-2xl text-base font-medium leading-7 text-text-muted sm:text-lg">
-                QRShift gives small businesses a faster way to track staff hours without paper,
-                apps, or login friction. Staff scan in and out, managers see who is on shift,
-                and payroll-ready reports are already structured for export.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href={siteConfig.DEMO_BOOKING_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 text-base font-semibold text-white transition-all hover:bg-primary-dark"
+        <section className="grid items-start gap-4 rounded-[28px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6 lg:grid-cols-[0.94fr_1.06fr]">
+          <div className="max-w-lg">
+            <p className="mb-3 inline-flex min-h-[34px] items-center rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+              QR-first attendance
+            </p>
+            <h1 className="font-display text-[clamp(2.2rem,4.4vw,3.8rem)] font-bold leading-[0.94] tracking-[-0.055em] text-foreground">
+              QR Scan Attendance System for small businesses
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-text-muted sm:text-base">
+              Staff scan in seconds. Managers monitor live status and export payroll-ready totals.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {["No app install", "No staff login", "Payroll-ready"].map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex min-h-[32px] items-center rounded-full border border-surfacestroke bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
                 >
-                  <CalendarDays className="h-5 w-5" />
-                  Request a Demo
-                </a>
-                <a
-                  href={siteConfig.CONTACT_EMAIL}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-border-strong bg-background px-6 py-4 text-base font-semibold text-foreground transition-colors hover:bg-surface"
-                >
-                  <Mail className="h-5 w-5" />
-                  Contact
-                </a>
-              </div>
-
-              <div className="mt-10 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[24px] border border-surfacestroke bg-background/75 p-4">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-muted">
-                    Fast setup
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">Single QR flow</p>
-                </div>
-                <div className="rounded-[24px] border border-surfacestroke bg-background/75 p-4">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-muted">
-                    Live visibility
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">Know who&apos;s working</p>
-                </div>
-                <div className="rounded-[24px] border border-surfacestroke bg-background/75 p-4">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-muted">
-                    Payroll ready
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">Decimal-hour exports</p>
-                </div>
-              </div>
+                  {item}
+                </span>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+              <a
+                href={siteConfig.DEMO_BOOKING_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-dark"
+              >
+                <CalendarDays className="h-4 w-4" />
+                Request a Demo
+              </a>
+              <a
+                href={siteConfig.CONTACT_EMAIL}
+                className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full border border-border-strong bg-background px-5 py-3 text-sm font-semibold text-foreground hover:bg-surface"
+              >
+                <Mail className="h-4 w-4" />
+                Contact
+              </a>
             </div>
           </div>
 
-          <HeroPreview />
+          <ProductPreviewFrame
+            label="Scan"
+            description="Mobile-friendly clock in or clock out screen."
+            className="self-start"
+          >
+            <div className="mx-auto max-w-[340px]">
+              <ScanActionPanel
+                employeeName="Nora Kim"
+                nextAction="IN"
+                latestTimestamp={null}
+                timelogLoading={false}
+                actionLoading={false}
+                successMessage={null}
+                onBack={() => {}}
+                onConfirm={() => {}}
+              />
+            </div>
+          </ProductPreviewFrame>
         </section>
 
         <SectionBlock
-          eyebrow="How it works"
-          title="A simple attendance loop your team can use immediately."
-          description="QRShift keeps the process easy for staff and practical for owners. One QR station, one quick scan flow, and cleaner visibility from the first day."
+          eyebrow="Product Snapshot"
+          title="Scan, Monitor, Export in one product story."
+          description="Dashboard stays the manager proof anchor, with reports completing the payroll handoff."
         >
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                title: "Create a QR station",
-                body: "Set up one QR code at the shop, counter, or front desk.",
-                icon: Layers3,
-              },
-              {
-                title: "Staff scan in or out",
-                body: "No passwords, accounts, or app installs required for the team.",
-                icon: Smartphone,
-              },
-              {
-                title: "See who is on shift",
-                body: "Managers get a live view of current attendance without paper timesheets.",
-                icon: Users,
-              },
-              {
-                title: "Export for payroll",
-                body: "Reports are already structured in decimal hours for payroll use.",
-                icon: FileSpreadsheet,
-              },
-            ].map(({ title, body, icon: Icon }, index) => (
-              <div
-                key={title}
-                className="rounded-[24px] border border-surfacestroke bg-background/80 p-5"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono-brand text-sm font-semibold text-text-muted">
-                    0{index + 1}
-                  </span>
-                  <div className="rounded-2xl border border-surfacestroke bg-surface p-3">
-                    <Icon className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-                <p className="mt-5 text-lg font-semibold text-foreground">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-text-muted">{body}</p>
-              </div>
-            ))}
-          </div>
-        </SectionBlock>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ProductPreviewFrame label="Monitor" description="Live dashboard visibility for who is on shift right now.">
+              <ShiftStatusPanel
+                title="On Shift"
+                description="2 active now"
+                emptyMessage="No one is currently clocked in."
+                icon={CheckCircle2}
+                compact
+                items={[
+                  {
+                    id: "nora",
+                    name: "Nora Kim",
+                    detail: "Clocked in 8:57 AM",
+                    statusLabel: "IN",
+                    tone: "active",
+                  },
+                  {
+                    id: "marco",
+                    name: "Marco Diaz",
+                    detail: "Clocked in 9:08 AM",
+                    statusLabel: "IN",
+                    tone: "active",
+                  },
+                ]}
+              />
+            </ProductPreviewFrame>
 
-        <SectionBlock
-          eyebrow="Core benefits"
-          title="Built for owners who need cleaner shift visibility without extra admin."
-          description="The value of QRShift is practical: faster attendance tracking, clearer live visibility, and payroll-friendly reporting that does not make staff learn another tool."
-        >
-          <div className="grid gap-4 lg:grid-cols-3">
-            {[
-              {
-                title: "No app or login friction",
-                body: "Staff do not need accounts to clock in or out, which keeps onboarding fast even when turnover is high.",
-                icon: CheckCircle2,
-              },
-              {
-                title: "Live shift visibility",
-                body: "Managers can see who is working right now instead of chasing paper records or asking around the floor.",
-                icon: Users,
-              },
-              {
-                title: "Cleaner payroll exports",
-                body: "Worked time stays shaped for payroll-ready reporting so handoff is clearer at the end of the pay period.",
-                icon: FileSpreadsheet,
-              },
-            ].map(({ title, body, icon: Icon }) => (
-              <div
-                key={title}
-                className="rounded-[26px] border border-surfacestroke bg-background/80 p-6"
+            <ProductPreviewFrame label="Export" description="Reports stay payroll-readable and ready for CSV handoff.">
+              <WorkspacePanel
+                eyebrow="Reports"
+                title="This pay period"
+                compact
+                description="Supporting export proof from the same manager workspace."
+                headerActions={<span className="inline-flex min-h-[38px] items-center justify-center rounded-[14px] border border-primary bg-primary px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white">Export</span>}
               >
-                <div className="rounded-2xl border border-surfacestroke bg-surface p-3 w-fit">
-                  <Icon className="h-5 w-5 text-primary" />
+                <div className="grid gap-2.5">
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <WorkspaceStatCard
+                      label="Employees"
+                      value="6"
+                      compact
+                      className="bg-background px-4 py-4 shadow-none"
+                      valueClassName="mt-2 text-[1.75rem]"
+                    />
+                    <WorkspaceStatCard
+                      label="Total Hours"
+                      value="36.50 h"
+                      compact
+                      className="bg-background px-4 py-4 shadow-none"
+                      valueClassName="mt-2 text-[1.75rem]"
+                    />
+                  </div>
+                  <WorkspaceStatCard
+                    label="Export"
+                    value="CSV"
+                    description="Ready for payroll handoff."
+                    icon={<Download className="h-4 w-4" />}
+                    compact
+                    className="bg-background px-4 py-4 shadow-none"
+                    valueClassName="mt-2 text-[1.75rem]"
+                  />
                 </div>
-                <p className="mt-5 text-xl font-semibold text-foreground">{title}</p>
-                <p className="mt-3 text-sm leading-7 text-text-muted">{body}</p>
-              </div>
-            ))}
+              </WorkspacePanel>
+            </ProductPreviewFrame>
           </div>
         </SectionBlock>
 
         <SectionBlock
           eyebrow="Best fit"
-          title="Best suited to small businesses with hourly staff."
-          description="QRShift is designed for single-location teams that need something faster and simpler than paper, but do not need a heavy workforce platform."
+          title="Built for owner-led teams with hourly staff."
+          description="Best for single-location businesses replacing paper or spreadsheet timesheets."
         >
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-2.5 sm:grid-cols-2">
             {[
               "Bubble tea shops and small cafes",
               "Casual restaurants and takeaway counters",
@@ -216,50 +178,10 @@ export default function Home() {
             ].map((item) => (
               <div
                 key={item}
-                className="flex items-start gap-3 rounded-[22px] border border-surfacestroke bg-background/80 p-4"
+                className="flex items-start gap-2.5 rounded-[18px] border border-surfacestroke bg-background/80 px-3 py-3"
               >
-                <ShieldCheck className="mt-0.5 h-5 w-5 text-secondary" />
-                <span className="text-sm font-medium leading-6 text-foreground">{item}</span>
-              </div>
-            ))}
-          </div>
-        </SectionBlock>
-
-        <SectionBlock
-          eyebrow="What customers get"
-          title="Built to make time tracking easier to trust day to day."
-          description="The product is designed to remove the friction around attendance tracking while still giving owners the information they actually need to run payroll and manage shifts."
-        >
-          <div className="grid gap-4 lg:grid-cols-2">
-            {[
-              {
-                title: "Faster staff adoption",
-                body: "Teams can start scanning without app installs, passwords, or extra onboarding overhead.",
-              },
-              {
-                title: "Cleaner payroll handoff",
-                body: "Worked time is already shaped into report-friendly decimal-hour exports for payroll use.",
-              },
-              {
-                title: "More confidence on busy days",
-                body: "Managers can check who is on shift in real time instead of relying on paper or memory.",
-              },
-              {
-                title: "Simple setup for small teams",
-                body: "QRShift is built for owner-led businesses that need a lightweight tool, not a heavyweight platform rollout.",
-              },
-            ].map(({ title, body }) => (
-              <div
-                key={title}
-                className="rounded-[24px] border border-surfacestroke bg-background/80 p-5"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    <Check className="h-4 w-4 text-primary" />
-                  </div>
-                  <p className="text-lg font-semibold text-foreground">{title}</p>
-                </div>
-                <p className="mt-3 text-sm leading-7 text-text-muted">{body}</p>
+                <ShieldCheck className="mt-0.5 h-4 w-4 text-secondary" />
+                <span className="text-xs font-medium leading-5 text-foreground sm:text-sm">{item}</span>
               </div>
             ))}
           </div>
@@ -267,36 +189,27 @@ export default function Home() {
 
         <SectionBlock
           eyebrow="Request a demo"
-          title="See how QRShift can replace paper timesheets in your business."
-          description="If you want a quick walkthrough, book a demo. If you would rather start with a conversation, send an email directly."
-          className="relative overflow-hidden"
+          title="See QRShift in your workflow."
+          description="Book a walkthrough or send a quick email."
+          className="self-start"
         >
-          <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(circle_at_right,rgba(30,215,181,0.18),transparent_72%)] lg:block" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-sm leading-7 text-text-muted">
-                QRShift is for small teams that want a simple QR-based clock-in flow, live shift visibility,
-                and payroll-ready reporting without adding another app to staff phones.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <a
-                href={siteConfig.DEMO_BOOKING_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 text-base font-semibold text-white transition-all hover:bg-primary-dark"
-              >
-                <CalendarDays className="h-5 w-5" />
-                Request a Demo
-              </a>
-              <a
-                href={siteConfig.CONTACT_EMAIL}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-border-strong bg-background px-6 py-4 text-base font-semibold text-foreground transition-colors hover:bg-surface"
-              >
-                <Mail className="h-5 w-5" />
-                Contact
-              </a>
-            </div>
+          <div className="flex flex-col gap-2.5 sm:flex-row">
+            <a
+              href={siteConfig.DEMO_BOOKING_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark"
+            >
+              <CalendarDays className="h-4 w-4" />
+              Request a Demo
+            </a>
+            <a
+              href={siteConfig.CONTACT_EMAIL}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-border-strong bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface"
+            >
+              <Mail className="h-4 w-4" />
+              Contact
+            </a>
           </div>
         </SectionBlock>
       </div>
