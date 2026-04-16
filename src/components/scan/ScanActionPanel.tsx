@@ -73,7 +73,7 @@ export function ScanActionPanel({
             {firstName}
           </h2>
           <p className="mt-2 text-sm font-medium text-text-muted">
-            Review the current status and confirm the next clock action.
+            Review your status and confirm the next action.
           </p>
         </div>
         <span
@@ -143,7 +143,7 @@ export function ScanActionPanel({
 
       <button
         onClick={onBack}
-        className="mt-4 inline-flex min-h-[44px] items-center gap-2 text-sm font-bold text-text-muted transition-colors hover:text-foreground"
+        className="mt-4 inline-flex h-11 min-h-[44px] items-center gap-2 text-sm font-bold text-text-muted transition-colors hover:text-foreground"
       >
         <MoveLeft className="h-4 w-4" />
         Choose a different name

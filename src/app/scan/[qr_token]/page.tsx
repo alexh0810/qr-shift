@@ -30,6 +30,14 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
     setError(null);
   };
 
+  const retryPageLoad = () => {
+    setLoading(true);
+    setError(null);
+    setSelectedEmployee(null);
+    setSuccessMessage(null);
+    window.location.reload();
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -173,7 +181,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
                 QRShift flow
               </p>
               <p className="mt-2 text-sm font-medium text-foreground">
-                Select your name, check your status, and confirm the next clock action.
+                Choose your name, check your status, and confirm the next action.
               </p>
             </div>
           </div>
@@ -186,7 +194,15 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
           >
             <div className="flex items-start gap-3">
               <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-              <p>{error}</p>
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <p>{error}</p>
+                <button
+                  onClick={retryPageLoad}
+                  className="inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-[var(--radius-control)] border border-error/20 bg-surface px-4 text-sm font-bold text-error transition-colors hover:bg-error/5"
+                >
+                  Try again
+                </button>
+              </div>
             </div>
           </div>
         ) : null}
@@ -222,7 +238,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
                 Employee list
               </p>
               <p className="mt-2 text-sm font-medium text-foreground">
-                Select your name to review your status and continue.
+                Choose your name.
               </p>
             </div>
             {employees.map((emp) => (
