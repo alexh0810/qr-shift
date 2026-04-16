@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { getStoreByQrToken } from "@/lib/db";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, ShieldAlert } from "lucide-react";
 import { Store } from "@/types";
 
 export default function PinGuard({ qr_token, children }: { qr_token: string, children: React.ReactNode }) {
@@ -52,11 +52,11 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-[28px] border border-surfacestroke bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]">
+        <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-[28px] border border-border-strong bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]">
           <BrandMark />
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm font-medium text-text-muted">
-            Loading workspace...
+            Loading demo workspace...
           </p>
         </div>
       </div>
@@ -68,19 +68,19 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8 sm:px-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(36,92,255,0.08),transparent_38%),var(--color-background)] px-4 py-8 sm:px-6">
       <div className="mx-auto flex w-full max-w-md flex-col gap-5">
-        <div className="rounded-[32px] border border-surfacestroke bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_72%,var(--color-surface))] p-5 shadow-[var(--shadow-panel)] sm:p-6">
+        <div className="rounded-[32px] border border-border-strong bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_76%,var(--color-surface))] p-5 shadow-[var(--shadow-panel)] sm:p-6">
           <div className="mb-6 flex items-start justify-between gap-4">
             <BrandMark />
             <span className="rounded-full border border-surfacestroke bg-background px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-              Demo gate
+              Device unlock
             </span>
           </div>
 
           <div className="mb-6 space-y-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-              Manager workspace
+              Demo workspace
             </p>
             <h1 className="font-display text-[clamp(2rem,5vw,2.5rem)] font-bold tracking-[-0.05em] text-foreground">
               Unlock this device
@@ -89,8 +89,16 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
               {store?.name || "QRShift workspace"}
             </p>
             <p className="max-w-sm text-sm font-medium leading-6 text-text-muted">
-              Use the manager PIN to reopen this demo workspace on this browser. This keeps the
+              Use the manager PIN to reopen this demo workspace on this device. This keeps the
               current QRShift route boundary, but it is not full account authentication.
+            </p>
+          </div>
+
+          <div className="mb-5 flex items-start gap-3 rounded-[22px] border border-primary/15 bg-primary/10 px-4 py-3">
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <p className="text-sm font-medium leading-6 text-foreground">
+              This unlock only reopens the demo workspace in this browser. It does not create a
+              user session or replace real account authentication.
             </p>
           </div>
 
@@ -122,7 +130,7 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
             <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
               <p className="text-sm font-medium leading-6 text-text-muted">
                 QRShift stores the unlocked state on this device with local browser storage. Lock
-                the workspace when you finish on a shared phone, tablet, or laptop.
+                the demo workspace when you finish on a shared phone, tablet, or laptop.
               </p>
             </div>
 
@@ -130,7 +138,7 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
               type="submit"
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-base font-bold text-white transition-colors hover:bg-primary-dark"
             >
-              <span>Open workspace</span>
+              <span>Open demo workspace</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>

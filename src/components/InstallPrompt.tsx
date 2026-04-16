@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { ArrowDownToLine, Download, X } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -42,13 +43,19 @@ export default function InstallPrompt() {
 
   return (
     <div className="mb-6 animate-in fade-in slide-in-from-top-4">
-      <div className="rounded-[28px] border border-surfacestroke bg-surface px-4 py-4 shadow-[var(--shadow-panel)] sm:px-5">
+      <div className="qr-grid-accent rounded-[28px] border border-border-strong bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_78%,var(--color-surface))] px-4 py-4 shadow-[var(--shadow-panel)] sm:px-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="qr-grid-accent flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border border-surfacestroke bg-background text-primary">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border border-surfacestroke bg-background text-primary">
               <Download className="h-5 w-5" />
             </div>
-            <div>
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center gap-3">
+                <BrandMark className="scale-[0.88] origin-left" />
+                <span className="rounded-full border border-surfacestroke bg-background px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
+                  Device install
+                </span>
+              </div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 Workspace install
               </p>
@@ -56,8 +63,9 @@ export default function InstallPrompt() {
                 Keep this QRShift workspace one tap away on shared phones and tablets.
               </p>
               <p className="mt-1 text-sm font-medium text-text-muted">
-                This uses the browser&apos;s `beforeinstallprompt` flow and keeps the current
-                QRShift session behavior on this device.
+                This uses the browser&apos;s beforeinstallprompt flow and keeps the current
+                QRShift session behavior on this device. If you already installed an older build,
+                refresh the PWA or reinstall QRShift to pick up the latest brand update.
               </p>
             </div>
           </div>
