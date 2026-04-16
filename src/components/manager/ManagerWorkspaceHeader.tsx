@@ -20,6 +20,7 @@ interface ManagerWorkspaceHeaderProps {
   title: string;
   description?: string;
   meta?: React.ReactNode;
+  metaLabel?: string;
   navItems?: ManagerWorkspaceNavItem[];
   primaryAction?: HeaderAction;
   secondaryAction?: HeaderAction;
@@ -66,6 +67,7 @@ export function ManagerWorkspaceHeader({
   title,
   description,
   meta,
+  metaLabel,
   navItems,
   primaryAction,
   secondaryAction,
@@ -75,7 +77,7 @@ export function ManagerWorkspaceHeader({
 }: ManagerWorkspaceHeaderProps) {
   return (
     <header
-      className={`rounded-[28px] border border-surfacestroke bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6 sm:py-6 ${className}`.trim()}
+      className={`rounded-[28px] border border-border-strong bg-surface px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6 sm:py-6 ${className}`.trim()}
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -97,7 +99,16 @@ export function ManagerWorkspaceHeader({
                   {description}
                 </p>
               ) : null}
-              {meta ? <div className="pt-1">{meta}</div> : null}
+              {meta ? (
+                <div className="pt-1">
+                  {metaLabel ? (
+                    <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
+                      {metaLabel}
+                    </p>
+                  ) : null}
+                  {meta}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -118,7 +129,7 @@ export function ManagerWorkspaceHeader({
                 aria-current={item.active ? "page" : undefined}
                 className={`inline-flex min-h-11 items-center rounded-[18px] border px-4 py-2 text-sm font-semibold transition-colors ${
                   item.active
-                    ? "border-primary bg-primary text-white"
+                    ? "border-primary bg-primary text-white shadow-[0_10px_24px_rgba(36,92,255,0.18)]"
                     : "border-surfacestroke bg-background text-foreground hover:border-border-strong hover:bg-surface"
                 }`}
               >

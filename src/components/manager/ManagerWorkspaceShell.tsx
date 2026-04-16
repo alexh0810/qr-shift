@@ -61,30 +61,38 @@ export function ManagerWorkspaceShell({
 }: ManagerWorkspaceShellProps) {
   const resolvedNavItems =
     navItems ?? (qrToken && currentPath ? buildDefaultNavItems(qrToken, currentPath) : []);
+  const hasNavigation = resolvedNavItems.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(36,92,255,0.08),transparent_42%),var(--color-background)]">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <div
-          className={`overflow-hidden rounded-[32px] border border-surfacestroke bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_72%,var(--color-surface))] shadow-[var(--shadow-panel)] ${frameClassName}`.trim()}
+          className={`overflow-hidden rounded-[32px] border border-border-strong bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_78%,var(--color-surface))] shadow-[var(--shadow-panel)] ${frameClassName}`.trim()}
         >
-          <div className="qr-grid-accent border-b border-surfacestroke px-5 py-4 sm:px-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center justify-between gap-4">
-                <BrandMark showWordmark={false} className="shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-                    {workspaceLabel}
-                  </p>
-                  <p className="font-display text-xl font-bold tracking-[-0.04em] text-foreground">
-                    {workspaceName}
-                  </p>
+          <div className="qr-grid-accent border-b border-surfacestroke px-5 py-4 sm:px-6 sm:py-5">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <BrandMark showWordmark={false} className="shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
+                        {workspaceLabel}
+                      </p>
+                      <p className="truncate font-display text-xl font-bold tracking-[-0.04em] text-foreground">
+                        {workspaceName}
+                      </p>
+                    </div>
+                  </div>
                 </div>
+
+                {utilitySlot ? (
+                  <div className="flex flex-wrap justify-start gap-2 lg:justify-end">{utilitySlot}</div>
+                ) : null}
               </div>
 
-              <div className="flex flex-col gap-3 lg:items-end">
-                {utilitySlot ? <div>{utilitySlot}</div> : null}
-                {resolvedNavItems.length > 0 ? (
+              {hasNavigation ? (
+                <div className="flex flex-wrap gap-2">
                   <nav
                     aria-label="Manager workspace"
                     className="flex flex-wrap gap-2"
@@ -100,8 +108,8 @@ export function ManagerWorkspaceShell({
                           aria-current={item.active ? "page" : undefined}
                           className={`inline-flex min-h-11 items-center gap-2 rounded-[18px] border px-4 py-2 text-sm font-semibold transition-colors ${
                             item.active
-                              ? "border-primary bg-primary text-white"
-                              : "border-surfacestroke bg-surface text-foreground hover:border-border-strong hover:bg-background"
+                              ? "border-primary bg-primary text-white shadow-[0_10px_24px_rgba(36,92,255,0.18)]"
+                              : "border-surfacestroke bg-background/85 text-foreground hover:border-border-strong hover:bg-surface"
                           }`}
                         >
                           {Icon ? <Icon className="h-4 w-4" /> : null}
@@ -110,8 +118,8 @@ export function ManagerWorkspaceShell({
                       );
                     })}
                   </nav>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
           </div>
 

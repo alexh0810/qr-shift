@@ -18,6 +18,8 @@ interface ShiftStatusPanelProps {
   emptyMessage: string;
   icon: LucideIcon;
   items: ShiftStatusItem[];
+  statusBadge?: React.ReactNode;
+  compact?: boolean;
 }
 
 export function ShiftStatusPanel({
@@ -26,6 +28,8 @@ export function ShiftStatusPanel({
   emptyMessage,
   icon: Icon,
   items,
+  statusBadge,
+  compact = false,
 }: ShiftStatusPanelProps) {
   const isActivePanel = items.some((item) => item.tone === "active");
 
@@ -33,19 +37,27 @@ export function ShiftStatusPanel({
     <WorkspacePanel
       title={title}
       description={description}
+      statusBadge={statusBadge}
       headerActions={
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-[16px] ${
+          className={`flex items-center justify-center ${
+            compact ? "h-8 w-8 rounded-[12px]" : "h-9 w-9 rounded-[14px]"
+          } ${
             isActivePanel ? "bg-success/12 text-success" : "bg-background text-text-muted"
           }`}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
         </div>
       }
       bodyClassName="p-0"
+      compact={compact}
     >
       {items.length === 0 ? (
-        <div className="px-5 py-10 text-center text-sm font-medium text-text-muted sm:px-6">
+        <div
+          className={`text-center font-medium text-text-muted ${
+            compact ? "px-4 py-6 text-xs sm:text-sm" : "px-5 py-10 text-sm sm:px-6"
+          }`}
+        >
           {emptyMessage}
         </div>
       ) : (
@@ -53,18 +65,22 @@ export function ShiftStatusPanel({
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              className={`flex min-w-0 flex-col gap-2.5 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-3 ${
+                compact ? "px-3 py-3 sm:px-4" : "px-4 py-4 md:px-5"
+              }`}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-3">
                 <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-[18px] border ${
+                  className={`flex shrink-0 items-center justify-center border ${
+                    compact ? "h-9 w-9 rounded-[12px]" : "h-11 w-11 rounded-[16px]"
+                  } ${
                     item.tone === "active"
                       ? "border-success/15 bg-success/10"
                       : "border-surfacestroke bg-background"
                   }`}
                 >
                   <span
-                    className={`text-base font-bold ${
+                    className={`${compact ? "text-sm" : "text-base"} font-bold ${
                       item.tone === "active" ? "text-success" : "text-text-muted"
                     }`}
                   >
@@ -72,21 +88,37 @@ export function ShiftStatusPanel({
                   </span>
                 </div>
 
-                <div>
-                  <p className="text-base font-bold text-foreground">{item.name}</p>
-                  <p className="text-xs font-medium text-text-muted">{item.detail}</p>
+                <div className="min-w-0">
+                  <p className={`${compact ? "text-sm" : "text-base"} font-bold text-foreground`}>
+                    {item.name}
+                  </p>
+                  <p
+                    className={`truncate font-medium text-text-muted ${
+                      compact ? "text-[11px]" : "text-xs"
+                    }`}
+                  >
+                    {item.detail}
+                  </p>
                 </div>
               </div>
 
               <span
-                className={`inline-flex min-h-[44px] items-center justify-center rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.24em] ${
+                className={`inline-flex self-start items-center justify-center rounded-full font-bold uppercase tracking-[0.24em] md:justify-self-end ${
+                  compact ? "min-h-[34px] px-2.5 py-1.5 text-[10px]" : "min-h-[40px] px-3 py-2 text-[11px]"
+                } ${
                   item.tone === "active"
                     ? "bg-success text-white"
                     : "border border-surfacestroke bg-background text-text-muted"
                 }`}
               >
-                {item.tone === "active" ? item.statusLabel : <Circle className="h-4 w-4" />}
-                {item.tone === "active" ? null : <span className="ml-2">{item.statusLabel}</span>}
+                {item.tone === "active" ? (
+                  item.statusLabel
+                ) : (
+                  <Circle className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+                )}
+                {item.tone === "active" ? null : (
+                  <span className={compact ? "ml-1.5" : "ml-2"}>{item.statusLabel}</span>
+                )}
               </span>
             </li>
           ))}
