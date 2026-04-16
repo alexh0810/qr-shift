@@ -67,13 +67,13 @@ export function ScanActionPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            Selected employee
+            QRShift action
           </p>
           <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
             {firstName}
           </h2>
           <p className="mt-2 text-sm font-medium text-text-muted">
-            Review the current status, then confirm the next clock action.
+            Review the current status and confirm the next clock action.
           </p>
         </div>
         <span

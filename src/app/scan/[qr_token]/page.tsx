@@ -6,7 +6,7 @@ import { Store, Employee, Timelog } from "@/types";
 import { BrandMark } from "@/components/BrandMark";
 import { ScanEmployeeCard } from "@/components/scan/ScanEmployeeCard";
 import { ScanActionPanel } from "@/components/scan/ScanActionPanel";
-import { CircleAlert, Loader2, QrCode, ScanLine } from "lucide-react";
+import { CircleAlert, Loader2, QrCode } from "lucide-react";
 
 export default function ScanPage({ params }: { params: { qr_token: string } }) {
   const [store, setStore] = useState<Store | null>(null);
@@ -132,9 +132,12 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="flex w-full max-w-md flex-col items-center rounded-[var(--radius-panel)] border border-surfacestroke bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]">
-          <BrandMark showWordmark={false} />
-          <Loader2 className="mt-6 h-8 w-8 animate-spin text-primary" />
+        <div className="flex w-full max-w-md flex-col items-center rounded-[var(--radius-panel)] border border-border-strong bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]">
+          <BrandMark />
+          <p className="mt-6 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+            QR Scan Attendance System
+          </p>
+          <Loader2 className="mt-4 h-8 w-8 animate-spin text-primary" />
           <p className="mt-4 text-sm font-medium text-text-muted">
             Loading your QRShift clock station...
           </p>
@@ -145,43 +148,32 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
 
   return (
     <div className="min-h-screen bg-background px-4 py-5 pb-12">
-      <div className="mx-auto flex max-w-md flex-col gap-5">
+      <div className="mx-auto flex max-w-md flex-col gap-4">
         <header className="overflow-hidden rounded-[var(--radius-panel)] border border-border-strong bg-surface shadow-[var(--shadow-panel)]">
-          <div className="border-b border-surfacestroke px-5 py-5">
-            <div className="flex items-start justify-between gap-4">
+          <div className="px-5 py-5">
+            <div className="flex items-start justify-between gap-3">
               <BrandMark />
               <div className="qr-grid-accent flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-surfacestroke bg-background text-primary">
                 <QrCode className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-6">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-text-muted">
+            <div className="mt-5">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
+                QR Scan Attendance System
+              </p>
+              <h1 className="mt-2 font-display text-[2rem] font-bold tracking-[-0.04em] text-foreground">
                 Scan to clock in or out
-              </p>
-              <h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
-                {store?.name ?? "QRShift"}
               </h1>
-              <p className="mt-2 text-sm font-medium text-text-muted">
-                Choose your name, check your current status, and confirm the next action.
+              <p className="mt-3 text-sm font-medium text-text-muted">
+                {store?.name ?? "QRShift"} clock station
               </p>
             </div>
-          </div>
-          <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
-            <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                <ScanLine className="h-4 w-4 text-primary" />
-                Employee flow
-              </div>
-              <p className="mt-2 text-sm font-medium text-foreground">
-                Select your name to see whether you should clock in or out.
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                QRShift clock station
+            <div className="mt-4 rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-text-muted">
+                QRShift flow
               </p>
               <p className="mt-2 text-sm font-medium text-foreground">
-                No app, no login, just the next shift action for this store.
+                Select your name, check your status, and confirm the next clock action.
               </p>
             </div>
           </div>
@@ -227,10 +219,10 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
           <section className="flex flex-col gap-3">
             <div className="rounded-[20px] border border-surfacestroke bg-surface px-4 py-4 shadow-[var(--shadow-panel)]">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-                Team list
+                Employee list
               </p>
               <p className="mt-2 text-sm font-medium text-foreground">
-                Pick your name to review your current status and next action.
+                Select your name to review your status and continue.
               </p>
             </div>
             {employees.map((emp) => (

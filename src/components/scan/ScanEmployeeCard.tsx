@@ -37,13 +37,16 @@ export function ScanEmployeeCard({
         </div>
 
         <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
+            Scan employee
+          </p>
           <p className="truncate text-lg font-bold text-foreground">
             {employee.name}
           </p>
           <p className="mt-1 text-sm font-medium text-text-muted">
             {isWorking
-              ? "Currently clocked in. Tap to review before clocking out."
-              : "Currently clocked out. Tap to start a shift."}
+              ? "Currently clocked in and ready for clock out."
+              : "Currently clocked out and ready for clock in."}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <span
@@ -62,7 +65,7 @@ export function ScanEmployeeCard({
 
       <div className="flex shrink-0 items-center gap-2 text-text-muted">
         <span className="hidden text-xs font-bold uppercase tracking-[0.18em] sm:inline">
-          Review
+          Select
         </span>
         <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
       </div>
