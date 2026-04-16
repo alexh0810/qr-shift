@@ -208,7 +208,6 @@ export default function AdminCreateStore() {
 
                 <div>
                   <label className="mb-2 block text-sm font-bold text-foreground/80">Employee Names</label>
-                  <p className="mb-2 text-xs text-text-muted">Enter one name per line. Example: Alice, Bob, Charlie.</p>
                   <textarea
                     required
                     value={employeesInput}
@@ -274,9 +273,6 @@ export default function AdminCreateStore() {
                   </button>
                 </div>
 
-                <p className="text-xs text-text-muted">
-                  Demo data includes multiple shifts, a missing clock-out, a cross-day shift, and a micro-shift for report testing.
-                </p>
               </form>
             ) : (
               <div className="space-y-5">
@@ -316,7 +312,7 @@ export default function AdminCreateStore() {
                     </div>
                     <div className="flex items-start gap-2">
                       <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <p>Demo stores include seeded shifts for dashboard and payroll report walkthroughs.</p>
+                      <p>Use the seeded demo history to verify the dashboard and payroll export flow.</p>
                     </div>
                   </div>
                 </div>
