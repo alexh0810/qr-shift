@@ -2,101 +2,93 @@
 phase: 03-product-rebrand
 plan: "01"
 subsystem: ui
-tags: [react, nextjs, tailwind, manager-workspace, pwa]
+tags: [nextjs, react, tailwind, firebase, pwa, branding]
 requires:
   - phase: 01-brand-foundation
-    provides: Shared QRShift brand tokens, typography, and panel language
+    provides: Brand tokens, typography, and surface language
   - phase: 02-landing-page
-    provides: Public landing framing that now needs real product UI reuse
+    provides: Public landing structure and CTA hierarchy
 provides:
-  - Shared manager workspace shell and header primitives for dashboard, reports, and landing preview framing
-  - Reusable workspace panel and stat card components for shipped manager surfaces
-  - Branded demo-boundary copy for manager unlock and install affordances, plus a Phase 3 smoke checklist
-affects: [landing-preview, dashboard, reports, manager-access, manual-qa]
+  - Shared manager workspace shell and header primitives for dashboard, reports, and landing proof reuse
+  - Reusable manager panel, stat-card, and shift-status UI language with compact support
+  - Branded demo-boundary copy for PIN unlock and install flows plus a Phase 3 smoke checklist
+affects: [dashboard, reports, landing, pwa, manager-access]
 tech-stack:
   added: []
-  patterns: [shared manager workspace primitives, demo-honest boundary copy, manual smoke verification artifact]
+  patterns: [component-first manager workspace reuse, honest demo-boundary copy, manual smoke-check documentation]
 key-files:
   created:
-    - src/components/manager/WorkspacePanel.tsx
-    - src/components/manager/WorkspaceStatCard.tsx
     - .planning/phases/03-product-rebrand/03-SMOKE-CHECKLIST.md
+    - .planning/phases/03-product-rebrand/03-product-rebrand-01-SUMMARY.md
   modified:
     - src/components/manager/ManagerWorkspaceShell.tsx
     - src/components/manager/ManagerWorkspaceHeader.tsx
+    - src/components/manager/WorkspacePanel.tsx
+    - src/components/manager/WorkspaceStatCard.tsx
+    - src/components/manager/ShiftStatusPanel.tsx
     - src/components/PinGuard.tsx
     - src/components/InstallPrompt.tsx
 key-decisions:
-  - "Keep manager UI unification at the component layer so dashboard, reports, and landing preview can share shipped primitives without route refactors."
-  - "Frame the manager PIN gate explicitly as a device-level demo unlock to preserve the current boundary without overstating security."
+  - "Kept the manager rebrand at the shared component layer so dashboard, reports, and landing proof can reuse shipped UI without route churn."
+  - "Preserved the current PIN/localStorage and beforeinstallprompt behavior while rewriting the copy to describe a device-level demo boundary honestly."
 patterns-established:
-  - "Manager workspace chrome owns framing and nav, while route pages keep their existing data and business logic."
-  - "Operational manager surfaces use bordered panels and mono metric cards instead of route-local bespoke blocks."
+  - "Manager workspace primitives own frame, header, panel, stat, and shift-status styling instead of route-local variants."
+  - "Boundary components can look branded without implying stronger authentication or install semantics than the demo actually has."
 requirements-completed: [BRAND-02, UX-01, UX-02]
-duration: 1 min
-completed: 2026-04-15
+duration: 10min
+completed: 2026-04-16
 ---
 
-# Phase 03 Plan 01: Manager Workspace Foundations Summary
+# Phase 3 Plan 1: Product Workspace Foundation Summary
 
-**Shared manager workspace primitives, demo-honest unlock/install boundaries, and a Phase 3 smoke checklist for real UI landing-preview fidelity**
+**Reusable manager workspace chrome, compact operational panels, and explicit demo-boundary messaging for QRShift manager flows**
 
 ## Performance
 
-- **Duration:** 1 min
-- **Started:** 2026-04-15T15:15:40+03:00
-- **Completed:** 2026-04-15T15:16:39+03:00
+- **Duration:** 10 min
+- **Started:** 2026-04-16T18:11:00Z
+- **Completed:** 2026-04-16T18:21:15Z
 - **Tasks:** 2
-- **Files modified:** 7
+- **Files modified:** 8
 
 ## Accomplishments
 
-- Expanded the manager shell and header so dashboard, reports, and future landing preview framing can share the same workspace contract.
-- Added reusable `WorkspacePanel` and `WorkspaceStatCard` components for real QRShift manager surface composition.
-- Refreshed `PinGuard` and `InstallPrompt` copy/styling around the current demo model and documented Phase 3 route smoke checks.
+- Unified the manager-facing shell, header, panel, stat-card, and shift-status primitives so dashboard, reports, and landing proof can share one QRShift workspace language.
+- Added compact stat and shift-status support while keeping data fetching out of the shared manager components.
+- Reframed the PIN gate and install affordance as device-level demo behavior and documented the full Phase 3 manual smoke pass.
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **Task 1: Expand the manager workspace primitives for route and landing reuse** - `568bb54` (feat)
-2. **Task 2: Refresh manager boundary surfaces and write the Phase 3 smoke checklist** - `e2b3910` (feat)
+1. **Task 1: Expand the manager workspace primitives into one reusable product frame** - `b602fe6` (feat)
+2. **Task 2: Rebrand the manager boundary surfaces and add the route smoke checklist** - `6646503` (feat)
+
+**Plan metadata:** pending in this worktree by design; shared `STATE.md` and `ROADMAP.md` updates were intentionally skipped for wave merge safety.
 
 ## Files Created/Modified
 
-- `src/components/manager/ManagerWorkspaceShell.tsx` - Added configurable nav and framing slots while preserving the max-width manager shell.
-- `src/components/manager/ManagerWorkspaceHeader.tsx` - Added active nav styling plus extra meta/supporting slots for shared workspace headers.
-- `src/components/manager/WorkspacePanel.tsx` - New reusable bordered panel wrapper for manager surfaces.
-- `src/components/manager/WorkspaceStatCard.tsx` - New reusable mono-metric card primitive for shared stats.
-- `src/components/PinGuard.tsx` - Preserved `getStoreByQrToken` and localStorage unlock semantics while clarifying demo-only device unlock copy.
-- `src/components/InstallPrompt.tsx` - Preserved `beforeinstallprompt` behavior while aligning the install affordance to the manager shell.
-- `.planning/phases/03-product-rebrand/03-SMOKE-CHECKLIST.md` - Added exact route and viewport verification steps, including landing preview fidelity and PWA reinstall guidance.
+- `src/components/manager/ManagerWorkspaceShell.tsx` - Owns the bounded `max-w-5xl` workspace frame, manager nav, and utility slot styling.
+- `src/components/manager/ManagerWorkspaceHeader.tsx` - Supports reusable status badges, meta labeling, and route-agnostic action slots.
+- `src/components/manager/WorkspacePanel.tsx` - Provides the canonical bordered panel container with compact spacing support.
+- `src/components/manager/WorkspaceStatCard.tsx` - Standardizes mono metric treatment and compact card density.
+- `src/components/manager/ShiftStatusPanel.tsx` - Reuses the shared panel contract for on-shift and off-shift status blocks.
+- `src/components/PinGuard.tsx` - Keeps the existing unlock mechanics while explicitly framing them as a device-level demo workspace boundary.
+- `src/components/InstallPrompt.tsx` - Keeps the `beforeinstallprompt` flow while aligning install messaging with the manager shell language.
+- `.planning/phases/03-product-rebrand/03-SMOKE-CHECKLIST.md` - Lists manual checks for landing, scan, dashboard, reports, admin, and installed-PWA refresh behavior.
 
 ## Decisions Made
 
-- Kept the plan scoped to shared UI primitives and boundary copy only, leaving route data fetching and business logic untouched.
-- Added preview-friendly shell/header slots instead of introducing landing-only manager variants, so the landing page can reuse shipped product framing directly.
+- Kept the plan scoped to shared UI primitives and boundary copy, which satisfies the rebrand goal without touching route structure or data logic.
+- Preserved the existing demo-only unlock and install behaviors so the visual refresh does not imply security or platform guarantees the product does not have.
 
 ## Deviations from Plan
 
-### Auto-fixed Issues
-
-**1. [Rule 3 - Blocking] Corrected GSD metadata after live-tree summary overcount**
-- **Found during:** Summary and state update
-- **Issue:** The current main worktree already contained untracked Phase 3 summary files, so the GSD `state update-progress`, `roadmap update-plan-progress`, and `requirements mark-complete` flow overstated actual completion.
-- **Fix:** Manually corrected `STATE.md`, `ROADMAP.md`, and `REQUIREMENTS.md` to reflect that only `03-01` is complete.
-- **Files modified:** `.planning/STATE.md`, `.planning/ROADMAP.md`, `.planning/REQUIREMENTS.md`, `.planning/phases/03-product-rebrand/03-product-rebrand-01-SUMMARY.md`
-- **Verification:** Checked resulting roadmap and state values against the actual completed plan count and current Phase 3 plan list.
-- **Committed in:** metadata commit
-
----
-
-**Total deviations:** 1 auto-fixed (1 blocking)
-**Impact on plan:** Corrected planning metadata only. Product code scope remained unchanged.
+None - plan executed exactly as written.
 
 ## Issues Encountered
 
-- The current main worktree already contained uncommitted Phase 3 edits across route files. Work was limited to the 03-01-owned component and planning files and committed on top of that live tree state.
+- `WorkspacePanel.tsx` and `ShiftStatusPanel.tsx` already had in-flight compact-mode edits in the worktree. The task was applied on top of those changes instead of reverting or rewriting them.
 
 ## User Setup Required
 
@@ -104,11 +96,15 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 
-- Ready for `03-02` to apply the shared manager primitives across dashboard, reports, and landing preview composition.
-- Manual QA now has an explicit checklist for `/`, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, and `/admin/create-store`.
+- Dashboard, reports, and landing proof can now share one workspace component contract without adding route-only variants.
+- The smoke checklist is ready for manual verification after subsequent Phase 3 route work lands.
+- Shared planning artifacts were intentionally left untouched in this worktree so the orchestrator can update them after wave merge.
 
 ## Self-Check: PASSED
 
+- Summary file exists at `.planning/phases/03-product-rebrand/03-product-rebrand-01-SUMMARY.md`.
+- Task commits `b602fe6` and `6646503` exist in git history.
+
 ---
 *Phase: 03-product-rebrand*
-*Completed: 2026-04-15*
+*Completed: 2026-04-16*
