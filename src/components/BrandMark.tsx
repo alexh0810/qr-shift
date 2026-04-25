@@ -1,31 +1,44 @@
 interface BrandMarkProps {
   className?: string;
   showWordmark?: boolean;
+  size?: "sm" | "md" | "lg";
 }
+
+const sizes = {
+  sm: { icon: "h-7 w-7", text: "text-base" },
+  md: { icon: "h-9 w-9", text: "text-lg" },
+  lg: { icon: "h-12 w-12", text: "text-2xl" },
+};
 
 export function BrandMark({
   className = "",
   showWordmark = true,
+  size = "md",
 }: BrandMarkProps) {
+  const { icon, text } = sizes[size];
+  
   return (
     <div className={`inline-flex items-center gap-2.5 ${className}`.trim()}>
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+      <div className={`${icon} flex shrink-0 items-center justify-center rounded-lg bg-brand-gradient shadow-sm`}>
         <svg
-          width="18"
-          height="18"
-          viewBox="0 0 18 18"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
           fill="none"
           aria-hidden="true"
+          className={size === "lg" ? "h-6 w-6" : size === "sm" ? "h-4 w-4" : "h-5 w-5"}
         >
-          <rect x="2" y="2" width="6" height="6" rx="1.5" fill="white" />
-          <rect x="10" y="2" width="6" height="6" rx="1.5" fill="white" opacity="0.6" />
-          <rect x="2" y="10" width="6" height="6" rx="1.5" fill="white" opacity="0.6" />
-          <rect x="10" y="10" width="3" height="3" rx="0.75" fill="white" />
-          <rect x="13" y="13" width="3" height="3" rx="0.75" fill="white" />
+          {/* QR code pattern */}
+          <rect x="2" y="2" width="6" height="6" rx="1" fill="white" />
+          <rect x="12" y="2" width="6" height="6" rx="1" fill="white" fillOpacity="0.7" />
+          <rect x="2" y="12" width="6" height="6" rx="1" fill="white" fillOpacity="0.7" />
+          <rect x="12" y="12" width="3" height="3" rx="0.5" fill="white" />
+          <rect x="15" y="15" width="3" height="3" rx="0.5" fill="white" />
+          <rect x="12" y="15" width="2" height="2" rx="0.25" fill="white" fillOpacity="0.5" />
         </svg>
       </div>
       {showWordmark ? (
-        <span className="font-display text-[17px] font-semibold tracking-[-0.02em] text-foreground">
+        <span className={`font-display ${text} font-semibold tracking-tight text-foreground`}>
           QRShift
         </span>
       ) : null}

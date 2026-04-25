@@ -5,12 +5,11 @@ import { format, formatDistanceToNow } from "date-fns";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import {
   CheckCircle2,
-  Clock3,
-  Link as LinkIcon,
+  Clock,
   Loader2,
   LogOut,
+  Users,
 } from "lucide-react";
-import Link from "next/link";
 
 import InstallPrompt from "@/components/InstallPrompt";
 import PinGuard from "@/components/PinGuard";
@@ -101,7 +100,7 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -109,8 +108,8 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
   if (error || !store) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-4">
-        <div className="max-w-md rounded-lg border border-error/20 bg-error/5 px-5 py-4 text-center">
-          <p className="text-sm font-medium text-error">{error}</p>
+        <div className="max-w-md rounded-xl border border-error/20 bg-error-light px-6 py-5 text-center">
+          <p className="font-medium text-error">{error}</p>
         </div>
       </div>
     );
@@ -129,7 +128,7 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
       id: employee.id,
       name: employee.name,
       detail: log
-        ? `Clocked in ${format(log.timestamp, "h:mm a")} · ${formatDistanceToNow(log.timestamp, { addSuffix: true })}`
+        ? `Clocked in ${format(log.timestamp, "h:mm a")} - ${formatDistanceToNow(log.timestamp, { addSuffix: false })} ago`
         : "Currently active",
       statusLabel: "IN",
       tone: "active" as const,
@@ -160,11 +159,11 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
               localStorage.removeItem(`store_${params.qr_token}_unlocked`);
               window.location.reload();
             }}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted transition-colors hover:text-foreground"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground"
             title="Lock manager access"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Lock
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Lock</span>
           </button>
         }
       >
@@ -172,55 +171,64 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
           <InstallPrompt />
 
           {/* Page header */}
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">
-                {store.name}
-              </h1>
-              <p className="mt-0.5 text-sm text-muted">
-                {format(now, "EEEE, MMM d")} &middot; {format(now, "h:mm a")}
-              </p>
+          <div className="rounded-xl border border-border bg-background p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+                  {store.name}
+                </h1>
+                <p className="mt-1 text-sm text-muted">
+                  {format(now, "EEEE, MMMM d, yyyy")} at {format(now, "h:mm a")}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-light">
+                  <div className="h-3 w-3 animate-pulse-soft rounded-full bg-success" />
+                </div>
+                <span className="text-sm font-medium text-foreground">Live</span>
+              </div>
             </div>
-            <Link
-              href={`/reports/${params.qr_token}`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted transition-colors hover:text-foreground"
-            >
-              <LinkIcon className="h-3.5 w-3.5" />
-              Reports
-            </Link>
           </div>
 
           {/* Stat cards */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid gap-4 sm:grid-cols-3">
             <WorkspaceStatCard
-              label="On shift"
-              value={onShiftEmployees.length.toString()}
+              label="On Shift"
+              value={onShiftEmployees.length}
+              icon={CheckCircle2}
+              variant="success"
             />
             <WorkspaceStatCard
-              label="Off shift"
-              value={offShiftEmployees.length.toString()}
+              label="Off Shift"
+              value={offShiftEmployees.length}
+              icon={Clock}
+              variant="default"
             />
             <WorkspaceStatCard
-              label="Total"
-              value={employees.length.toString()}
+              label="Total Staff"
+              value={employees.length}
+              icon={Users}
+              variant="primary"
             />
           </div>
 
           {/* Shift panels */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             <ShiftStatusPanel
               title="On Shift"
-              description={`${onShiftEmployees.length} active now`}
+              description={`${onShiftEmployees.length} currently working`}
               emptyMessage="No one is currently clocked in."
               icon={CheckCircle2}
               items={onShiftItems}
+              variant="active"
             />
             <ShiftStatusPanel
               title="Off Shift"
               description={`${offShiftEmployees.length} not clocked in`}
               emptyMessage="Everyone is currently on shift."
-              icon={Clock3}
+              icon={Clock}
               items={offShiftItems}
+              variant="idle"
             />
           </div>
         </div>

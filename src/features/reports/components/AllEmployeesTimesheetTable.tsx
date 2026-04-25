@@ -26,102 +26,92 @@ export function AllEmployeesTimesheetTable({
 
   return (
     <WorkspacePanel
-      title="All employee timesheets"
+      title="All Employee Timesheets"
+      description={hasReports ? `${reports.length} employee${reports.length === 1 ? "" : "s"} with logged shifts` : undefined}
       bodyClassName="p-0"
     >
       {isPhoneWidth ? (
-        <div className="space-y-5 p-4 sm:p-5">
+        <div className="space-y-4 p-4">
           {!hasReports ? (
-            <div className="rounded-[22px] border border-dashed border-surfacestroke bg-background px-4 py-10 text-center text-sm font-medium text-text-muted">
+            <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-10 text-center text-sm text-muted">
               {emptyMessage}
             </div>
           ) : (
             reports.map((report) => (
               <section
                 key={report.employee.id}
-                className="space-y-4 rounded-[22px] border border-surfacestroke bg-background px-4 py-4"
+                className="space-y-3 rounded-xl border border-border bg-background p-4"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-foreground">{report.name}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-                      {report.timesheetRows.length} shift{report.timesheetRows.length === 1 ? "" : "s"}
-                    </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-light font-display text-sm font-semibold text-primary">
+                      {report.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-display font-semibold text-foreground">{report.name}</p>
+                      <p className="text-sm text-muted">
+                        {report.timesheetRows.length} shift{report.timesheetRows.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                      Total
-                    </p>
-                    <p className="mt-1 font-mono-brand font-bold text-foreground">
+                    <p className="text-xs text-muted">Total</p>
+                    <p className="font-display text-lg font-bold text-foreground">
                       {formatPayrollDuration(report.totalMinutes)}
                     </p>
                   </div>
                 </div>
 
                 {report.timesheetRows.length === 0 ? (
-                  <p className="rounded-[18px] border border-dashed border-surfacestroke px-4 py-4 text-sm font-medium text-text-muted">
+                  <p className="rounded-lg border border-dashed border-border px-4 py-4 text-sm text-muted">
                     No shifts logged in this period.
                   </p>
                 ) : (
-                  report.timesheetRows.map((row, index) => (
-                    <article
-                      key={`${row.employeeId}-${row.date}-${row.clockIn}-${index}`}
-                      className="space-y-4 rounded-[20px] border border-surfacestroke bg-surface px-4 py-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                            Date
-                          </p>
-                          <p className="mt-1 font-semibold text-foreground">{row.date}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                            Duration
-                          </p>
-                          <p className="mt-1 font-mono-brand font-semibold text-foreground">
+                  <div className="space-y-3">
+                    {report.timesheetRows.map((row, index) => (
+                      <article
+                        key={`${row.employeeId}-${row.date}-${row.clockIn}-${index}`}
+                        className="rounded-lg border border-border bg-surface p-4"
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="font-medium text-foreground">{row.date}</p>
+                          <p className="font-display font-semibold text-foreground">
                             {formatPayrollDuration(row.durationMinutes)}
                           </p>
                         </div>
-                      </div>
 
-                      <div className="grid gap-3">
-                        <label className="grid gap-2">
-                          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                            Clock In
-                          </span>
-                          <input
-                            type="time"
-                            value={row.clockIn}
-                            onChange={(event) =>
-                              onTimeChange(report.employee.id, index, "clockIn", event.target.value)
-                            }
-                            className="min-h-[44px] w-full rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
-                          />
-                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted">Clock In</span>
+                            <input
+                              type="time"
+                              value={row.clockIn}
+                              onChange={(event) =>
+                                onTimeChange(report.employee.id, index, "clockIn", event.target.value)
+                              }
+                              className="h-10 w-full rounded-lg border border-border bg-background px-3 font-display text-sm text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            />
+                          </label>
 
-                        <label className="grid gap-2">
-                          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                            Clock Out
-                          </span>
-                          <input
-                            type="time"
-                            value={row.clockOut}
-                            onChange={(event) =>
-                              onTimeChange(report.employee.id, index, "clockOut", event.target.value)
-                            }
-                            className="min-h-[44px] w-full rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
-                          />
-                        </label>
-                      </div>
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted">Clock Out</span>
+                            <input
+                              type="time"
+                              value={row.clockOut}
+                              onChange={(event) =>
+                                onTimeChange(report.employee.id, index, "clockOut", event.target.value)
+                              }
+                              className="h-10 w-full rounded-lg border border-border bg-background px-3 font-display text-sm text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            />
+                          </label>
+                        </div>
 
-                      {row.note ? (
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-error">
-                          {row.note}
-                        </p>
-                      ) : null}
-                    </article>
-                  ))
+                        {row.note ? (
+                          <p className="mt-2 text-xs font-medium text-error">{row.note}</p>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
                 )}
               </section>
             ))
@@ -131,81 +121,78 @@ export function AllEmployeesTimesheetTable({
         <div className="overflow-x-auto">
           <table className="min-w-[720px] w-full border-collapse text-left">
             <thead>
-              <tr className="border-y border-surfacestroke bg-background">
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
-                  Name
-                </th>
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
-                  Date
-                </th>
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
-                  Clock In
-                </th>
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
-                  Clock Out
-                </th>
-                <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted md:px-6">
-                  Duration
-                </th>
+              <tr className="border-b border-border bg-surface">
+                <th className="px-5 py-3 text-xs font-semibold text-muted">Employee</th>
+                <th className="px-5 py-3 text-xs font-semibold text-muted">Date</th>
+                <th className="px-5 py-3 text-xs font-semibold text-muted">Clock In</th>
+                <th className="px-5 py-3 text-xs font-semibold text-muted">Clock Out</th>
+                <th className="px-5 py-3 text-xs font-semibold text-muted">Duration</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surfacestroke">
+            <tbody className="divide-y divide-border">
               {reports.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-sm font-medium text-text-muted md:px-6">
+                  <td colSpan={5} className="px-5 py-12 text-center text-sm text-muted">
                     {emptyMessage}
                   </td>
                 </tr>
               ) : (
                 reports.flatMap((report) => [
-                  <tr key={`${report.employee.id}-label`} className="bg-background/70">
-                    <td className="px-5 py-4 align-top md:px-6">
-                      <p className="font-bold text-foreground">{report.name}</p>
+                  <tr key={`${report.employee.id}-label`} className="bg-primary-light/30">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-light font-display text-xs font-semibold text-primary">
+                          {report.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-display font-semibold text-foreground">{report.name}</span>
+                      </div>
                     </td>
-                    <td className="px-5 py-4 text-sm font-semibold text-text-muted md:px-6">Total</td>
-                    <td className="px-5 py-4 md:px-6"></td>
-                    <td className="px-5 py-4 md:px-6"></td>
-                    <td className="px-5 py-4 md:px-6">
-                      <p className="font-mono-brand font-bold text-foreground">
+                    <td className="px-5 py-3 text-sm text-muted">
+                      {report.timesheetRows.length} shift{report.timesheetRows.length === 1 ? "" : "s"}
+                    </td>
+                    <td className="px-5 py-3"></td>
+                    <td className="px-5 py-3 text-sm text-muted">Total</td>
+                    <td className="px-5 py-3">
+                      <span className="font-display font-bold text-foreground">
                         {formatPayrollDuration(report.totalMinutes)}
-                      </p>
+                      </span>
                     </td>
                   </tr>,
                   ...report.timesheetRows.map((row, index) => (
                     <tr
                       key={`${row.employeeId}-${row.date}-${row.clockIn}-${index}`}
-                      className="transition-colors hover:bg-background"
+                      className="transition-colors hover:bg-surface/50"
                     >
-                      <td className="px-5 py-4 align-top md:px-6"></td>
-                      <td className="px-5 py-4 font-medium text-foreground md:px-6">{row.date}</td>
-                      <td className="px-5 py-4 font-medium text-foreground md:px-6">
+                      <td className="px-5 py-3"></td>
+                      <td className="px-5 py-3">
+                        <span className="font-medium text-foreground">{row.date}</span>
+                      </td>
+                      <td className="px-5 py-3">
                         <input
                           type="time"
                           value={row.clockIn}
                           onChange={(event) =>
                             onTimeChange(report.employee.id, index, "clockIn", event.target.value)
                           }
-                          className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
+                          className="h-9 w-28 rounded-lg border border-border bg-background px-3 font-display text-sm text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
                       </td>
-                      <td className="px-5 py-4 font-medium text-foreground md:px-6">
+                      <td className="px-5 py-3">
                         <input
                           type="time"
                           value={row.clockOut}
                           onChange={(event) =>
                             onTimeChange(report.employee.id, index, "clockOut", event.target.value)
                           }
-                          className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
+                          className="h-9 w-28 rounded-lg border border-border bg-background px-3 font-display text-sm text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
                       </td>
-                      <td className="px-5 py-4 md:px-6">
-                        <p className="font-mono-brand font-semibold text-foreground">
+                      <td className="px-5 py-3">
+                        <span className="font-display font-semibold text-foreground">
                           {formatPayrollDuration(row.durationMinutes)}
-                        </p>
+                        </span>
                         {row.note ? (
-                          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-error">
-                            {row.note}
-                          </p>
+                          <p className="mt-0.5 text-xs font-medium text-error">{row.note}</p>
                         ) : null}
                       </td>
                     </tr>

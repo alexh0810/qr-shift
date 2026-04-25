@@ -3,34 +3,55 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #1a56db;
-  --color-primary-hover: #1648b8;
-  --color-foreground: #111827;
-  --color-muted: #6b7280;
+  /* Brand colors */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #dbeafe;
+  --color-accent: #0ea5e9;
+  --color-accent-light: #e0f2fe;
+  
+  /* Semantic colors */
+  --color-foreground: #0f172a;
+  --color-muted: #64748b;
   --color-background: #ffffff;
-  --color-surface: #f9fafb;
-  --color-border: #e5e7eb;
-  --color-success: #059669;
-  --color-error: #dc2626;
+  --color-surface: #f8fafc;
+  --color-surface-elevated: #ffffff;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-error: #ef4444;
+  --color-error-light: #fee2e2;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
 
-  /* Legacy aliases — kept so existing component classes still resolve */
+  /* Layout */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+
+  /* Aliases for backwards compatibility */
   --color-bg-canvas: var(--color-background);
-  --color-bg-elevated: var(--color-surface);
-  --color-surface: #f9fafb;
+  --color-bg-elevated: var(--color-surface-elevated);
   --color-text-primary: var(--color-foreground);
   --color-text-muted: var(--color-muted);
   --color-accent-electric: var(--color-primary);
   --color-accent-signal: var(--color-success);
   --color-border-soft: var(--color-border);
-  --color-border-strong: #d1d5db;
-  --radius-panel: 12px;
-  --radius-control: 8px;
-  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --radius-panel: var(--radius-md);
+  --radius-control: var(--radius-sm);
+  --shadow-panel: var(--shadow-md);
 
   --background: var(--color-background);
   --foreground: var(--color-foreground);
   --primary: var(--color-primary);
   --primary-dark: var(--color-primary-hover);
+  --primary-light: var(--color-primary-light);
   --secondary: var(--color-success);
   --success: var(--color-success);
   --error: var(--color-error);
@@ -41,28 +62,35 @@
 .dark {
   --color-primary: #3b82f6;
   --color-primary-hover: #60a5fa;
-  --color-foreground: #f9fafb;
-  --color-muted: #9ca3af;
+  --color-primary-light: #1e3a5f;
+  --color-accent: #38bdf8;
+  --color-accent-light: #0c4a6e;
+  
+  --color-foreground: #f1f5f9;
+  --color-muted: #94a3b8;
   --color-background: #0f172a;
   --color-surface: #1e293b;
+  --color-surface-elevated: #334155;
   --color-border: #334155;
-  --color-success: #34d399;
-  --color-error: #f87171;
-
-  --color-bg-canvas: var(--color-background);
-  --color-bg-elevated: var(--color-surface);
-  --color-text-primary: var(--color-foreground);
-  --color-text-muted: var(--color-muted);
-  --color-accent-electric: var(--color-primary);
-  --color-accent-signal: var(--color-success);
-  --color-border-soft: var(--color-border);
   --color-border-strong: #475569;
-  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --color-success: #34d399;
+  --color-success-light: #064e3b;
+  --color-error: #f87171;
+  --color-error-light: #7f1d1d;
+  --color-warning: #fbbf24;
+  --color-warning-light: #78350f;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  --shadow-panel: var(--shadow-md);
 
   --background: var(--color-background);
   --foreground: var(--color-foreground);
   --primary: var(--color-primary);
   --primary-dark: var(--color-primary-hover);
+  --primary-light: var(--color-primary-light);
   --secondary: var(--color-success);
   --success: var(--color-success);
   --error: var(--color-error);
@@ -78,8 +106,8 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-primary) 20%, white);
-    color: var(--color-foreground);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
   }
 }
 
@@ -112,7 +140,34 @@ body {
     color: var(--color-text-muted);
   }
 
-  /* Kept as a no-op so existing usages don't break layout */
+  /* Branded gradient background */
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  }
+
+  /* Subtle grid pattern for visual interest */
+  .bg-grid-pattern {
+    background-image: 
+      linear-gradient(to right, var(--color-border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Hero gradient overlay */
+  .bg-hero-gradient {
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-primary-light) 0%, transparent 60%);
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Legacy class - kept for compatibility */
   .qr-grid-accent {
     background-image: none;
   }

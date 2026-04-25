@@ -61,15 +61,15 @@ export function ManagerWorkspaceShell({
   const hasNavigation = resolvedNavItems.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col">
         {/* Top nav bar */}
-        <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
-          <div className="flex h-14 items-center justify-between px-5 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-6">
-              <BrandMark />
+        <header className="sticky top-0 z-10 border-b border-border bg-background shadow-sm">
+          <div className="flex h-16 items-center justify-between px-5 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-8">
+              <BrandMark size="md" />
               {hasNavigation ? (
-                <nav aria-label="Manager workspace" className="flex items-center gap-1">
+                <nav aria-label="Manager workspace" className="hidden items-center gap-1 sm:flex">
                   {resolvedNavItems.map((item) => {
                     const matchedConfig = navConfig.find((entry) => entry.label === item.label);
                     const Icon = matchedConfig?.icon;
@@ -78,13 +78,13 @@ export function ManagerWorkspaceShell({
                         key={item.href}
                         href={item.href}
                         aria-current={item.active ? "page" : undefined}
-                        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                           item.active
-                            ? "bg-primary/10 text-primary"
+                            ? "bg-primary text-white shadow-sm"
                             : "text-muted hover:bg-surface hover:text-foreground"
                         }`}
                       >
-                        {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+                        {Icon ? <Icon className="h-4 w-4" /> : null}
                         <span>{item.label}</span>
                       </Link>
                     );
@@ -94,12 +94,37 @@ export function ManagerWorkspaceShell({
             </div>
 
             {utilitySlot ? (
-              <div className="flex items-center gap-2">{utilitySlot}</div>
+              <div className="flex items-center gap-3">{utilitySlot}</div>
             ) : null}
           </div>
+          
+          {/* Mobile navigation */}
+          {hasNavigation ? (
+            <nav className="flex border-t border-border sm:hidden">
+              {resolvedNavItems.map((item) => {
+                const matchedConfig = navConfig.find((entry) => entry.label === item.label);
+                const Icon = matchedConfig?.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={item.active ? "page" : undefined}
+                    className={`flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+                      item.active
+                        ? "border-b-2 border-primary bg-primary-light text-primary"
+                        : "text-muted hover:bg-surface"
+                    }`}
+                  >
+                    {Icon ? <Icon className="h-4 w-4" /> : null}
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : null}
         </header>
 
-        <main className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 ${contentClassName} ${frameClassName}`.trim()}>
+        <main className={`flex-1 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 ${contentClassName} ${frameClassName}`.trim()}>
           {children}
         </main>
       </div>

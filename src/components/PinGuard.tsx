@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { getStoreByQrToken } from "@/lib/db";
-import { ArrowRight, Loader2, ShieldAlert } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Store } from "@/types";
 
 export default function PinGuard({ qr_token, children }: { qr_token: string, children: React.ReactNode }) {
@@ -14,7 +14,6 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check local storage first
     const isUnlocked = localStorage.getItem(`store_${qr_token}_unlocked`) === "true";
     if (isUnlocked) {
       setUnlocked(true);
@@ -23,7 +22,6 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
     }
     localStorage.removeItem(`store_${qr_token}_unlocked`);
 
-    // Fetch store to get the PIN for validation
     getStoreByQrToken(qr_token)
       .then((foundStore) => {
         setStore(foundStore);
@@ -44,20 +42,17 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
       setUnlocked(true);
       setError(null);
     } else {
-      setError("Incorrect PIN. Please try again.");
-      setPinInput(""); // Clear on wrong attempt
+      setError("Incorrect PIN");
+      setPinInput("");
     }
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-[28px] border border-border-strong bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]">
-          <BrandMark />
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-text-muted">
-            Loading demo workspace...
-          </p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <BrandMark size="lg" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       </div>
     );
@@ -68,77 +63,58 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(36,92,255,0.08),transparent_38%),var(--color-background)] px-4 py-8 sm:px-6">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-5">
-        <div className="rounded-[32px] border border-border-strong bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_76%,var(--color-surface))] p-5 shadow-[var(--shadow-panel)] sm:p-6">
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <BrandMark />
-            <span className="rounded-full border border-surfacestroke bg-background px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-              Device unlock
-            </span>
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-4">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-hero-gradient" />
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
+      
+      <div className="relative w-full max-w-sm">
+        <div className="rounded-2xl border border-border bg-background p-8 shadow-lg">
+          {/* Brand logo */}
+          <div className="mb-8 flex justify-center">
+            <BrandMark size="lg" />
           </div>
 
-          <div className="mb-6 space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-              Demo workspace
+          {/* Store name */}
+          {store?.name ? (
+            <p className="mb-6 text-center text-sm font-medium text-muted">
+              {store.name}
             </p>
-            <h1 className="font-display text-[clamp(2rem,5vw,2.5rem)] font-bold tracking-[-0.05em] text-foreground">
-              Unlock this device
-            </h1>
-            <p className="text-base font-semibold text-foreground">
-              {store?.name || "QRShift workspace"}
-            </p>
-            <p className="max-w-sm text-sm font-medium leading-6 text-text-muted">
-              Use the manager PIN to reopen this demo workspace on this device. This keeps the
-              current QRShift route boundary, but it is not full account authentication.
-            </p>
-          </div>
+          ) : null}
 
-          <div className="mb-5 flex items-start gap-3 rounded-[22px] border border-primary/15 bg-primary/10 px-4 py-3">
-            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <p className="text-sm font-medium leading-6 text-foreground">
-              This unlock only reopens the demo workspace in this browser. It does not create a
-              user session or replace real account authentication.
-            </p>
-          </div>
-
+          {/* Error message */}
           {error ? (
-            <div className="mb-5 rounded-[22px] border border-[color:color-mix(in_srgb,var(--error)_28%,var(--color-border-soft))] bg-error/10 px-4 py-3 text-left">
-              <p className="text-sm font-semibold text-error">{error}</p>
+            <div className="mb-6 rounded-lg bg-error-light px-4 py-3 text-center">
+              <p className="text-sm font-medium text-error">{error}</p>
             </div>
           ) : null}
 
-          <form onSubmit={handleUnlock} className="space-y-4">
-            <label className="block space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
-                Enter manager PIN
-              </span>
+          {/* PIN form */}
+          <form onSubmit={handleUnlock} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="pin" className="block text-center text-sm font-medium text-foreground">
+                Enter Manager PIN
+              </label>
               <input
+                id="pin"
                 type="password"
                 pattern="[0-9]*"
                 inputMode="numeric"
                 maxLength={6}
                 value={pinInput}
                 onChange={e => setPinInput(e.target.value)}
-                className="font-mono-brand w-full rounded-[22px] border border-surfacestroke bg-background px-5 py-4 text-center text-3xl font-bold tracking-[0.36em] text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                placeholder="••••"
+                className="w-full rounded-xl border border-border bg-surface px-4 py-4 text-center font-mono text-2xl font-bold tracking-[0.3em] text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                placeholder="****"
                 required
                 autoFocus
               />
-            </label>
-
-            <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
-              <p className="text-sm font-medium leading-6 text-text-muted">
-                QRShift stores the unlocked state on this device with local browser storage. Lock
-                the demo workspace when you finish on a shared phone, tablet, or laptop.
-              </p>
             </div>
 
             <button
               type="submit"
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-base font-bold text-white transition-colors hover:bg-primary-dark"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-base font-semibold text-white shadow-md transition-all hover:bg-primary-dark hover:shadow-lg"
             >
-              <span>Open demo workspace</span>
+              Unlock
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>

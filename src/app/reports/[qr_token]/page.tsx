@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { endOfDay, endOfWeek, format, isWithinInterval, startOfDay, startOfWeek } from "date-fns";
-import { Download, Loader2, LogOut, RefreshCw } from "lucide-react";
-import Link from "next/link";
+import { Calendar, Clock, Download, Loader2, LogOut, RefreshCw, Users } from "lucide-react";
 
 import PinGuard from "@/components/PinGuard";
 import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShell";
@@ -145,7 +144,7 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -153,7 +152,9 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
   if (error && !store) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <p className="text-sm font-medium text-error">{error}</p>
+        <div className="rounded-xl border border-error/20 bg-error-light px-6 py-5 text-center">
+          <p className="font-medium text-error">{error}</p>
+        </div>
       </div>
     );
   }
@@ -169,98 +170,111 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
               localStorage.removeItem(`store_${params.qr_token}_unlocked`);
               window.location.reload();
             }}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted transition-colors hover:text-foreground"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground"
             title="Lock manager access"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Lock
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Lock</span>
           </button>
         }
       >
         <div className="space-y-6">
           {/* Page header */}
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">
-                Reports
-              </h1>
-              <p className="mt-0.5 text-sm text-muted">{store?.name}</p>
+          <div className="rounded-xl border border-border bg-background p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+                  Reports
+                </h1>
+                <p className="mt-1 text-sm text-muted">{store?.name}</p>
+              </div>
             </div>
-            <Link
-              href={`/dashboard/${params.qr_token}`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted transition-colors hover:text-foreground"
-            >
-              Dashboard
-            </Link>
           </div>
 
-          {/* Date range + export controls */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={dateStrStart}
-                onChange={(event) => setDateStrStart(event.target.value)}
-                className="h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
-              />
-              <span className="text-sm text-muted">to</span>
-              <input
-                type="date"
-                value={dateStrEnd}
-                onChange={(event) => setDateStrEnd(event.target.value)}
-                className="h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={fetchAndCalculate}
-                disabled={calculating}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium text-muted transition-colors hover:text-foreground disabled:opacity-60"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${calculating ? "animate-spin" : ""}`} />
-                Refresh
-              </button>
-              {reportData.length > 0 ? (
+          {/* Date range controls */}
+          <div className="rounded-xl border border-border bg-background p-4 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted" />
+                  <span className="text-sm font-medium text-foreground">Date Range</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={dateStrStart}
+                    onChange={(event) => setDateStrStart(event.target.value)}
+                    className="h-10 rounded-lg border border-border bg-surface px-3 font-display text-sm text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                  <span className="text-sm text-muted">to</span>
+                  <input
+                    type="date"
+                    value={dateStrEnd}
+                    onChange={(event) => setDateStrEnd(event.target.value)}
+                    className="h-10 rounded-lg border border-border bg-surface px-3 font-display text-sm text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={downloadCsv}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
+                  onClick={fetchAndCalculate}
+                  disabled={calculating}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface disabled:opacity-60"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  Export CSV
+                  <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
+                  Refresh
                 </button>
-              ) : null}
+                {reportData.length > 0 ? (
+                  <button
+                    onClick={downloadCsv}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-md"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
 
           {/* Summary stats */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <WorkspaceStatCard
-              label="Total hours"
-              value={`${globalSummary.totalHoursDecimal.toFixed(2)} h`}
+              label="Total Hours"
+              value={`${globalSummary.totalHoursDecimal.toFixed(1)}h`}
+              icon={Clock}
+              variant="primary"
             />
             <WorkspaceStatCard
               label="Employees"
-              value={reportData.length.toString()}
+              value={reportData.length}
+              icon={Users}
+              variant="default"
             />
           </div>
 
           {/* Employee filter */}
-          <EmployeeSelect
-            employees={employees}
-            value={selectedEmployeeId}
-            onChange={setSelectedEmployeeId}
-            disabled={employees.length === 0}
-          />
+          <div className="rounded-xl border border-border bg-background p-4 shadow-sm">
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              Filter by Employee
+            </label>
+            <EmployeeSelect
+              employees={employees}
+              value={selectedEmployeeId}
+              onChange={setSelectedEmployeeId}
+              disabled={employees.length === 0}
+            />
+          </div>
 
           {/* Error */}
           {error ? (
-            <div className="rounded-lg border border-error/20 bg-error/5 px-4 py-3 text-sm text-error">
-              {error}
+            <div className="rounded-xl border border-error/20 bg-error-light px-5 py-4">
+              <p className="font-medium text-error">{error}</p>
             </div>
           ) : null}
 
           {/* Timesheet table */}
-          <div className="animate-in fade-in duration-300">
+          <div className="animate-fade-in">
             {selectedEmployeeId === "ALL" ? (
               <AllEmployeesTimesheetTable
                 reports={reportData}
