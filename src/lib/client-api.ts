@@ -1,0 +1,210 @@
+"use client";
+
+import {
+  DashboardSnapshotDto,
+  ReportsSnapshotDto,
+  ScanRosterDto,
+  SerializedEmployee,
+  SerializedScanEmployeeStatus,
+  SerializedTimelog,
+  StoreLookupDto,
+} from "@/lib/api-types";
+import { DashboardEmployeeStatus, Employee, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
+
+async function readJson<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(payload?.error ?? "Request failed");
+  }
+
+  return (await response.json()) as T;
+}
+
+function parseEmployee(employee: SerializedEmployee): Employee {
+  return {
+    ...employee,
+    created_at: new Date(employee.created_at),
+  };
+}
+
+function parseTimelog(timelog: SerializedTimelog): Timelog {
+  return {
+    ...timelog,
+    timestamp: new Date(timelog.timestamp),
+  };
+}
+
+function parseScanEmployeeStatus(record: SerializedScanEmployeeStatus): ScanEmployeeStatus {
+  return {
+    employee: parseEmployee(record.employee),
+    latestLog: record.latest_log ? parseTimelog(record.latest_log) : null,
+    status: record.status,
+  };
+}
+
+export async function getPublicStore(qrToken: string): Promise<PublicStore> {
+  const response = await fetch(`/api/stores/${qrToken}`, {
+    credentials: "same-origin",
+  });
+  const payload = await readJson<StoreLookupDto>(response);
+  return payload.store;
+}
+
+export async function getScanRoster(qrToken: string) {
+  const response = await fetch(`/api/stores/${qrToken}/employees`, {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = await readJson<ScanRosterDto>(response);
+  return {
+    store: payload.store,
+    employees: payload.employees.map(parseScanEmployeeStatus),
+  };
+}
+
+export async function submitClockAction(
+  qrToken: string,
+  employeeId: string,
+  requestedAction: "IN" | "OUT",
+) {
+  const response = await fetch(`/api/stores/${qrToken}/clock`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      employeeId,
+      requestedAction,
+    }),
+  });
+
+  return readJson<{ action: "IN" | "OUT"; timestamp: string }>(response);
+}
+
+export async function getManagerSession(qrToken: string) {
+  const response = await fetch(`/api/manager/session?qr_token=${encodeURIComponent(qrToken)}`, {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  return readJson<{ authenticated: boolean }>(response);
+}
+
+export async function loginManager(qrToken: string, pin: string) {
+  const response = await fetch("/api/manager/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      qr_token: qrToken,
+      pin,
+    }),
+  });
+
+  return readJson<{ ok: true }>(response);
+}
+
+export async function logoutManager() {
+  const response = await fetch("/api/manager/session", {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  return readJson<{ ok: true }>(response);
+}
+
+export async function getOwnerSession() {
+  const response = await fetch("/api/admin/session", {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  return readJson<{ authenticated: boolean }>(response);
+}
+
+export async function loginOwner(secret: string) {
+  const response = await fetch("/api/admin/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      secret,
+    }),
+  });
+
+  return readJson<{ ok: true }>(response);
+}
+
+export async function logoutOwner() {
+  const response = await fetch("/api/admin/session", {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  return readJson<{ ok: true }>(response);
+}
+
+export async function createStore(
+  storeName: string,
+  pin: string,
+  employeeNames: string[],
+) {
+  const response = await fetch("/api/admin/stores", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      storeName,
+      pin,
+      employeeNames,
+    }),
+  });
+
+  return readJson<{ storeId: string; storeName: string; qrToken: string }>(response);
+}
+
+export async function createDemoStore() {
+  const response = await fetch("/api/admin/demo-store", {
+    method: "POST",
+    credentials: "same-origin",
+  });
+
+  return readJson<{ storeId: string; storeName: string; qrToken: string; pin: string }>(response);
+}
+
+export async function getDashboardSnapshot(qrToken: string): Promise<{
+  store: PublicStore;
+  employees: DashboardEmployeeStatus[];
+}> {
+  const response = await fetch(`/api/manager/${qrToken}/dashboard`, {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = await readJson<DashboardSnapshotDto>(response);
+  return {
+    store: payload.store,
+    employees: payload.employees.map(parseScanEmployeeStatus) as DashboardEmployeeStatus[],
+  };
+}
+
+export async function getReportsSnapshot(qrToken: string): Promise<{
+  store: PublicStore;
+  employees: Employee[];
+  timelogs: Timelog[];
+}> {
+  const response = await fetch(`/api/manager/${qrToken}/reports`, {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = await readJson<ReportsSnapshotDto>(response);
+  return {
+    store: payload.store,
+    employees: payload.employees.map(parseEmployee),
+    timelogs: payload.timelogs.map(parseTimelog),
+  };
+}

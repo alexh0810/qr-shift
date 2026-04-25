@@ -1,51 +1,52 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { BrandMark } from "@/components/BrandMark";
-import { getStoreByQrToken } from "@/lib/db";
+import { useEffect, useState } from "react";
 import { ArrowRight, Loader2, ShieldAlert } from "lucide-react";
-import { Store } from "@/types";
 
-export default function PinGuard({ qr_token, children }: { qr_token: string, children: React.ReactNode }) {
+import { BrandMark } from "@/components/BrandMark";
+import { getManagerSession, getPublicStore, loginManager } from "@/lib/client-api";
+import { PublicStore } from "@/types";
+
+export default function PinGuard({ qr_token, children }: { qr_token: string; children: React.ReactNode }) {
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [store, setStore] = useState<Store | null>(null);
+  const [store, setStore] = useState<PublicStore | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check local storage first
-    const isUnlocked = localStorage.getItem(`store_${qr_token}_unlocked`) === "true";
-    if (isUnlocked) {
-      setUnlocked(true);
-      setLoading(false);
-      return;
-    }
-    localStorage.removeItem(`store_${qr_token}_unlocked`);
-
-    // Fetch store to get the PIN for validation
-    getStoreByQrToken(qr_token)
-      .then((foundStore) => {
+    Promise.all([getPublicStore(qr_token), getManagerSession(qr_token)])
+      .then(([foundStore, session]) => {
         setStore(foundStore);
-        setLoading(false);
+        setUnlocked(session.authenticated);
       })
       .catch(() => {
         setError("Failed to load store.");
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, [qr_token]);
 
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!store) return;
-    
-    if (pinInput === store.pin) {
-      localStorage.setItem(`store_${qr_token}_unlocked`, "true");
+  const handleUnlock = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!store) {
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      await loginManager(qr_token, pinInput);
       setUnlocked(true);
-      setError(null);
-    } else {
-      setError("Incorrect PIN. Please try again.");
-      setPinInput(""); // Clear on wrong attempt
+      setPinInput("");
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : "Incorrect PIN. Please try again.");
+      setPinInput("");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -55,9 +56,7 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
         <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-[28px] border border-border-strong bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]">
           <BrandMark />
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-text-muted">
-            Loading demo workspace...
-          </p>
+          <p className="text-sm font-medium text-text-muted">Loading demo workspace...</p>
         </div>
       </div>
     );
@@ -85,20 +84,16 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
             <h1 className="font-display text-[clamp(2rem,5vw,2.5rem)] font-bold tracking-[-0.05em] text-foreground">
               Unlock this device
             </h1>
-            <p className="text-base font-semibold text-foreground">
-              {store?.name || "QRShift workspace"}
-            </p>
+            <p className="text-base font-semibold text-foreground">{store?.name || "QRShift workspace"}</p>
             <p className="max-w-sm text-sm font-medium leading-6 text-text-muted">
-              Use the manager PIN to reopen this demo workspace on this device. This keeps the
-              current QRShift route boundary, but it is not full account authentication.
+              Use the manager PIN to reopen this demo workspace on this device. This now uses a trusted server check while keeping the same lightweight QRShift flow.
             </p>
           </div>
 
           <div className="mb-5 flex items-start gap-3 rounded-[22px] border border-primary/15 bg-primary/10 px-4 py-3">
             <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <p className="text-sm font-medium leading-6 text-foreground">
-              This unlock only reopens the demo workspace in this browser. It does not create a
-              user session or replace real account authentication.
+              This unlock creates a server-issued session for this store on this device. It still stays simple, but the PIN is no longer validated in the browser.
             </p>
           </div>
 
@@ -119,7 +114,7 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
                 inputMode="numeric"
                 maxLength={6}
                 value={pinInput}
-                onChange={e => setPinInput(e.target.value)}
+                onChange={(event) => setPinInput(event.target.value)}
                 className="font-mono-brand w-full rounded-[22px] border border-surfacestroke bg-background px-5 py-4 text-center text-3xl font-bold tracking-[0.36em] text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="••••"
                 required
@@ -129,17 +124,17 @@ export default function PinGuard({ qr_token, children }: { qr_token: string, chi
 
             <div className="rounded-[20px] border border-surfacestroke bg-background px-4 py-3">
               <p className="text-sm font-medium leading-6 text-text-muted">
-                QRShift stores the unlocked state on this device with local browser storage. Lock
-                the demo workspace when you finish on a shared phone, tablet, or laptop.
+                QRShift keeps access simple on shared devices, but manager unlock now depends on a secure server-issued session instead of local browser storage.
               </p>
             </div>
 
             <button
               type="submit"
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-base font-bold text-white transition-colors hover:bg-primary-dark"
+              disabled={submitting}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-base font-bold text-white transition-colors hover:bg-primary-dark disabled:opacity-70"
             >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               <span>Open demo workspace</span>
-              <ArrowRight className="h-4 w-4" />
             </button>
           </form>
         </div>

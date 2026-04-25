@@ -12,18 +12,32 @@ import { WorkspaceStatCard } from "@/components/manager/WorkspaceStatCard";
 import { AllEmployeesTimesheetTable } from "@/features/reports/components/AllEmployeesTimesheetTable";
 import { EmployeeReportDetail } from "@/features/reports/components/EmployeeReportDetail";
 import { EmployeeSelect } from "@/features/reports/components/EmployeeSelect";
-import { buildReportData, rebuildEmployeeReport, summarizeEmployeeReports, updateRowTime } from "@/features/reports/data-processing";
+import {
+  buildReportData,
+  rebuildEmployeeReport,
+  summarizeEmployeeReports,
+  updateRowTime,
+} from "@/features/reports/data-processing";
 import { buildReportsCsv } from "@/features/reports/export";
 import { MissingOutStrategy } from "@/features/reports/types";
-import { getEmployeesByStoreId, getStoreByQrToken, getStoreTimelogs } from "@/lib/db";
-import { Employee, Store } from "@/types";
+import { getReportsSnapshot, logoutManager } from "@/lib/client-api";
+import { Employee, PublicStore, Timelog } from "@/types";
 
 export default function ReportsPage({ params }: { params: { qr_token: string } }) {
+  return (
+    <PinGuard qr_token={params.qr_token}>
+      <ReportsWorkspace qrToken={params.qr_token} />
+    </PinGuard>
+  );
+}
+
+function ReportsWorkspace({ qrToken }: { qrToken: string }) {
   const defaultStartDate = startOfWeek(new Date(), { weekStartsOn: 1 });
   const defaultEndDate = endOfWeek(new Date(), { weekStartsOn: 1 });
 
-  const [store, setStore] = useState<Store | null>(null);
+  const [store, setStore] = useState<PublicStore | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allLogs, setAllLogs] = useState<Timelog[]>([]);
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +45,13 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
   const [dateStrEnd, setDateStrEnd] = useState(format(defaultEndDate, "yyyy-MM-dd"));
   const [reportData, setReportData] = useState<ReturnType<typeof buildReportData>["employeeGroups"]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<"ALL" | string>("ALL");
+
+  const fetchSnapshot = useCallback(async () => {
+    const snapshot = await getReportsSnapshot(qrToken);
+    setStore(snapshot.store);
+    setEmployees(snapshot.employees);
+    setAllLogs(snapshot.timelogs);
+  }, [qrToken]);
 
   const fetchAndCalculate = useCallback(async () => {
     if (!store) {
@@ -43,7 +64,6 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
     try {
       const filterStart = startOfDay(new Date(dateStrStart));
       const filterEnd = endOfDay(new Date(dateStrEnd));
-      const allLogs = await getStoreTimelogs(store.id);
       const now = new Date();
       const missingOutStrategy: MissingOutStrategy = isWithinInterval(now, {
         start: filterStart,
@@ -65,29 +85,17 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
     } finally {
       setCalculating(false);
     }
-  }, [dateStrEnd, dateStrStart, employees, store]);
+  }, [allLogs, dateStrEnd, dateStrStart, employees, store]);
 
   useEffect(() => {
-    async function loadInitial() {
-      try {
-        const foundStore = await getStoreByQrToken(params.qr_token);
-        if (!foundStore) {
-          setError("Invalid QR Token. Store not found.");
-          setLoading(false);
-          return;
-        }
-
-        setStore(foundStore);
-        setEmployees(await getEmployeesByStoreId(foundStore.id));
-      } catch {
-        setError("Failed to load store data.");
-      } finally {
+    fetchSnapshot()
+      .catch((loadError) => {
+        setError(loadError instanceof Error ? loadError.message : "Failed to load store data.");
+      })
+      .finally(() => {
         setLoading(false);
-      }
-    }
-
-    loadInitial();
-  }, [params.qr_token]);
+      });
+  }, [fetchSnapshot]);
 
   useEffect(() => {
     if (employees.length > 0 && store) {
@@ -157,7 +165,7 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }, [dateStrEnd, dateStrStart, globalSummary, reportData, selectedEmployeeId, store?.name]);
 
   const allEmployeesEmptyMessage =
@@ -202,7 +210,7 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -210,151 +218,147 @@ export default function ReportsPage({ params }: { params: { qr_token: string } }
   if (error && !store) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <p className="text-error font-bold">{error}</p>
+        <p className="font-bold text-error">{error}</p>
       </div>
     );
   }
 
   return (
-    <PinGuard qr_token={params.qr_token}>
-      <ManagerWorkspaceShell
-        qrToken={params.qr_token}
-        currentPath={`/reports/${params.qr_token}`}
-      >
-        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
-          <ManagerWorkspaceHeader
-            eyebrow="Scan -> Monitor -> Export"
-            title={`${store?.name ?? "QRShift"} Reports`}
-            description="Review payroll-ready rows, keep local edit behavior explicit, and export the selected date range from the same manager workspace."
-            meta={
-              <p className="text-sm font-medium text-text-muted">
-                {format(new Date(dateStrStart), "MMM d, yyyy")} to {format(new Date(dateStrEnd), "MMM d, yyyy")}
-              </p>
-            }
-            primaryAction={{
-              label: "Back to Dashboard",
-              href: `/dashboard/${params.qr_token}`,
-            }}
-            secondaryAction={
+    <ManagerWorkspaceShell qrToken={qrToken} currentPath={`/reports/${qrToken}`}>
+      <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+        <ManagerWorkspaceHeader
+          eyebrow="Scan -> Monitor -> Export"
+          title={`${store?.name ?? "QRShift"} Reports`}
+          description="Review payroll-ready rows, keep local edit behavior explicit, and export the selected date range from the same manager workspace."
+          meta={
+            <p className="text-sm font-medium text-text-muted">
+              {format(new Date(dateStrStart), "MMM d, yyyy")} to {format(new Date(dateStrEnd), "MMM d, yyyy")}
+            </p>
+          }
+          primaryAction={{
+            label: "Back to Dashboard",
+            href: `/dashboard/${qrToken}`,
+          }}
+          secondaryAction={
+            <button
+              onClick={async () => {
+                await logoutManager();
+                window.location.reload();
+              }}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-background"
+              title="Lock manager access"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Lock manager access</span>
+            </button>
+          }
+          statusBadge={
+            <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>{reportData.length} report group{reportData.length === 1 ? "" : "s"}</span>
+            </div>
+          }
+          supportingContent={
+            <p className="max-w-3xl text-sm font-medium leading-6 text-text-muted">
+              Adjusting times below updates this browser&apos;s export output only. The local edit model and CSV behavior remain unchanged during this redesign.
+            </p>
+          }
+        />
+
+        <WorkspacePanel
+          eyebrow="Export controls"
+          title="Selected payroll range"
+          description="Stacked controls stay phone-safe, while tables keep deliberate horizontal overflow on larger views."
+          headerActions={
+            <div className="flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={() => {
-                  localStorage.removeItem(`store_${params.qr_token}_unlocked`);
-                  window.location.reload();
+                onClick={async () => {
+                  await fetchSnapshot();
                 }}
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-background"
-                title="Lock manager access"
+                disabled={calculating}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface disabled:opacity-70"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Lock manager access</span>
+                <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
+                <span>{calculating ? "Refreshing" : "Refresh range"}</span>
               </button>
-            }
-            statusBadge={
-              <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                <FileSpreadsheet className="h-4 w-4" />
-                <span>{reportData.length} report group{reportData.length === 1 ? "" : "s"}</span>
-              </div>
-            }
-            supportingContent={
-              <p className="max-w-3xl text-sm font-medium leading-6 text-text-muted">
-                Adjusting times below updates this browser&apos;s export output only. The local edit
-                model and CSV behavior remain unchanged during this redesign.
-              </p>
-            }
-          />
-
-          <WorkspacePanel
-            eyebrow="Export controls"
-            title="Selected payroll range"
-            description="Stacked controls stay phone-safe, while tables keep deliberate horizontal overflow on larger views."
-            headerActions={
-              <div className="flex flex-col gap-3 sm:flex-row">
+              {reportData.length > 0 ? (
                 <button
-                  onClick={fetchAndCalculate}
-                  disabled={calculating}
-                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface disabled:opacity-70"
+                  onClick={downloadCsv}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
                 >
-                  <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
-                  <span>{calculating ? "Refreshing" : "Refresh range"}</span>
+                  <Download className="h-4 w-4" />
+                  <span>Export Payroll Report</span>
                 </button>
-                {reportData.length > 0 ? (
-                  <button
-                    onClick={downloadCsv}
-                    className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-primary bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Export Payroll Report</span>
-                  </button>
-                ) : null}
-              </div>
-            }
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <div className="flex min-h-[44px] flex-col gap-2 rounded-[20px] border border-surfacestroke bg-background px-3 py-3 sm:flex-row sm:items-center">
-                <input
-                  type="date"
-                  value={dateStrStart}
-                  onChange={(event) => setDateStrStart(event.target.value)}
-                  className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
-                />
-                <span className="px-1 text-center text-sm font-semibold text-text-muted">to</span>
-                <input
-                  type="date"
-                  value={dateStrEnd}
-                  onChange={(event) => setDateStrEnd(event.target.value)}
-                  className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
-                />
-              </div>
+              ) : null}
             </div>
-          </WorkspacePanel>
-
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {reportSummaryCards.map((card) => (
-              <WorkspaceStatCard
-                key={card.label}
-                label={card.label}
-                value={card.value}
-                description={card.description}
-                icon={card.icon}
-                valueClassName={card.valueClassName}
+          }
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="flex min-h-[44px] flex-col gap-2 rounded-[20px] border border-surfacestroke bg-background px-3 py-3 sm:flex-row sm:items-center">
+              <input
+                type="date"
+                value={dateStrStart}
+                onChange={(event) => setDateStrStart(event.target.value)}
+                className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
               />
-            ))}
-          </section>
-
-          <div className="mb-6">
-            <EmployeeSelect
-              employees={employees}
-              value={selectedEmployeeId}
-              onChange={setSelectedEmployeeId}
-              disabled={employees.length === 0}
-            />
-          </div>
-
-          {error ? (
-            <div className="rounded-[22px] border border-[color:color-mix(in_srgb,var(--error)_24%,var(--color-border-soft))] bg-error/10 px-4 py-4 text-sm font-semibold text-error">
-              {error}
+              <span className="px-1 text-center text-sm font-semibold text-text-muted">to</span>
+              <input
+                type="date"
+                value={dateStrEnd}
+                onChange={(event) => setDateStrEnd(event.target.value)}
+                className="min-h-[44px] rounded-[14px] border border-surfacestroke bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition-colors focus:border-primary"
+              />
             </div>
-          ) : null}
+          </div>
+        </WorkspacePanel>
 
-          <div className="animate-in fade-in duration-300">
-            {selectedEmployeeId === "ALL" ? (
-              <div className="space-y-6">
-                <AllEmployeesTimesheetTable
-                  reports={reportData}
-                  emptyMessage={allEmployeesEmptyMessage}
-                  onTimeChange={updateTimesheetRow}
-                />
-              </div>
-            ) : (
-              <EmployeeReportDetail
-                employees={employees}
-                selectedEmployeeId={selectedEmployeeId}
-                selectedReport={selectedReport}
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {reportSummaryCards.map((card) => (
+            <WorkspaceStatCard
+              key={card.label}
+              label={card.label}
+              value={card.value}
+              description={card.description}
+              icon={card.icon}
+              valueClassName={card.valueClassName}
+            />
+          ))}
+        </section>
+
+        <div className="mb-6">
+          <EmployeeSelect
+            employees={employees}
+            value={selectedEmployeeId}
+            onChange={setSelectedEmployeeId}
+            disabled={employees.length === 0}
+          />
+        </div>
+
+        {error ? (
+          <div className="rounded-[22px] border border-[color:color-mix(in_srgb,var(--error)_24%,var(--color-border-soft))] bg-error/10 px-4 py-4 text-sm font-semibold text-error">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="animate-in fade-in duration-300">
+          {selectedEmployeeId === "ALL" ? (
+            <div className="space-y-6">
+              <AllEmployeesTimesheetTable
+                reports={reportData}
+                emptyMessage={allEmployeesEmptyMessage}
                 onTimeChange={updateTimesheetRow}
               />
-            )}
-          </div>
+            </div>
+          ) : (
+            <EmployeeReportDetail
+              employees={employees}
+              selectedEmployeeId={selectedEmployeeId}
+              selectedReport={selectedReport}
+              onTimeChange={updateTimesheetRow}
+            />
+          )}
         </div>
-      </ManagerWorkspaceShell>
-    </PinGuard>
+      </div>
+    </ManagerWorkspaceShell>
   );
 }

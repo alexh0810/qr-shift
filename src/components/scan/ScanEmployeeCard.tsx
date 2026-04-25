@@ -1,12 +1,12 @@
 "use client";
 
-import { Employee } from "@/types";
 import { ArrowRight, CircleDot } from "lucide-react";
 
+import { ScanEmployeeStatus } from "@/types";
+
 interface ScanEmployeeCardProps {
-  employee: Employee;
-  status: "IN" | "OUT";
-  onSelect: (employee: Employee) => void;
+  entry: ScanEmployeeStatus;
+  onSelect: (entry: ScanEmployeeStatus) => void;
 }
 
 function getInitials(name: string) {
@@ -19,30 +19,24 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function ScanEmployeeCard({
-  employee,
-  status,
-  onSelect,
-}: ScanEmployeeCardProps) {
-  const isWorking = status === "IN";
+export function ScanEmployeeCard({ entry, onSelect }: ScanEmployeeCardProps) {
+  const isWorking = entry.status === "IN";
 
   return (
     <button
-      onClick={() => onSelect(employee)}
+      onClick={() => onSelect(entry)}
       className="group flex min-h-[112px] w-full items-center justify-between rounded-[var(--radius-panel)] border border-border-strong bg-surface px-5 py-4 text-left shadow-[var(--shadow-panel)] transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98]"
     >
       <div className="flex min-w-0 items-center gap-4">
         <div className="qr-grid-accent flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border border-border-strong bg-background text-lg font-bold text-foreground">
-          {getInitials(employee.name)}
+          {getInitials(entry.employee.name)}
         </div>
 
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
             Scan employee
           </p>
-          <p className="truncate text-lg font-bold text-foreground">
-            {employee.name}
-          </p>
+          <p className="truncate text-lg font-bold text-foreground">{entry.employee.name}</p>
           <p className="mt-1 text-sm font-medium text-text-muted">
             {isWorking ? "Clocked in. Ready to clock out." : "Clocked out. Ready to clock in."}
           </p>
@@ -62,9 +56,7 @@ export function ScanEmployeeCard({
       </div>
 
       <div className="flex shrink-0 items-center gap-2 self-start pt-1 text-text-muted">
-        <span className="hidden text-xs font-bold uppercase tracking-[0.18em] sm:inline">
-          Select
-        </span>
+        <span className="hidden text-xs font-bold uppercase tracking-[0.18em] sm:inline">Select</span>
         <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
       </div>
     </button>

@@ -13,7 +13,7 @@ QRShift is designed for quick demo use and lightweight business operations:
 ## Features
 
 - QR-based clock in/out with no employee login required
-- Real-time shift dashboard for managers
+- Protected manager dashboard with a server-issued store session
 - Payroll-ready reporting with decimal hours and timesheet rows
 - Employee filtering and detailed timesheet views
 - CSV export for summary and payroll workflows
@@ -59,7 +59,7 @@ npm install
 
 ### Environment Setup
 
-Create `.env.local` with your Firebase web app configuration:
+Create `.env.local` with your Firebase web app configuration, manager/admin session secrets, and Firebase Admin credentials:
 
 ```bash
 NEXT_PUBLIC_FIREBASE_API_KEY=
@@ -68,7 +68,16 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_DEMO_BOOKING_URL=
+NEXT_PUBLIC_CONTACT_EMAIL=
+MANAGER_SESSION_SECRET=
+OWNER_SETUP_SECRET=
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
 ```
+
+You can copy these keys from [.env.example](/Users/alex/.codex/worktrees/902b/QRShift/.env.example).
 
 ### Run Locally
 
@@ -90,20 +99,30 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Manager Dashboard and Reports
 
 1. Managers open the dashboard or reports URL using the store QR token.
-2. A manager PIN unlocks access.
-3. The dashboard shows live attendance status.
+2. A manager PIN is validated by a trusted server route and creates a 7-day `HttpOnly` store session.
+3. The dashboard refreshes a protected attendance snapshot on load and at a lightweight polling interval.
 4. Reports provide employee-level and all-staff payroll summaries with CSV export.
 
 ### Demo Flow
 
-Use the admin page to create a demo store with realistic fake timelog data for customer demos and report testing.
+Use the admin page to create a demo store with realistic fake timelog data for customer demos and report testing. The route is now owner-protected by a server-issued session.
+
+### Manual PIN Migration
+
+Existing plaintext manager PINs must be migrated before rollout:
+
+```bash
+npm run migrate:pins
+```
+
+This script hashes `stores.pin` into `stores.pin_hash` and removes the plaintext field.
 
 ### Landing Page CTAs
 
-The landing page reads its public action targets from [site-config.ts](/Users/alex/projects/QRShift/src/lib/site-config.ts):
+The landing page reads its public action targets from [site-config.ts](/Users/alex/.codex/worktrees/902b/QRShift/src/lib/site-config.ts:1):
 
-- `DEMO_BOOKING_URL` powers the public Calendly `Request a Demo` action
-- `CONTACT_EMAIL` powers the public `Contact` mailto link
+- `NEXT_PUBLIC_DEMO_BOOKING_URL` powers the public Calendly `Request a Demo` action
+- `NEXT_PUBLIC_CONTACT_EMAIL` powers the public `Contact` mailto link
 
 The homepage should treat `Request a Demo` and `Contact` as customer-facing actions and explain the product directly through the page itself rather than exposing internal demo access.
 
@@ -115,6 +134,7 @@ npm run build
 npm run start
 npm run lint
 npm run test
+npm run migrate:pins
 ```
 
 ## Roadmap

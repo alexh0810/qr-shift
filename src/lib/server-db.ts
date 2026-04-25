@@ -1,0 +1,298 @@
+import { nanoid } from "nanoid";
+
+import { adminDb } from "@/lib/firebase-admin";
+import { buildDemoStoreSeed } from "@/lib/demoData";
+import { hashPin } from "@/lib/pin-hash";
+import { DashboardEmployeeStatus, Employee, PublicStore, Store, Timelog } from "@/types";
+
+function ensureDate(value: unknown) {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (value && typeof value === "object" && "toDate" in value && typeof value.toDate === "function") {
+    return value.toDate() as Date;
+  }
+
+  return new Date();
+}
+
+function mapStore(id: string, data: Record<string, unknown>): Store {
+  return {
+    id,
+    name: String(data.name ?? ""),
+    qr_token: String(data.qr_token ?? ""),
+    created_at: ensureDate(data.created_at),
+    pin: typeof data.pin === "string" ? data.pin : undefined,
+    pin_hash: typeof data.pin_hash === "string" ? data.pin_hash : undefined,
+  };
+}
+
+function mapEmployee(id: string, data: Record<string, unknown>): Employee {
+  return {
+    id,
+    name: String(data.name ?? ""),
+    store_id: String(data.store_id ?? ""),
+    created_at: ensureDate(data.created_at),
+  };
+}
+
+function mapTimelog(id: string, data: Record<string, unknown>): Timelog {
+  return {
+    id,
+    employee_id: String(data.employee_id ?? ""),
+    store_id: String(data.store_id ?? ""),
+    type: data.type === "OUT" ? "OUT" : "IN",
+    timestamp: ensureDate(data.timestamp),
+  };
+}
+
+export function toPublicStore(store: Store): PublicStore {
+  return {
+    id: store.id,
+    name: store.name,
+    qr_token: store.qr_token,
+  };
+}
+
+export async function getStoreByQrTokenServer(qrToken: string) {
+  const snapshot = await adminDb
+    .collection("stores")
+    .where("qr_token", "==", qrToken)
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const document = snapshot.docs[0];
+  return mapStore(document.id, document.data());
+}
+
+export async function getEmployeesByStoreIdServer(storeId: string) {
+  const snapshot = await adminDb.collection("employees").where("store_id", "==", storeId).get();
+  return snapshot.docs.map((document) => mapEmployee(document.id, document.data()));
+}
+
+export async function getStoreTimelogsServer(storeId: string) {
+  const snapshot = await adminDb.collection("timelogs").where("store_id", "==", storeId).get();
+  return snapshot.docs
+    .map((document) => mapTimelog(document.id, document.data()))
+    .sort((left, right) => left.timestamp.getTime() - right.timestamp.getTime());
+}
+
+export async function getLatestTimelogForEmployeeServer(employeeId: string) {
+  const snapshot = await adminDb
+    .collection("timelogs")
+    .where("employee_id", "==", employeeId)
+    .orderBy("timestamp", "desc")
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const document = snapshot.docs[0];
+  return mapTimelog(document.id, document.data());
+}
+
+export async function getScanRosterByQrToken(qrToken: string) {
+  const store = await getStoreByQrTokenServer(qrToken);
+  if (!store) {
+    return null;
+  }
+
+  const [employees, timelogs] = await Promise.all([
+    getEmployeesByStoreIdServer(store.id),
+    getStoreTimelogsServer(store.id),
+  ]);
+
+  const latestLogByEmployee = new Map<string, Timelog>();
+  for (const timelog of timelogs) {
+    latestLogByEmployee.set(timelog.employee_id, timelog);
+  }
+
+  return {
+    store: toPublicStore(store),
+    employees: employees.map((employee) => {
+      const latestLog = latestLogByEmployee.get(employee.id) ?? null;
+      return {
+        employee,
+        latestLog,
+        status: latestLog?.type === "IN" ? "IN" : "OUT",
+      };
+    }),
+  };
+}
+
+export async function getDashboardSnapshotByQrToken(qrToken: string) {
+  const roster = await getScanRosterByQrToken(qrToken);
+  if (!roster) {
+    return null;
+  }
+
+  return {
+    store: roster.store,
+    employees: roster.employees as DashboardEmployeeStatus[],
+  };
+}
+
+export async function getReportsSnapshotByQrToken(qrToken: string) {
+  const store = await getStoreByQrTokenServer(qrToken);
+  if (!store) {
+    return null;
+  }
+
+  const [employees, timelogs] = await Promise.all([
+    getEmployeesByStoreIdServer(store.id),
+    getStoreTimelogsServer(store.id),
+  ]);
+
+  return {
+    store: toPublicStore(store),
+    employees,
+    timelogs,
+  };
+}
+
+export async function createClockAction(qrToken: string, employeeId: string, requestedAction: "IN" | "OUT") {
+  const store = await getStoreByQrTokenServer(qrToken);
+  if (!store) {
+    throw new Error("store_not_found");
+  }
+
+  const employeeRef = adminDb.collection("employees").doc(employeeId);
+  const timelogsRef = adminDb.collection("timelogs");
+  const clockedAt = new Date();
+
+  const result = await adminDb.runTransaction(async (transaction) => {
+    const employeeSnapshot = await transaction.get(employeeRef);
+    if (!employeeSnapshot.exists) {
+      throw new Error("employee_not_found");
+    }
+
+    const employee = mapEmployee(employeeSnapshot.id, employeeSnapshot.data() ?? {});
+    if (employee.store_id !== store.id) {
+      throw new Error("employee_store_mismatch");
+    }
+
+    const latestSnapshot = await transaction.get(
+      timelogsRef.where("employee_id", "==", employeeId).orderBy("timestamp", "desc").limit(1),
+    );
+
+    const latestDocument = latestSnapshot.docs[0];
+    const latestLog = latestDocument ? mapTimelog(latestDocument.id, latestDocument.data()) : null;
+    const expectedAction = latestLog?.type === "IN" ? "OUT" : "IN";
+
+    if (requestedAction !== expectedAction) {
+      throw new Error("invalid_transition");
+    }
+
+    const newTimelogRef = timelogsRef.doc();
+    transaction.create(newTimelogRef, {
+      employee_id: employeeId,
+      store_id: store.id,
+      type: requestedAction,
+      timestamp: clockedAt,
+    });
+
+    return {
+      employee,
+      action: requestedAction,
+      timestamp: clockedAt,
+    };
+  });
+
+  return result;
+}
+
+function normalizeEmployeeNames(employeeNames: string[]) {
+  return employeeNames.map((name) => name.trim()).filter(Boolean);
+}
+
+export async function createStoreAndEmployeesServer(
+  storeName: string,
+  pin: string,
+  employeeNames: string[],
+) {
+  const createdAt = new Date();
+  const qrToken = nanoid(16);
+  const batch = adminDb.batch();
+
+  const storeRef = adminDb.collection("stores").doc();
+  batch.set(storeRef, {
+    name: storeName.trim(),
+    qr_token: qrToken,
+    pin_hash: await hashPin(pin.trim()),
+    created_at: createdAt,
+  });
+
+  for (const name of normalizeEmployeeNames(employeeNames)) {
+    const employeeRef = adminDb.collection("employees").doc();
+    batch.set(employeeRef, {
+      name,
+      store_id: storeRef.id,
+      created_at: createdAt,
+    });
+  }
+
+  await batch.commit();
+
+  return {
+    storeId: storeRef.id,
+    storeName: storeName.trim(),
+    qrToken,
+  };
+}
+
+export async function createDemoStoreWithTimelogsServer() {
+  const demoSeed = buildDemoStoreSeed();
+  const qrToken = nanoid(16);
+  const createdAt = new Date();
+  const batch = adminDb.batch();
+
+  const storeRef = adminDb.collection("stores").doc();
+  batch.set(storeRef, {
+    name: demoSeed.storeName,
+    qr_token: qrToken,
+    pin_hash: await hashPin(demoSeed.pin),
+    created_at: createdAt,
+  });
+
+  const employeeIdByName = new Map<string, string>();
+  for (const employeeName of demoSeed.employeeNames) {
+    const employeeRef = adminDb.collection("employees").doc();
+    employeeIdByName.set(employeeName, employeeRef.id);
+    batch.set(employeeRef, {
+      name: employeeName,
+      store_id: storeRef.id,
+      created_at: createdAt,
+    });
+  }
+
+  for (const timelog of demoSeed.timelogs) {
+    const employeeId = employeeIdByName.get(timelog.employeeName);
+    if (!employeeId) {
+      continue;
+    }
+
+    const timelogRef = adminDb.collection("timelogs").doc();
+    batch.set(timelogRef, {
+      employee_id: employeeId,
+      store_id: storeRef.id,
+      type: timelog.type,
+      timestamp: timelog.timestamp,
+    });
+  }
+
+  await batch.commit();
+
+  return {
+    storeId: storeRef.id,
+    storeName: demoSeed.storeName,
+    qrToken,
+    pin: demoSeed.pin,
+  };
+}
