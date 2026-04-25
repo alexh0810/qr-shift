@@ -34,90 +34,50 @@ export function ScanActionPanel({
   const currentStatusLabel =
     nextAction === "OUT"
       ? latestTimestamp
-        ? `Clocked in since ${format(latestTimestamp, "hh:mm a")}`
-        : "Working right now"
-      : "Clocked out right now";
+        ? `Clocked in at ${format(latestTimestamp, "h:mm a")}`
+        : "Currently working"
+      : "Not clocked in";
 
   if (successMessage) {
     return (
       <section
         aria-live="polite"
-        className="rounded-[var(--radius-panel)] border border-secondary/30 bg-surface px-6 py-10 text-center shadow-[var(--shadow-panel)]"
+        className="rounded-xl border border-border bg-background px-6 py-10 text-center"
       >
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-secondary/15 text-secondary">
-          <CheckCircle2 className="h-10 w-10" strokeWidth={2.5} />
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10 text-success">
+          <CheckCircle2 className="h-8 w-8" strokeWidth={2} />
         </div>
-        <p className="mt-6 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
-          QRShift updated
-        </p>
-        <h2 className="mt-6 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
+        <h2 className="mt-6 text-2xl font-semibold tracking-tight text-foreground">
           {successMessage}
         </h2>
-        <p className="mt-3 text-sm font-medium text-text-muted">
+        <p className="mt-2 text-sm text-muted">
           {nextAction === "IN"
             ? `Have a good shift, ${firstName}.`
-            : `You're all set, ${firstName}. You can step away from the clock station.`}
+            : `You&apos;re all done, ${firstName}.`}
         </p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-[var(--radius-panel)] border border-border-strong bg-surface p-6 shadow-[var(--shadow-panel)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            QRShift action
-          </p>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
-            {firstName}
-          </h2>
-          <p className="mt-2 text-sm font-medium text-text-muted">
-            Review your status and confirm the next action.
-          </p>
+    <section className="rounded-xl border border-border bg-background p-6">
+      <div className="mb-6">
+        <p className="text-xs font-medium text-muted">Clock {nextAction === "IN" ? "in" : "out"}</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{firstName}</h2>
+        <p className="mt-1 text-sm text-muted">{currentStatusLabel}</p>
+      </div>
+
+      {timelogLoading ? (
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Checking status...</span>
         </div>
-        <span
-          className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${
-            nextAction === "OUT"
-              ? "border-secondary/25 bg-secondary/10 text-secondary"
-              : "border-surfacestroke bg-background text-text-muted"
-          }`}
-        >
-          {nextAction === "OUT" ? "Working" : "Off shift"}
-        </span>
-      </div>
-
-      <div className="mt-4 rounded-[20px] border border-primary/10 bg-primary/5 px-4 py-3">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-          Next action
-        </p>
-        <p className="mt-2 text-base font-bold text-foreground">
-          {nextAction === "IN"
-            ? "Clock in to start this shift."
-            : "Clock out to end this shift."}
-        </p>
-      </div>
-
-      <div className="mt-6 rounded-[20px] border border-surfacestroke bg-background px-4 py-4">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">
-          Current status
-        </p>
-        {timelogLoading ? (
-          <div className="mt-3 flex items-center gap-2 text-sm font-medium text-text-muted">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Checking latest shift activity...
-          </div>
-        ) : (
-          <p className="mt-3 text-base font-bold text-foreground">
-            {currentStatusLabel}
-          </p>
-        )}
-      </div>
+      ) : null}
 
       {errorMessage ? (
         <div
           aria-live="polite"
-          className="mt-4 rounded-[20px] border border-error/20 bg-error/10 px-4 py-3 text-sm font-medium text-error"
+          className="mb-4 rounded-lg border border-error/20 bg-error/5 px-4 py-3 text-sm text-error"
         >
           {errorMessage}
         </div>
@@ -126,27 +86,27 @@ export function ScanActionPanel({
       <button
         onClick={onConfirm}
         disabled={timelogLoading || actionLoading}
-        className={`mt-6 flex min-h-[56px] w-full items-center justify-center rounded-[var(--radius-control)] px-4 py-4 text-base font-bold uppercase tracking-[0.18em] text-white transition-colors ${
-          timelogLoading || actionLoading
-            ? "cursor-not-allowed bg-primary/60"
-            : nextAction === "IN"
-              ? "bg-primary hover:bg-primary-dark"
-              : "bg-foreground hover:bg-slate-800 dark:hover:bg-slate-200 dark:hover:text-slate-900"
+        className={`flex h-12 w-full items-center justify-center rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-60 ${
+          nextAction === "IN"
+            ? "bg-primary hover:bg-primary-dark"
+            : "bg-foreground hover:opacity-90"
         }`}
       >
         {actionLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : nextAction === "IN" ? (
+          "Clock In"
         ) : (
-          nextAction === "IN" ? "Clock In Now" : "Clock Out Now"
+          "Clock Out"
         )}
       </button>
 
       <button
         onClick={onBack}
-        className="mt-4 inline-flex h-11 min-h-[44px] items-center gap-2 text-sm font-bold text-text-muted transition-colors hover:text-foreground"
+        className="mt-4 inline-flex h-9 items-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
       >
-        <MoveLeft className="h-4 w-4" />
-        Choose a different name
+        <MoveLeft className="h-3.5 w-3.5" />
+        Back
       </button>
     </section>
   );

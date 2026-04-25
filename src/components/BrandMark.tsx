@@ -8,23 +8,26 @@ export function BrandMark({
   showWordmark = true,
 }: BrandMarkProps) {
   return (
-    <div className={`inline-flex items-center gap-3 ${className}`.trim()}>
-      <div className="qr-grid-accent relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-border-strong bg-surface shadow-[var(--shadow-panel)]">
-        <span className="absolute left-2 top-2 h-2.5 w-2.5 rounded-[4px] bg-primary" />
-        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-[4px] bg-primary" />
-        <span className="absolute bottom-2 left-2 h-2.5 w-2.5 rounded-[4px] bg-secondary" />
-        <span className="absolute bottom-2 right-2 h-2.5 w-2.5 rounded-[4px] bg-primary" />
-        <span className="absolute h-3 w-3 rounded-[5px] bg-foreground" />
+    <div className={`inline-flex items-center gap-2.5 ${className}`.trim()}>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 18 18"
+          fill="none"
+          aria-hidden="true"
+        >
+          <rect x="2" y="2" width="6" height="6" rx="1.5" fill="white" />
+          <rect x="10" y="2" width="6" height="6" rx="1.5" fill="white" opacity="0.6" />
+          <rect x="2" y="10" width="6" height="6" rx="1.5" fill="white" opacity="0.6" />
+          <rect x="10" y="10" width="3" height="3" rx="0.75" fill="white" />
+          <rect x="13" y="13" width="3" height="3" rx="0.75" fill="white" />
+        </svg>
       </div>
       {showWordmark ? (
-        <div className="leading-none">
-          <p className="font-display text-lg font-bold tracking-[-0.04em] text-foreground">
-            QRShift
-          </p>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-muted">
-            Scan. Track. Export.
-          </p>
-        </div>
+        <span className="font-display text-[17px] font-semibold tracking-[-0.02em] text-foreground">
+          QRShift
+        </span>
       ) : null}
     </div>
   );

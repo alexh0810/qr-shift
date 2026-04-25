@@ -4,19 +4,16 @@ import { useEffect, useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import {
-  ArrowRight,
   CheckCircle2,
   Clock3,
+  Link as LinkIcon,
   Loader2,
   LogOut,
-  Radar,
-  ScanLine,
-  Users,
 } from "lucide-react";
+import Link from "next/link";
 
 import InstallPrompt from "@/components/InstallPrompt";
 import PinGuard from "@/components/PinGuard";
-import { ManagerWorkspaceHeader } from "@/components/manager/ManagerWorkspaceHeader";
 import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShell";
 import { ShiftStatusPanel } from "@/components/manager/ShiftStatusPanel";
 import { WorkspaceStatCard } from "@/components/manager/WorkspaceStatCard";
@@ -60,7 +57,6 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
           q,
           (snapshot) => {
             const newStatus: Record<string, Timelog> = {};
-
             const logs = snapshot.docs
               .map((doc) => {
                 const data = doc.data();
@@ -105,7 +101,7 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted" />
       </div>
     );
   }
@@ -113,53 +109,28 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
   if (error || !store) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-4">
-        <div className="max-w-md rounded-xl bg-error/10 p-4 text-center text-error shadow-sm">
-          <p className="font-semibold">{error}</p>
+        <div className="max-w-md rounded-lg border border-error/20 bg-error/5 px-5 py-4 text-center">
+          <p className="text-sm font-medium text-error">{error}</p>
         </div>
       </div>
     );
   }
 
-  const onShiftEmployees = employees.filter((employee) => employeeStatus[employee.id]?.type === "IN");
-  const offShiftEmployees = employees.filter((employee) => employeeStatus[employee.id]?.type !== "IN");
-
-  const summaryCards = [
-    {
-      label: "Scan ready",
-      value: employees.length.toString().padStart(2, "0"),
-      description: "Employees can clock in without apps or logins.",
-      icon: <ScanLine className="h-4 w-4" />,
-    },
-    {
-      label: "On shift",
-      value: onShiftEmployees.length.toString().padStart(2, "0"),
-      description: "Live attendance updates stay visible throughout the day.",
-      icon: <Radar className="h-4 w-4" />,
-    },
-    {
-      label: "Off shift",
-      value: offShiftEmployees.length.toString().padStart(2, "0"),
-      description: "Finished staff remain easy to review before export.",
-      icon: <Clock3 className="h-4 w-4" />,
-    },
-    {
-      label: "Export route",
-      value: "CSV",
-      description: "Move straight into payroll-ready reports from the same workspace.",
-      icon: <Users className="h-4 w-4" />,
-      valueClassName: "text-[2rem] sm:text-[2.15rem]",
-    },
-  ];
+  const onShiftEmployees = employees.filter(
+    (employee) => employeeStatus[employee.id]?.type === "IN",
+  );
+  const offShiftEmployees = employees.filter(
+    (employee) => employeeStatus[employee.id]?.type !== "IN",
+  );
 
   const onShiftItems = onShiftEmployees.map((employee) => {
     const log = employeeStatus[employee.id];
-
     return {
       id: employee.id,
       name: employee.name,
       detail: log
         ? `Clocked in ${format(log.timestamp, "h:mm a")} · ${formatDistanceToNow(log.timestamp, { addSuffix: true })}`
-        : "Currently active.",
+        : "Currently active",
       statusLabel: "IN",
       tone: "active" as const,
     };
@@ -167,13 +138,12 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
 
   const offShiftItems = offShiftEmployees.map((employee) => {
     const log = employeeStatus[employee.id];
-
     return {
       id: employee.id,
       name: employee.name,
       detail: log
-        ? `Last activity ${format(log.timestamp, "MMM d, h:mm a")}`
-        : "No recent activity yet.",
+        ? `Last seen ${format(log.timestamp, "MMM d, h:mm a")}`
+        : "No activity yet",
       statusLabel: "OUT",
       tone: "idle" as const,
     };
@@ -184,75 +154,60 @@ export default function DashboardPage({ params }: { params: { qr_token: string }
       <ManagerWorkspaceShell
         qrToken={params.qr_token}
         currentPath={`/dashboard/${params.qr_token}`}
+        utilitySlot={
+          <button
+            onClick={() => {
+              localStorage.removeItem(`store_${params.qr_token}_unlocked`);
+              window.location.reload();
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted transition-colors hover:text-foreground"
+            title="Lock manager access"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Lock
+          </button>
+        }
       >
-        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+        <div className="space-y-6">
           <InstallPrompt />
 
-          <ManagerWorkspaceHeader
-            eyebrow="Scan -> Monitor -> Export"
-            title={store.name}
-            description="Monitor live attendance, keep manager access local to this device, and move into payroll-ready exports without leaving the shared workspace."
-            meta={
-              <p className="text-sm font-medium text-text-muted">
-                Active on {format(now, "EEEE, MMM d, yyyy")} at {format(now, "h:mm a")}
+          {/* Page header */}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                {store.name}
+              </h1>
+              <p className="mt-0.5 text-sm text-muted">
+                {format(now, "EEEE, MMM d")} &middot; {format(now, "h:mm a")}
               </p>
-            }
-            primaryAction={{
-              label: "Open Reports",
-              href: `/reports/${params.qr_token}`,
-              icon: <ArrowRight className="h-4 w-4" />,
-            }}
-            secondaryAction={
-              <button
-                onClick={() => {
-                  localStorage.removeItem(`store_${params.qr_token}_unlocked`);
-                  window.location.reload();
-                }}
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-background"
-                title="Lock manager access"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Lock manager access</span>
-              </button>
-            }
-            statusBadge={
-              <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                <Radar className="h-4 w-4" />
-                <span>{onShiftEmployees.length} on shift</span>
-              </div>
-            }
-            supportingContent={
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground">
-                  <ScanLine className="h-4 w-4 text-primary" />
-                  <span>Scan stays employee-simple</span>
-                </div>
-                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                  <Radar className="h-4 w-4" />
-                  <span>Monitor is the workspace anchor</span>
-                </div>
-                <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground">
-                  <ArrowRight className="h-4 w-4 text-primary" />
-                  <span>Reports keeps export one tap away</span>
-                </div>
-              </div>
-            }
-          />
+            </div>
+            <Link
+              href={`/reports/${params.qr_token}`}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted transition-colors hover:text-foreground"
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+              Reports
+            </Link>
+          </div>
 
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((card) => (
-              <WorkspaceStatCard
-                key={card.label}
-                label={card.label}
-                value={card.value}
-                description={card.description}
-                icon={card.icon}
-                valueClassName={card.valueClassName}
-              />
-            ))}
-          </section>
+          {/* Stat cards */}
+          <div className="grid grid-cols-3 gap-3">
+            <WorkspaceStatCard
+              label="On shift"
+              value={onShiftEmployees.length.toString()}
+            />
+            <WorkspaceStatCard
+              label="Off shift"
+              value={offShiftEmployees.length.toString()}
+            />
+            <WorkspaceStatCard
+              label="Total"
+              value={employees.length.toString()}
+            />
+          </div>
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          {/* Shift panels */}
+          <div className="grid gap-4 lg:grid-cols-2">
             <ShiftStatusPanel
               title="On Shift"
               description={`${onShiftEmployees.length} active now`}

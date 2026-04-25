@@ -26,9 +26,7 @@ export function AllEmployeesTimesheetTable({
 
   return (
     <WorkspacePanel
-      eyebrow="Payroll table"
       title="All employee timesheets"
-      description="Row-level review stays readable on desktop while touch-safe edits remain visible on phone widths."
       bodyClassName="p-0"
     >
       {isPhoneWidth ? (

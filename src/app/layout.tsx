@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Space_Grotesk } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-const spaceGrotesk = Space_Grotesk({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
@@ -41,7 +41,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${geist.variable} ${geistMono.variable} font-body bg-background text-foreground antialiased`}
+        className={`${inter.variable} ${geist.variable} ${geistMono.variable} font-body bg-background text-foreground antialiased`}
       >
         <ThemeProvider
           attribute="class"

@@ -3,60 +3,83 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-canvas: #f4f7fb;
-  --color-bg-elevated: #edf2ff;
-  --color-surface: #ffffff;
-  --color-text-primary: #0f172a;
-  --color-text-muted: #5b6478;
-  --color-accent-electric: #245cff;
-  --color-accent-signal: #1ed7b5;
-  --color-border-soft: #dbe2f0;
-  --color-border-strong: #8da0c8;
-  --radius-panel: 24px;
-  --radius-control: 18px;
-  --shadow-panel: 0 20px 60px rgba(15, 23, 42, 0.08);
+  --color-primary: #1a56db;
+  --color-primary-hover: #1648b8;
+  --color-foreground: #111827;
+  --color-muted: #6b7280;
+  --color-background: #ffffff;
+  --color-surface: #f9fafb;
+  --color-border: #e5e7eb;
+  --color-success: #059669;
+  --color-error: #dc2626;
 
-  --background: var(--color-bg-canvas);
-  --foreground: var(--color-text-primary);
-  --primary: var(--color-accent-electric);
-  --primary-dark: #163dba;
-  --secondary: var(--color-accent-signal);
-  --success: #1ec97d;
-  --error: #ff6b47;
+  /* Legacy aliases — kept so existing component classes still resolve */
+  --color-bg-canvas: var(--color-background);
+  --color-bg-elevated: var(--color-surface);
+  --color-surface: #f9fafb;
+  --color-text-primary: var(--color-foreground);
+  --color-text-muted: var(--color-muted);
+  --color-accent-electric: var(--color-primary);
+  --color-accent-signal: var(--color-success);
+  --color-border-soft: var(--color-border);
+  --color-border-strong: #d1d5db;
+  --radius-panel: 12px;
+  --radius-control: 8px;
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --primary: var(--color-primary);
+  --primary-dark: var(--color-primary-hover);
+  --secondary: var(--color-success);
+  --success: var(--color-success);
+  --error: var(--color-error);
   --surface: var(--color-surface);
-  --surfacestroke: var(--color-border-soft);
+  --surfacestroke: var(--color-border);
 }
 
 .dark {
-  --color-bg-canvas: #08101f;
-  --color-bg-elevated: #0e1930;
-  --color-surface: #111c34;
-  --color-text-primary: #eff4ff;
-  --color-text-muted: #8e9bb8;
-  --color-accent-electric: #6b8bff;
-  --color-accent-signal: #45e6c7;
-  --color-border-soft: #233352;
-  --color-border-strong: #536a97;
-  --shadow-panel: 0 20px 60px rgba(3, 8, 20, 0.45);
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-foreground: #f9fafb;
+  --color-muted: #9ca3af;
+  --color-background: #0f172a;
+  --color-surface: #1e293b;
+  --color-border: #334155;
+  --color-success: #34d399;
+  --color-error: #f87171;
 
-  --background: var(--color-bg-canvas);
-  --foreground: var(--color-text-primary);
+  --color-bg-canvas: var(--color-background);
+  --color-bg-elevated: var(--color-surface);
+  --color-text-primary: var(--color-foreground);
+  --color-text-muted: var(--color-muted);
+  --color-accent-electric: var(--color-primary);
+  --color-accent-signal: var(--color-success);
+  --color-border-soft: var(--color-border);
+  --color-border-strong: #475569;
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --primary: var(--color-primary);
+  --primary-dark: var(--color-primary-hover);
+  --secondary: var(--color-success);
+  --success: var(--color-success);
+  --error: var(--color-error);
   --surface: var(--color-surface);
-  --surfacestroke: var(--color-border-soft);
+  --surfacestroke: var(--color-border);
 }
 
 @layer base {
   body {
-    color: var(--color-text-primary);
-    background:
-      radial-gradient(circle at top left, color-mix(in srgb, var(--color-accent-electric) 12%, transparent) 0, transparent 32%),
-      linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-canvas) 24%, var(--color-bg-canvas) 100%);
+    color: var(--color-foreground);
+    background: var(--color-background);
     font-family: var(--font-body), system-ui, sans-serif;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-accent-electric) 28%, white);
-    color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-primary) 20%, white);
+    color: var(--color-foreground);
   }
 }
 
@@ -89,11 +112,8 @@ body {
     color: var(--color-text-muted);
   }
 
+  /* Kept as a no-op so existing usages don't break layout */
   .qr-grid-accent {
-    background-image:
-      linear-gradient(to right, color-mix(in srgb, var(--color-accent-electric) 14%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in srgb, var(--color-accent-electric) 14%, transparent) 1px, transparent 1px);
-    background-size: 18px 18px;
-    background-position: center;
+    background-image: none;
   }
 }
