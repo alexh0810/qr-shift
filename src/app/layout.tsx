@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -35,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <meta name="theme-color" content="#2B59FF" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
@@ -43,15 +41,7 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${geist.variable} ${geistMono.variable} font-body bg-background text-foreground antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <ThemeToggle />
-        </ThemeProvider>
+        {children}
         <script
           dangerouslySetInnerHTML={{
              __html: `

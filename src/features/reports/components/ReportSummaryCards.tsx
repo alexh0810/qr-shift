@@ -18,7 +18,6 @@ export function ReportSummaryCards({
       <WorkspaceStatCard
         label={decimalLabel}
         value={`${totalHours.toFixed(2)} h`}
-        description="Decimal-hour total for payroll review."
         className="bg-background shadow-none"
         compact
         valueClassName="text-[clamp(1.75rem,3vw,2.25rem)]"
@@ -26,7 +25,6 @@ export function ReportSummaryCards({
       <WorkspaceStatCard
         label="Total Time"
         value={durationLabel}
-        description="Readable duration from the same edited rows."
         className="bg-background shadow-none"
         compact
         valueClassName="text-[clamp(1.75rem,3vw,2.25rem)]"

@@ -27,24 +27,6 @@
   --surfacestroke: var(--color-border-soft);
 }
 
-.dark {
-  --color-bg-canvas: #08101f;
-  --color-bg-elevated: #0e1930;
-  --color-surface: #111c34;
-  --color-text-primary: #eff4ff;
-  --color-text-muted: #8e9bb8;
-  --color-accent-electric: #6b8bff;
-  --color-accent-signal: #45e6c7;
-  --color-border-soft: #233352;
-  --color-border-strong: #536a97;
-  --shadow-panel: 0 20px 60px rgba(3, 8, 20, 0.45);
-
-  --background: var(--color-bg-canvas);
-  --foreground: var(--color-text-primary);
-  --surface: var(--color-surface);
-  --surfacestroke: var(--color-border-soft);
-}
-
 @layer base {
   body {
     color: var(--color-text-primary);

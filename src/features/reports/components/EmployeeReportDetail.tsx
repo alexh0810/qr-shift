@@ -5,8 +5,8 @@ import { format } from "date-fns";
 import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { formatPayrollDuration } from "@/lib/time-calculation";
 import { Employee } from "@/types";
-import { EmployeeReport } from "../types";
-import { ReportSummaryCards } from "./ReportSummaryCards";
+import { EditableTimeInput } from "./EditableTimeInput";
+import { EmployeeReport, TimesheetRow } from "../types";
 import { useIsPhoneWidth } from "../useIsPhoneWidth";
 
 interface EmployeeReportDetailProps {
@@ -19,6 +19,12 @@ interface EmployeeReportDetailProps {
     field: "clockIn" | "clockOut",
     value: string,
   ) => void;
+}
+
+function rowStatusClassName(row: TimesheetRow): string {
+  return row.shiftState === "autoClosed"
+    ? "text-[11px] font-bold uppercase tracking-[0.18em] text-error"
+    : "text-[11px] font-bold uppercase tracking-[0.18em] text-primary";
 }
 
 export function EmployeeReportDetail({
@@ -38,39 +44,10 @@ export function EmployeeReportDetail({
         : "Invalid employee selection.";
 
   return (
-    <div className="space-y-6">
-      <WorkspacePanel
-        eyebrow="Employee detail"
-        title={selectedReport?.name ?? "No data"}
-        description={
-          selectedReport
-            ? `${selectedReport.dailySummaries.length} worked day(s) in the selected period.`
-            : isValidSelection
-              ? "No shifts logged in this period."
-              : "Invalid employee selection."
-        }
-      >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <p className="max-w-2xl text-sm font-medium leading-6 text-text-muted">
-            Edits here stay local to this browser session and affect the exported report you
-            download from this workspace.
-          </p>
-
-          <div className="min-w-full lg:min-w-[320px]">
-            <ReportSummaryCards
-              totalHours={selectedReport?.totalHours ?? 0}
-              durationLabel={formatPayrollDuration(selectedReport?.totalMinutes ?? 0)}
-            />
-          </div>
-        </div>
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        eyebrow="Timesheet rows"
-        title="Editable shift details"
-        description="Keep payroll rows readable and export-ready while making local corrections."
-        bodyClassName="p-0"
-      >
+    <WorkspacePanel
+      title="Timesheet"
+      bodyClassName="p-0"
+    >
         {isPhoneWidth ? (
           <div className="space-y-4 p-4">
             {!hasDetailData || !selectedReport ? (
@@ -108,12 +85,9 @@ export function EmployeeReportDetail({
                         <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                           Clock In
                         </span>
-                        <input
-                          type="time"
+                        <EditableTimeInput
                           value={row.clockIn}
-                          onChange={(event) =>
-                            onTimeChange(selectedReport.employee.id, index, "clockIn", event.target.value)
-                          }
+                          onCommit={(value) => onTimeChange(selectedReport.employee.id, index, "clockIn", value)}
                           className="min-h-[44px] w-full rounded-[16px] border border-surfacestroke bg-surface px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                         />
                       </label>
@@ -122,19 +96,16 @@ export function EmployeeReportDetail({
                         <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                           Clock Out
                         </span>
-                        <input
-                          type="time"
+                        <EditableTimeInput
                           value={row.clockOut}
-                          onChange={(event) =>
-                            onTimeChange(selectedReport.employee.id, index, "clockOut", event.target.value)
-                          }
+                          onCommit={(value) => onTimeChange(selectedReport.employee.id, index, "clockOut", value)}
                           className="min-h-[44px] w-full rounded-[16px] border border-surfacestroke bg-surface px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                         />
                       </label>
                     </div>
 
                     {row.note ? (
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-error">
+                      <p className={rowStatusClassName(row)}>
                         {row.note}
                       </p>
                     ) : null}
@@ -192,28 +163,22 @@ export function EmployeeReportDetail({
                           {format(row.clockInAt, "EEE, MMM d, yyyy")}
                         </p>
                         {row.note ? (
-                          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-error">
+                          <p className={`mt-1 ${rowStatusClassName(row)}`}>
                             {row.note}
                           </p>
                         ) : null}
                       </td>
                       <td className="px-5 py-4 font-medium text-foreground md:px-6">
-                        <input
-                          type="time"
+                        <EditableTimeInput
                           value={row.clockIn}
-                          onChange={(event) =>
-                            onTimeChange(selectedReport.employee.id, index, "clockIn", event.target.value)
-                          }
+                          onCommit={(value) => onTimeChange(selectedReport.employee.id, index, "clockIn", value)}
                           className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                         />
                       </td>
                       <td className="px-5 py-4 font-medium text-foreground md:px-6">
-                        <input
-                          type="time"
+                        <EditableTimeInput
                           value={row.clockOut}
-                          onChange={(event) =>
-                            onTimeChange(selectedReport.employee.id, index, "clockOut", event.target.value)
-                          }
+                          onCommit={(value) => onTimeChange(selectedReport.employee.id, index, "clockOut", value)}
                           className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                         />
                       </td>
@@ -239,7 +204,6 @@ export function EmployeeReportDetail({
             </table>
           </div>
         )}
-      </WorkspacePanel>
-    </div>
+    </WorkspacePanel>
   );
 }

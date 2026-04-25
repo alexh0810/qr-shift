@@ -18,7 +18,7 @@ Clock in with a QR code. No apps. No logins. Payroll-ready in seconds.
 - ✓ QRShift has a documented brand system with shared typography, color tokens, and structured UI rules — Phase 1
 - ✓ QRShift has reusable styling primitives and a branded proof surface to guide later screens — Phase 1
 - ✓ Visitors can understand QRShift, see core benefits, and identify best-fit business types from the homepage — Phase 2
-- ✓ The homepage now exposes public demo and contact CTAs while keeping an internal demo path secondary — Phase 2
+- ✓ The homepage now exposes public demo booking and contact CTAs through shared site config values — Phase 2
 
 ### Active
 

@@ -47,9 +47,6 @@ export function ScanActionPanel({
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-secondary/15 text-secondary">
           <CheckCircle2 className="h-10 w-10" strokeWidth={2.5} />
         </div>
-        <p className="mt-6 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
-          QRShift updated
-        </p>
         <h2 className="mt-6 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
           {successMessage}
         </h2>
@@ -66,15 +63,9 @@ export function ScanActionPanel({
     <section className="rounded-[var(--radius-panel)] border border-border-strong bg-surface p-6 shadow-[var(--shadow-panel)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-text-muted">
-            QRShift action
-          </p>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
+          <h2 className="font-display text-3xl font-bold tracking-[-0.04em] text-foreground">
             {firstName}
           </h2>
-          <p className="mt-2 text-sm font-medium text-text-muted">
-            Review your status and confirm the next action.
-          </p>
         </div>
         <span
           className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${
@@ -146,7 +137,7 @@ export function ScanActionPanel({
         className="mt-4 inline-flex h-11 min-h-[44px] items-center gap-2 text-sm font-bold text-text-muted transition-colors hover:text-foreground"
       >
         <MoveLeft className="h-4 w-4" />
-        Choose a different name
+        Back
       </button>
     </section>
   );

@@ -9,16 +9,12 @@ import {
   Loader2,
   LogOut,
   Radar,
-  ScanLine,
-  Users,
 } from "lucide-react";
 
-import InstallPrompt from "@/components/InstallPrompt";
 import PinGuard from "@/components/PinGuard";
 import { ManagerWorkspaceHeader } from "@/components/manager/ManagerWorkspaceHeader";
 import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShell";
 import { ShiftStatusPanel } from "@/components/manager/ShiftStatusPanel";
-import { WorkspaceStatCard } from "@/components/manager/WorkspaceStatCard";
 import { getDashboardSnapshot, logoutManager } from "@/lib/client-api";
 import { DashboardEmployeeStatus, PublicStore } from "@/types";
 
@@ -98,34 +94,6 @@ function DashboardWorkspace({ qrToken }: { qrToken: string }) {
   const onShiftEmployees = employees.filter((entry) => entry.status === "IN");
   const offShiftEmployees = employees.filter((entry) => entry.status !== "IN");
 
-  const summaryCards = [
-    {
-      label: "Scan ready",
-      value: employees.length.toString().padStart(2, "0"),
-      description: "Employees can clock in without apps or logins.",
-      icon: <ScanLine className="h-4 w-4" />,
-    },
-    {
-      label: "On shift",
-      value: onShiftEmployees.length.toString().padStart(2, "0"),
-      description: "Protected snapshot refreshes keep attendance visible throughout the day.",
-      icon: <Radar className="h-4 w-4" />,
-    },
-    {
-      label: "Off shift",
-      value: offShiftEmployees.length.toString().padStart(2, "0"),
-      description: "Finished staff remain easy to review before export.",
-      icon: <Clock3 className="h-4 w-4" />,
-    },
-    {
-      label: "Export route",
-      value: "CSV",
-      description: "Move straight into payroll-ready reports from the same workspace.",
-      icon: <Users className="h-4 w-4" />,
-      valueClassName: "text-[2rem] sm:text-[2.15rem]",
-    },
-  ];
-
   const onShiftItems = onShiftEmployees.map((entry) => {
     const log = entry.latestLog;
 
@@ -155,12 +123,9 @@ function DashboardWorkspace({ qrToken }: { qrToken: string }) {
   return (
     <ManagerWorkspaceShell qrToken={qrToken} currentPath={`/dashboard/${qrToken}`}>
       <div className="space-y-6 px-4 sm:px-6 lg:px-8">
-        <InstallPrompt />
-
         <ManagerWorkspaceHeader
-          eyebrow="Scan -> Monitor -> Export"
+          eyebrow="Dashboard"
           title={store.name}
-          description="Monitor live attendance, keep manager access local to this device, and move into payroll-ready exports without leaving the shared workspace."
           meta={
             <p className="text-sm font-medium text-text-muted">
               Active on {format(now, "EEEE, MMM d, yyyy")} at {format(now, "h:mm a")}
@@ -178,10 +143,10 @@ function DashboardWorkspace({ qrToken }: { qrToken: string }) {
                 window.location.reload();
               }}
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-background"
-              title="Lock manager access"
+              title="Lock dashboard"
             >
               <LogOut className="h-4 w-4" />
-              <span>Lock manager access</span>
+              <span>Lock</span>
             </button>
           }
           statusBadge={
@@ -190,48 +155,17 @@ function DashboardWorkspace({ qrToken }: { qrToken: string }) {
               <span>{onShiftEmployees.length} on shift</span>
             </div>
           }
-          supportingContent={
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground">
-                <ScanLine className="h-4 w-4 text-primary" />
-                <span>Scan stays employee-simple</span>
-              </div>
-              <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                <Radar className="h-4 w-4" />
-                <span>Protected polling keeps status current</span>
-              </div>
-              <div className="inline-flex min-h-[44px] items-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-2 text-sm font-semibold text-foreground">
-                <ArrowRight className="h-4 w-4 text-primary" />
-                <span>Reports keeps export one tap away</span>
-              </div>
-            </div>
-          }
         />
-
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map((card) => (
-            <WorkspaceStatCard
-              key={card.label}
-              label={card.label}
-              value={card.value}
-              description={card.description}
-              icon={card.icon}
-              valueClassName={card.valueClassName}
-            />
-          ))}
-        </section>
 
         <div className="grid gap-6 xl:grid-cols-2">
           <ShiftStatusPanel
             title="On Shift"
-            description={`${onShiftEmployees.length} active now`}
             emptyMessage="No one is currently clocked in."
             icon={CheckCircle2}
             items={onShiftItems}
           />
           <ShiftStatusPanel
             title="Off Shift"
-            description={`${offShiftEmployees.length} not clocked in`}
             emptyMessage="Everyone is currently on shift."
             icon={Clock3}
             items={offShiftItems}

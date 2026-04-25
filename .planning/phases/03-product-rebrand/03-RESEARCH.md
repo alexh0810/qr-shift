@@ -1,7 +1,7 @@
 # Phase 03: Product Rebrand - Research
 
 **Researched:** 2026-04-10
-**Domain:** Product-surface rebrand and UX polish for a client-first Next.js App Router app
+**Domain:** Product-surface rebrand and UX polish for a mixed Next.js App Router app with client-rendered pages and route handlers
 **Confidence:** HIGH
 
 <user_constraints>
@@ -79,7 +79,6 @@ One genuine runtime-state issue exists beyond normal file edits: the installed P
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | `next/font` | bundled with Next `14.2.35` [VERIFIED: package.json] | Central font loading for `Space Grotesk`, `Geist`, and `Geist Mono` | Keep all font wiring in `src/app/layout.tsx`; do not re-import fonts per route. [VERIFIED: codebase grep] [CITED: https://nextjs.org/docs/14/app/building-your-application/optimizing/fonts] |
-| `next-themes` | `0.4.6` (published 2025-03-11) [VERIFIED: npm registry] | Global light/dark theme switching | Reuse the existing `ThemeProvider`; do not add route-specific theme logic. [VERIFIED: codebase grep] |
 | `lucide-react` | `1.7.0` (published 2026-03-25) [VERIFIED: npm registry] | Existing icon set | The UI spec locks `lucide-react`; use it consistently across shell, status, and actions. [VERIFIED: 03-UI-SPEC.md] [VERIFIED: package.json] |
 | `firebase` | `12.11.0` in repo, `12.12.0` latest registry as of 2026-04-10 [VERIFIED: npm registry] | Browser Firestore reads/writes | Keep the current Firebase layer unchanged in this phase; the rebrand should not bundle a data-access rewrite. [VERIFIED: codebase grep] |
 | `date-fns` | `4.1.0` (published 2024-09-17) [VERIFIED: npm registry] | Time/date formatting on scan, dashboard, and reports | Reuse for status timestamps and report date ranges; do not hand-format dates. [VERIFIED: codebase grep] |
@@ -422,9 +421,9 @@ export default function Loading() {
 - `package.json`, `src/app/layout.tsx`, `src/app/globals.css`, `src/app/scan/[qr_token]/page.tsx`, `src/app/dashboard/[qr_token]/page.tsx`, `src/app/reports/[qr_token]/page.tsx`, `src/app/admin/create-store/page.tsx`, `src/components/BrandMark.tsx`, `src/components/PinGuard.tsx`, `src/features/reports/components/*` - current stack, route shape, shared primitives, and behavior boundaries. [VERIFIED: codebase grep]
 - `.planning/phases/03-product-rebrand/03-CONTEXT.md` - locked decisions and surface boundaries. [VERIFIED: local file read]
 - `.planning/phases/03-product-rebrand/03-UI-SPEC.md` - exact Phase 3 visual and interaction contract. [VERIFIED: local file read]
-- `.planning/phases/01-brand-foundation/01-BRAND-SYSTEM.md` and `.planning/phases/01-brand-foundation/01-BRAND-USAGE.md` - brand reuse rules and token guardrails. [VERIFIED: local file read]
+- `.planning/archive/phases/01-brand-foundation/01-BRAND-SYSTEM.md` and `.planning/archive/phases/01-brand-foundation/01-BRAND-USAGE.md` - brand reuse rules and token guardrails. [VERIFIED: local file read]
 - `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/PROJECT.md`, `.planning/codebase/CONCERNS.md`, `.planning/codebase/STRUCTURE.md` - requirements, phase boundaries, concerns, and codebase constraints. [VERIFIED: local file read]
-- npm registry queries for `next`, `react`, `react-dom`, `tailwindcss`, `firebase`, `date-fns`, `qrcode.react`, `next-themes`, `nanoid`, and `lucide-react` - version and publish-date checks. [VERIFIED: npm registry]
+- npm registry queries for `next`, `react`, `react-dom`, `tailwindcss`, `firebase`, `date-fns`, `qrcode.react`, `nanoid`, and `lucide-react` - version and publish-date checks. [VERIFIED: npm registry]
 - `npm test`, `npm run lint`, `npm run build`, `node -v`, `npm -v` - validation and environment checks. [VERIFIED: local command]
 - `https://nextjs.org/docs/14/app/building-your-application/optimizing/fonts` - centralized font loading guidance. [CITED: https://nextjs.org/docs/14/app/building-your-application/optimizing/fonts]
 - `https://nextjs.org/docs/14/app/building-your-application/routing/loading-ui-and-streaming` - `loading.js` route-segment convention and shared-layout behavior during navigation. [CITED: https://nextjs.org/docs/14/app/building-your-application/routing/loading-ui-and-streaming]

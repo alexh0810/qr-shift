@@ -52,7 +52,7 @@ export function ManagerWorkspaceShell({
   qrToken,
   currentPath,
   navItems,
-  workspaceLabel = "Manager workspace",
+  workspaceLabel = "Dashboard",
   workspaceName = "QRShift",
   utilitySlot,
   children,
@@ -94,7 +94,7 @@ export function ManagerWorkspaceShell({
               {hasNavigation ? (
                 <div className="flex flex-wrap gap-2">
                   <nav
-                    aria-label="Manager workspace"
+                    aria-label="Manager navigation"
                     className="flex flex-wrap gap-2"
                   >
                     {resolvedNavItems.map((item) => {

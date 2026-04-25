@@ -86,16 +86,15 @@ export async function getLatestTimelogForEmployeeServer(employeeId: string) {
   const snapshot = await adminDb
     .collection("timelogs")
     .where("employee_id", "==", employeeId)
-    .orderBy("timestamp", "desc")
-    .limit(1)
     .get();
 
   if (snapshot.empty) {
     return null;
   }
 
-  const document = snapshot.docs[0];
-  return mapTimelog(document.id, document.data());
+  return snapshot.docs
+    .map((document) => mapTimelog(document.id, document.data()))
+    .sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime())[0] ?? null;
 }
 
 export async function getScanRosterByQrToken(qrToken: string) {
@@ -178,12 +177,11 @@ export async function createClockAction(qrToken: string, employeeId: string, req
       throw new Error("employee_store_mismatch");
     }
 
-    const latestSnapshot = await transaction.get(
-      timelogsRef.where("employee_id", "==", employeeId).orderBy("timestamp", "desc").limit(1),
-    );
-
-    const latestDocument = latestSnapshot.docs[0];
-    const latestLog = latestDocument ? mapTimelog(latestDocument.id, latestDocument.data()) : null;
+    const latestSnapshot = await transaction.get(timelogsRef.where("employee_id", "==", employeeId));
+    const latestLog =
+      latestSnapshot.docs
+        .map((document) => mapTimelog(document.id, document.data()))
+        .sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime())[0] ?? null;
     const expectedAction = latestLog?.type === "IN" ? "OUT" : "IN";
 
     if (requestedAction !== expectedAction) {
@@ -202,6 +200,98 @@ export async function createClockAction(qrToken: string, employeeId: string, req
       employee,
       action: requestedAction,
       timestamp: clockedAt,
+    };
+  });
+
+  return result;
+}
+
+export async function saveReportCorrectionServer(input: {
+  qrToken: string;
+  employeeId: string;
+  clockInLogId: string;
+  clockOutLogId: string | null;
+  clockInAt: Date;
+  clockOutAt: Date;
+}) {
+  const store = await getStoreByQrTokenServer(input.qrToken);
+  if (!store) {
+    throw new Error("store_not_found");
+  }
+
+  const employeeRef = adminDb.collection("employees").doc(input.employeeId);
+  const clockInRef = adminDb.collection("timelogs").doc(input.clockInLogId);
+  const clockOutRef = input.clockOutLogId
+    ? adminDb.collection("timelogs").doc(input.clockOutLogId)
+    : adminDb.collection("timelogs").doc();
+
+  const now = new Date();
+  if (input.clockOutAt <= input.clockInAt) {
+    throw new Error("invalid_range");
+  }
+
+  if (input.clockOutAt > now) {
+    throw new Error("future_correction_not_supported");
+  }
+
+  const result = await adminDb.runTransaction(async (transaction) => {
+    const [employeeSnapshot, clockInSnapshot, existingClockOutSnapshot] = await Promise.all([
+      transaction.get(employeeRef),
+      transaction.get(clockInRef),
+      input.clockOutLogId ? transaction.get(clockOutRef) : Promise.resolve(null),
+    ]);
+
+    if (!employeeSnapshot.exists) {
+      throw new Error("employee_not_found");
+    }
+
+    const employee = mapEmployee(employeeSnapshot.id, employeeSnapshot.data() ?? {});
+    if (employee.store_id !== store.id) {
+      throw new Error("employee_store_mismatch");
+    }
+
+    if (!clockInSnapshot.exists) {
+      throw new Error("clock_in_not_found");
+    }
+
+    const clockInLog = mapTimelog(clockInSnapshot.id, clockInSnapshot.data() ?? {});
+    if (clockInLog.employee_id !== input.employeeId || clockInLog.store_id !== store.id || clockInLog.type !== "IN") {
+      throw new Error("invalid_clock_in");
+    }
+
+    transaction.update(clockInRef, {
+      timestamp: input.clockInAt,
+    });
+
+    if (input.clockOutLogId) {
+      if (!existingClockOutSnapshot?.exists) {
+        throw new Error("clock_out_not_found");
+      }
+
+      const clockOutLog = mapTimelog(existingClockOutSnapshot.id, existingClockOutSnapshot.data() ?? {});
+      if (
+        clockOutLog.employee_id !== input.employeeId ||
+        clockOutLog.store_id !== store.id ||
+        clockOutLog.type !== "OUT"
+      ) {
+        throw new Error("invalid_clock_out");
+      }
+
+      transaction.update(clockOutRef, {
+        timestamp: input.clockOutAt,
+      });
+    } else {
+      transaction.create(clockOutRef, {
+        employee_id: input.employeeId,
+        store_id: store.id,
+        type: "OUT",
+        timestamp: input.clockOutAt,
+      });
+    }
+
+    return {
+      ok: true as const,
+      clockOutLogId: clockOutRef.id,
     };
   });
 

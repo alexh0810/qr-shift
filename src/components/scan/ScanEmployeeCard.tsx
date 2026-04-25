@@ -33,13 +33,7 @@ export function ScanEmployeeCard({ entry, onSelect }: ScanEmployeeCardProps) {
         </div>
 
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
-            Scan employee
-          </p>
           <p className="truncate text-lg font-bold text-foreground">{entry.employee.name}</p>
-          <p className="mt-1 text-sm font-medium text-text-muted">
-            {isWorking ? "Clocked in. Ready to clock out." : "Clocked out. Ready to clock in."}
-          </p>
           <div className="mt-3 flex items-center gap-2">
             <span
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${
@@ -56,7 +50,6 @@ export function ScanEmployeeCard({ entry, onSelect }: ScanEmployeeCardProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 self-start pt-1 text-text-muted">
-        <span className="hidden text-xs font-bold uppercase tracking-[0.18em] sm:inline">Select</span>
         <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
       </div>
     </button>

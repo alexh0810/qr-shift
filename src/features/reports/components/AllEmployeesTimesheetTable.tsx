@@ -2,7 +2,8 @@
 
 import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { formatPayrollDuration } from "@/lib/time-calculation";
-import { EmployeeReport } from "../types";
+import { EditableTimeInput } from "./EditableTimeInput";
+import { EmployeeReport, TimesheetRow } from "../types";
 import { useIsPhoneWidth } from "../useIsPhoneWidth";
 
 interface AllEmployeesTimesheetTableProps {
@@ -16,6 +17,12 @@ interface AllEmployeesTimesheetTableProps {
   ) => void;
 }
 
+function rowStatusClassName(row: TimesheetRow): string {
+  return row.shiftState === "autoClosed"
+    ? "text-[11px] font-bold uppercase tracking-[0.18em] text-error"
+    : "text-[11px] font-bold uppercase tracking-[0.18em] text-primary";
+}
+
 export function AllEmployeesTimesheetTable({
   reports,
   emptyMessage,
@@ -26,9 +33,7 @@ export function AllEmployeesTimesheetTable({
 
   return (
     <WorkspacePanel
-      eyebrow="Payroll table"
-      title="All employee timesheets"
-      description="Row-level review stays readable on desktop while touch-safe edits remain visible on phone widths."
+      title="Timesheet"
       bodyClassName="p-0"
     >
       {isPhoneWidth ? (
@@ -46,9 +51,6 @@ export function AllEmployeesTimesheetTable({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-bold text-foreground">{report.name}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-                      {report.timesheetRows.length} shift{report.timesheetRows.length === 1 ? "" : "s"}
-                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
@@ -92,12 +94,9 @@ export function AllEmployeesTimesheetTable({
                           <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                             Clock In
                           </span>
-                          <input
-                            type="time"
+                          <EditableTimeInput
                             value={row.clockIn}
-                            onChange={(event) =>
-                              onTimeChange(report.employee.id, index, "clockIn", event.target.value)
-                            }
+                            onCommit={(value) => onTimeChange(report.employee.id, index, "clockIn", value)}
                             className="min-h-[44px] w-full rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                           />
                         </label>
@@ -106,19 +105,16 @@ export function AllEmployeesTimesheetTable({
                           <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                             Clock Out
                           </span>
-                          <input
-                            type="time"
+                          <EditableTimeInput
                             value={row.clockOut}
-                            onChange={(event) =>
-                              onTimeChange(report.employee.id, index, "clockOut", event.target.value)
-                            }
+                            onCommit={(value) => onTimeChange(report.employee.id, index, "clockOut", value)}
                             className="min-h-[44px] w-full rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                           />
                         </label>
                       </div>
 
                       {row.note ? (
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-error">
+                        <p className={rowStatusClassName(row)}>
                           {row.note}
                         </p>
                       ) : null}
@@ -181,22 +177,16 @@ export function AllEmployeesTimesheetTable({
                       <td className="px-5 py-4 align-top md:px-6"></td>
                       <td className="px-5 py-4 font-medium text-foreground md:px-6">{row.date}</td>
                       <td className="px-5 py-4 font-medium text-foreground md:px-6">
-                        <input
-                          type="time"
+                        <EditableTimeInput
                           value={row.clockIn}
-                          onChange={(event) =>
-                            onTimeChange(report.employee.id, index, "clockIn", event.target.value)
-                          }
+                          onCommit={(value) => onTimeChange(report.employee.id, index, "clockIn", value)}
                           className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                         />
                       </td>
                       <td className="px-5 py-4 font-medium text-foreground md:px-6">
-                        <input
-                          type="time"
+                        <EditableTimeInput
                           value={row.clockOut}
-                          onChange={(event) =>
-                            onTimeChange(report.employee.id, index, "clockOut", event.target.value)
-                          }
+                          onCommit={(value) => onTimeChange(report.employee.id, index, "clockOut", value)}
                           className="min-h-[44px] w-28 rounded-[16px] border border-surfacestroke bg-background px-3 py-2 font-mono-brand text-sm outline-none focus:border-primary"
                         />
                       </td>
@@ -205,7 +195,7 @@ export function AllEmployeesTimesheetTable({
                           {formatPayrollDuration(row.durationMinutes)}
                         </p>
                         {row.note ? (
-                          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-error">
+                          <p className={`mt-1 ${rowStatusClassName(row)}`}>
                             {row.note}
                           </p>
                         ) : null}

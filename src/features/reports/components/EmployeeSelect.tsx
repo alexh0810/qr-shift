@@ -18,9 +18,7 @@ export function EmployeeSelect({
 }: EmployeeSelectProps) {
   return (
     <WorkspacePanel
-      eyebrow="Employee filter"
-      title="Switch between workspace and single-person review"
-      description="Move between all rows and one employee detail view."
+      title="Employee"
       className="rounded-[24px]"
       bodyClassName="pt-0"
     >

@@ -9,6 +9,7 @@ import {
   SerializedTimelog,
   StoreLookupDto,
 } from "@/lib/api-types";
+import type { TimesheetRow } from "@/features/reports/types";
 import { DashboardEmployeeStatus, Employee, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -207,4 +208,27 @@ export async function getReportsSnapshot(qrToken: string): Promise<{
     employees: payload.employees.map(parseEmployee),
     timelogs: payload.timelogs.map(parseTimelog),
   };
+}
+
+export async function saveReportCorrection(
+  qrToken: string,
+  row: TimesheetRow,
+) {
+  const response = await fetch(`/api/manager/${qrToken}/reports`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      employeeId: row.employeeId,
+      clockInLogId: row.clockInLogId,
+      clockOutLogId: row.clockOutLogId,
+      clockInAt: row.clockInAt.toISOString(),
+      clockOutAt: row.clockOutAt.toISOString(),
+      shiftState: row.shiftState,
+    }),
+  });
+
+  return readJson<{ ok: true; clockOutLogId: string }>(response);
 }

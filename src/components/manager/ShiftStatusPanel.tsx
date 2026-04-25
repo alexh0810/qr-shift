@@ -14,7 +14,7 @@ interface ShiftStatusItem {
 
 interface ShiftStatusPanelProps {
   title: string;
-  description: string;
+  description?: string;
   emptyMessage: string;
   icon: LucideIcon;
   items: ShiftStatusItem[];

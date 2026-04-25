@@ -13,33 +13,31 @@ import {
 import {
   DailyShiftSummary,
   EmployeeReport,
-  MissingOutStrategy,
   ReportCalculationOptions,
   ReportData,
   ReportSummary,
   Shift,
+  ShiftState,
   Summary,
   TimesheetRow,
 } from "./types";
 
-function resolveOpenShiftEnd(
-  clockInTime: Date,
-  strategy: MissingOutStrategy,
-  currentTime: Date,
-): { out: Date; note: string } {
-  if (strategy === "currentTime") {
-    return {
-      out: currentTime,
-      note: "Auto-closed at current time",
-    };
-  }
-
+function resolvePastOpenShift(clockInTime: Date): { out: Date; note: string; state: ShiftState } {
   const endOfPayrollDay = new Date(clockInTime);
-  endOfPayrollDay.setHours(23, 59, 0, 0);
+  endOfPayrollDay.setHours(24, 0, 0, 0);
 
   return {
     out: endOfPayrollDay,
-    note: "Auto-closed at end of day",
+    note: "Missing clock-out. Auto-closed at midnight.",
+    state: "autoClosed",
+  };
+}
+
+function resolveOngoingShift(currentTime: Date): { out: Date; note: string; state: ShiftState } {
+  return {
+    out: currentTime,
+    note: "Ongoing",
+    state: "ongoing",
   };
 }
 
@@ -75,6 +73,8 @@ function buildTimesheetRows(employee: Employee, shifts: Shift[]): TimesheetRow[]
     .map((shift) => ({
       employeeId: employee.id,
       employeeName: employee.name,
+      clockInLogId: shift.clockInLogId,
+      clockOutLogId: shift.clockOutLogId,
       date: getLocalDateKey(shift.in),
       clockIn: formatTime(shift.in),
       clockOut: formatTime(shift.out),
@@ -82,6 +82,7 @@ function buildTimesheetRows(employee: Employee, shifts: Shift[]): TimesheetRow[]
       durationDisplay: formatPayrollDuration(shift.durationMinutes),
       clockInAt: shift.in,
       clockOutAt: shift.out,
+      shiftState: shift.state,
       note: shift.note,
     }));
 }
@@ -96,9 +97,12 @@ function summarizeMinutes(totalMinutes: number): ReportSummary {
 
 function rowToShift(row: TimesheetRow): Shift {
   return {
+    clockInLogId: row.clockInLogId,
+    clockOutLogId: row.clockOutLogId,
     in: row.clockInAt,
     out: row.clockOutAt,
     durationMinutes: row.durationMinutes,
+    state: row.shiftState,
     note: row.note,
   };
 }
@@ -108,11 +112,10 @@ export function calculateReportFromLogs(
   options: ReportCalculationOptions = {},
 ): { shifts: Shift[] } & Summary {
   const {
-    missingOutStrategy = "endOfDay",
-    currentTime = new Date(),
     minimumShiftMilliseconds = DEFAULT_MINIMUM_SHIFT_MILLISECONDS,
     rangeStart,
     rangeEnd,
+    currentTime = new Date(),
   } = options;
 
   const sortedLogs = [...logs].sort(
@@ -120,9 +123,16 @@ export function calculateReportFromLogs(
   );
 
   const shifts: Shift[] = [];
-  let openClockIn: Date | null = null;
+  let openClockIn: Timelog | null = null;
 
-  const pushShift = (start: Date, end: Date, note?: string) => {
+  const pushShift = (
+    clockInLogId: string,
+    clockOutLogId: string | null,
+    start: Date,
+    end: Date,
+    state: ShiftState,
+    note?: string,
+  ) => {
     const bounded = clampRange(start, end, rangeStart, rangeEnd);
     if (!bounded) {
       return;
@@ -134,31 +144,44 @@ export function calculateReportFromLogs(
     }
 
     shifts.push({
+      clockInLogId,
+      clockOutLogId,
       in: bounded.start,
       out: bounded.end,
       durationMinutes,
+      state,
       note,
     });
   };
 
   for (const log of sortedLogs) {
     if (log.type === "IN") {
-      openClockIn = log.timestamp;
+      openClockIn = log;
       continue;
     }
 
-    if (!openClockIn || log.timestamp <= openClockIn) {
+    if (!openClockIn || log.timestamp <= openClockIn.timestamp) {
       continue;
     }
 
-    pushShift(openClockIn, log.timestamp);
+    pushShift(openClockIn.id, log.id, openClockIn.timestamp, log.timestamp, "closed");
     openClockIn = null;
   }
 
   if (openClockIn) {
-    const fallback = resolveOpenShiftEnd(openClockIn, missingOutStrategy, currentTime);
-    if (fallback.out > openClockIn) {
-      pushShift(openClockIn, fallback.out, fallback.note);
+    const fallback =
+      getLocalDateKey(openClockIn.timestamp) === getLocalDateKey(currentTime)
+        ? resolveOngoingShift(currentTime)
+        : resolvePastOpenShift(openClockIn.timestamp);
+    if (fallback.out > openClockIn.timestamp) {
+      pushShift(
+        openClockIn.id,
+        null,
+        openClockIn.timestamp,
+        fallback.out,
+        fallback.state,
+        fallback.note,
+      );
     }
   }
 
@@ -263,7 +286,7 @@ export function updateRowTime(
   field: "clockIn" | "clockOut",
   value: string,
 ): TimesheetRow {
-  const baseDate = field === "clockIn" ? row.clockInAt : row.clockOutAt;
+  const baseDate = row.clockInAt;
   const updatedDate = applyTimeValue(baseDate, value);
   if (!updatedDate) {
     return row;
@@ -271,10 +294,20 @@ export function updateRowTime(
 
   const nextClockInAt = field === "clockIn" ? updatedDate : new Date(row.clockInAt);
   const nextClockOutAt = field === "clockOut" ? updatedDate : new Date(row.clockOutAt);
+  if (nextClockOutAt <= nextClockInAt) {
+    return row;
+  }
+
   const nextDurationMinutes = Math.max(
     0,
     Math.round(calculateDurationMinutes(nextClockInAt, nextClockOutAt)),
   );
+
+  const nextShiftState =
+    row.shiftState === "ongoing" || row.shiftState === "managerOverride"
+      ? "managerOverride"
+      : row.shiftState;
+  const nextNote = nextShiftState === "managerOverride" ? "Ongoing" : row.note;
 
   return {
     ...row,
@@ -284,6 +317,7 @@ export function updateRowTime(
     clockOutAt: nextClockOutAt,
     durationMinutes: nextDurationMinutes,
     durationDisplay: formatPayrollDuration(nextDurationMinutes),
-    note: nextDurationMinutes === 0 ? "Check corrected times" : row.note,
+    shiftState: nextShiftState,
+    note: nextNote,
   };
 }

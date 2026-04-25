@@ -57,14 +57,14 @@ Apply the new QRShift identity and UX polish across the core demo product surfac
 - `.planning/STATE.md` — Current project status, active concerns, and phase continuity.
 
 ### Prior brand and landing decisions
-- `.planning/phases/01-brand-foundation/01-CONTEXT.md` — Locked brand personality, typography, motif, and surface decisions.
-- `.planning/phases/01-brand-foundation/01-BRAND-SYSTEM.md` — Canonical QRShift token, typography, and component language guidance.
-- `.planning/phases/01-brand-foundation/01-BRAND-USAGE.md` — Guidance for applying the brand system consistently across surfaces.
-- `.planning/phases/02-landing-page/02-CONTEXT.md` — Locked landing-page product story, CTA hierarchy, and preview intent.
-- `.planning/phases/02-landing-page/02-UI-SPEC.md` — Landing-page design contract that product surfaces should visually align with where appropriate.
+- `.planning/archive/phases/01-brand-foundation/01-CONTEXT.md` — Locked brand personality, typography, motif, and surface decisions.
+- `.planning/archive/phases/01-brand-foundation/01-BRAND-SYSTEM.md` — Canonical QRShift token, typography, and component language guidance.
+- `.planning/archive/phases/01-brand-foundation/01-BRAND-USAGE.md` — Guidance for applying the brand system consistently across surfaces.
+- `.planning/archive/phases/02-landing-page/02-CONTEXT.md` — Locked landing-page product story, CTA hierarchy, and preview intent.
+- `.planning/archive/phases/02-landing-page/02-UI-SPEC.md` — Landing-page design contract that product surfaces should visually align with where appropriate.
 
 ### Codebase context
-- `.planning/codebase/ARCHITECTURE.md` — Current route shape, client-driven boundaries, and report module organization.
+- `.planning/codebase/ARCHITECTURE.md` — Current route shape, client/server boundaries, and report module organization.
 - `.planning/codebase/CONVENTIONS.md` — Styling, naming, and maintainability conventions the redesign should respect.
 - `.planning/codebase/STRUCTURE.md` — Directory layout and likely integration points for shared workspace components.
 - `.planning/codebase/CONCERNS.md` — Current demo risks, especially around client-only access control and real-time data reads.

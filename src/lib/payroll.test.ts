@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 
-import { buildEmployeePayrollReports, buildPayrollTimesheet, calculatePayrollFromLogs } from "./payroll";
+import { buildEmployeePayrollReports, buildPayrollTimesheet, calculatePayrollFromLogs, updateRowTime } from "./payroll";
 import { buildDemoStoreSeed } from "./demoData";
 import { Employee, Timelog } from "../types";
 
@@ -63,13 +63,29 @@ const tests: TestCase[] = [
     run: () => {
       const result = calculatePayrollFromLogs(
         [makeLog("emp-1", "IN", "2026-04-01T20:00:00")],
-        { missingOutStrategy: "endOfDay" },
+        { currentTime: at("2026-04-02T10:00:00"), missingOutStrategy: "endOfDay" },
       );
 
-      assert.equal(result.totalMinutes, 239);
-      assert.equal(result.totalHours, 3.98);
-      assert.equal(result.display, "3h 59m");
-      assert.equal(result.shifts[0]?.note, "Auto-closed at end of day");
+      assert.equal(result.totalMinutes, 240);
+      assert.equal(result.totalHours, 4);
+      assert.equal(result.display, "4h 0m");
+      assert.equal(result.shifts[0]?.note, "Missing clock-out. Auto-closed at midnight.");
+      assert.equal(result.shifts[0]?.state, "autoClosed");
+    },
+  },
+  {
+    name: "treats a same-day missing OUT as an ongoing shift using elapsed time",
+    run: () => {
+      const result = calculatePayrollFromLogs(
+        [makeLog("emp-1", "IN", "2026-04-25T12:00:00")],
+        { currentTime: at("2026-04-25T15:00:00") },
+      );
+
+      assert.equal(result.totalMinutes, 180);
+      assert.equal(result.totalHours, 3);
+      assert.equal(result.display, "3h 0m");
+      assert.equal(result.shifts[0]?.note, "Ongoing");
+      assert.equal(result.shifts[0]?.state, "ongoing");
     },
   },
   {
@@ -122,6 +138,88 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: "anchors corrected clock-out times to the shift date for auto-closed rows",
+    run: () => {
+      const corrected = updateRowTime(
+        {
+          employeeId: "emp-1",
+          employeeName: "Alex",
+          clockInLogId: "log-in-1",
+          clockOutLogId: null,
+          date: "2026-04-24",
+          clockIn: "09:00",
+          clockOut: "00:00",
+          durationMinutes: 900,
+          durationDisplay: "15.00 h (15h 0m)",
+          clockInAt: at("2026-04-24T09:00:00"),
+          clockOutAt: at("2026-04-25T00:00:00"),
+          shiftState: "autoClosed",
+          note: "Missing clock-out. Auto-closed at midnight.",
+        },
+        "clockOut",
+        "17:00",
+      );
+
+      assert.equal(corrected.clockOutAt.toISOString(), at("2026-04-24T17:00:00").toISOString());
+      assert.equal(corrected.durationMinutes, 480);
+      assert.equal(corrected.durationDisplay, "8.00 h (8h 0m)");
+      assert.equal(corrected.shiftState, "autoClosed");
+    },
+  },
+  {
+    name: "allows managers to set a future same-day end time for ongoing shifts",
+    run: () => {
+      const corrected = updateRowTime(
+        {
+          employeeId: "emp-1",
+          employeeName: "Alex",
+          clockInLogId: "log-in-2",
+          clockOutLogId: null,
+          date: "2026-04-25",
+          clockIn: "12:00",
+          clockOut: "15:00",
+          durationMinutes: 180,
+          durationDisplay: "3.00 h (3h 0m)",
+          clockInAt: at("2026-04-25T12:00:00"),
+          clockOutAt: at("2026-04-25T15:00:00"),
+          shiftState: "ongoing",
+          note: "Ongoing",
+        },
+        "clockOut",
+        "20:00",
+      );
+
+      assert.equal(corrected.clockOutAt.toISOString(), at("2026-04-25T20:00:00").toISOString());
+      assert.equal(corrected.durationMinutes, 480);
+      assert.equal(corrected.durationDisplay, "8.00 h (8h 0m)");
+      assert.equal(corrected.shiftState, "managerOverride");
+      assert.equal(corrected.note, "Ongoing");
+    },
+  },
+  {
+    name: "rejects clock-out edits earlier than the same-day clock-in",
+    run: () => {
+      const originalRow = {
+        employeeId: "emp-1",
+        employeeName: "Alex",
+        clockInLogId: "log-in-3",
+        clockOutLogId: null,
+        date: "2026-04-25",
+        clockIn: "12:00",
+        clockOut: "15:00",
+        durationMinutes: 180,
+        durationDisplay: "3.00 h (3h 0m)",
+        clockInAt: at("2026-04-25T12:00:00"),
+        clockOutAt: at("2026-04-25T15:00:00"),
+        shiftState: "ongoing" as const,
+        note: "Ongoing",
+      };
+      const corrected = updateRowTime(originalRow, "clockOut", "11:00");
+
+      assert.deepEqual(corrected, originalRow);
+    },
+  },
+  {
     name: "builds employee reports and clamps worked time to the requested range",
     run: () => {
       const reports = buildEmployeePayrollReports(
@@ -133,6 +231,7 @@ const tests: TestCase[] = [
         {
           rangeStart: at("2026-04-02T00:00:00"),
           rangeEnd: at("2026-04-02T23:59:59.999"),
+          currentTime: at("2026-04-03T10:00:00"),
         },
       );
 
@@ -204,6 +303,28 @@ const tests: TestCase[] = [
       assert.equal(timesheet.globalSummary.totalMinutes, 617);
       assert.equal(timesheet.globalSummary.display, "10h 17m");
       assert.equal(timesheet.globalSummary.totalHoursDecimal.toFixed(2), "10.28");
+    },
+  },
+  {
+    name: "includes same-day ongoing shifts in totals using elapsed time",
+    run: () => {
+      const timesheet = buildPayrollTimesheet(
+        [employee],
+        [makeLog("emp-1", "IN", "2026-04-25T12:00:00")],
+        {
+          rangeStart: at("2026-04-01T00:00:00"),
+          rangeEnd: at("2026-04-25T23:59:59.999"),
+          currentTime: at("2026-04-25T15:00:00"),
+        },
+      );
+
+      assert.equal(timesheet.employeeGroups.length, 1);
+      assert.equal(timesheet.employeeGroups[0]?.totalMinutes, 180);
+      assert.equal(timesheet.employeeGroups[0]?.totalHours, 3);
+      assert.equal(timesheet.rows[0]?.shiftState, "ongoing");
+      assert.equal(timesheet.rows[0]?.note, "Ongoing");
+      assert.equal(timesheet.globalSummary.totalMinutes, 180);
+      assert.equal(timesheet.globalSummary.totalHoursDecimal, 3);
     },
   },
   {

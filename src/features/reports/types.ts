@@ -1,11 +1,21 @@
 import { Employee } from "../../types";
 
 export type MissingOutStrategy = "endOfDay" | "currentTime";
+export type ShiftState = "closed" | "autoClosed" | "ongoing" | "managerOverride";
+export interface ReportDraft {
+  employeeId: string;
+  clockInLogId: string;
+  draftClockOutAt: string;
+  savedAt: string;
+}
 
 export interface Shift {
+  clockInLogId: string;
+  clockOutLogId: string | null;
   in: Date;
   out: Date;
   durationMinutes: number;
+  state: ShiftState;
   note?: string;
 }
 
@@ -24,6 +34,8 @@ export interface DailyShiftSummary extends Summary {
 export interface TimesheetRow {
   employeeId: string;
   employeeName: string;
+  clockInLogId: string;
+  clockOutLogId: string | null;
   date: string;
   clockIn: string;
   clockOut: string;
@@ -31,6 +43,7 @@ export interface TimesheetRow {
   durationDisplay: string;
   clockInAt: Date;
   clockOutAt: Date;
+  shiftState: ShiftState;
   note?: string;
 }
 

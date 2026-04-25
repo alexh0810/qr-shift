@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { buildReportFileName, escapeCsvValue } from "../../lib/report-utils";
 import { formatPayrollDuration } from "../../lib/time-calculation";
 import { EmployeeReport, ReportSummary } from "./types";
@@ -25,56 +26,64 @@ export function buildReportsCsv(
         ? [activeReport]
         : [];
 
-  const rows: string[] = [["Name", "Date", "Clock In", "Clock Out", "Duration"].join(",")];
+  const rows: string[] = [
+    [
+      "Employee Name",
+      "Work Day",
+      "Clock In",
+      "Clock Out",
+      "Shift Duration",
+      "Total Hours Worked",
+      "Days Worked",
+    ]
+      .map(escapeCsvValue)
+      .join(","),
+  ];
 
   for (const group of groupsToExport) {
-    rows.push(
-      [
-        escapeCsvValue(`${group.name} TOTAL`),
-        escapeCsvValue(""),
-        escapeCsvValue(""),
-        escapeCsvValue(""),
-        escapeCsvValue(formatPayrollDuration(group.totalMinutes)),
-      ].join(","),
-    );
-
     for (const row of group.timesheetRows) {
+      const exportedClockOut = row.shiftState === "ongoing" ? "Ongoing" : row.clockOut;
+
       rows.push(
         [
-          escapeCsvValue(""),
-          escapeCsvValue(row.date),
+          escapeCsvValue(group.name),
+          escapeCsvValue(format(row.clockInAt, "MMM d, yyyy")),
           escapeCsvValue(row.clockIn),
-          escapeCsvValue(row.clockOut),
-          escapeCsvValue(formatPayrollDuration(row.durationMinutes)),
+          escapeCsvValue(exportedClockOut),
+          escapeCsvValue(row.durationDisplay),
+          escapeCsvValue(""),
+          escapeCsvValue(""),
         ].join(","),
       );
     }
 
     rows.push(
       [
-        escapeCsvValue(`${group.name} SUBTOTAL`),
+        escapeCsvValue(group.name),
+        escapeCsvValue("Summary"),
         escapeCsvValue(""),
         escapeCsvValue(""),
         escapeCsvValue(""),
         escapeCsvValue(formatPayrollDuration(group.totalMinutes)),
+        escapeCsvValue(String(group.dailySummaries.length)),
       ].join(","),
     );
-    rows.push(["", "", "", "", ""].map(escapeCsvValue).join(","));
+    rows.push(["", "", "", "", "", "", ""].map(escapeCsvValue).join(","));
   }
 
-  rows.push(
-    [
-      escapeCsvValue(selectedEmployeeId === "ALL" ? "TOTAL HOURS (ALL EMPLOYEES)" : `${activeReport?.name ?? "Employee"} TOTAL`),
-      escapeCsvValue(""),
-      escapeCsvValue(""),
-      escapeCsvValue(""),
-      escapeCsvValue(
-        selectedEmployeeId === "ALL"
-          ? formatPayrollDuration(globalSummary.totalMinutes)
-          : formatPayrollDuration(activeReport?.totalMinutes ?? 0),
-      ),
-    ].join(","),
-  );
+  if (selectedEmployeeId === "ALL") {
+    rows.push(
+      [
+        escapeCsvValue("All Employees"),
+        escapeCsvValue("Summary"),
+        escapeCsvValue(""),
+        escapeCsvValue(""),
+        escapeCsvValue(""),
+        escapeCsvValue(formatPayrollDuration(globalSummary.totalMinutes)),
+        escapeCsvValue(String(groupsToExport.length)),
+      ].join(","),
+    );
+  }
 
   const baseFileName = buildReportFileName(storeName, startDate, endDate);
   const fileName =

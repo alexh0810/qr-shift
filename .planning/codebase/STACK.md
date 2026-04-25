@@ -9,19 +9,20 @@
 ## Core Frameworks
 
 - `next` powers routing, bundling, metadata, and production builds.
-- `react` and `react-dom` drive a client-rendered UI-first application.
+- `react` and `react-dom` drive the client-rendered route UI.
 - TypeScript strict mode is enabled with the `@/*` path alias.
 
 ## UI and Styling
 
 - Tailwind CSS 3 is the primary styling layer.
-- Global theming is handled with CSS variables and `next-themes`.
+- Global styling is handled with CSS variables and a light-only palette in `src/app/globals.css`.
 - Icons come from `lucide-react`.
 - Fonts are loaded through `next/font`.
 
 ## Product Libraries
 
 - `firebase` provides the browser SDK for Firestore access.
+- `firebase-admin` powers server-side Firestore access in route handlers.
 - `date-fns` is used for date formatting and time display.
 - `qrcode.react` renders QR codes for store access flows.
 - `nanoid` is used for lightweight token generation.
@@ -53,8 +54,16 @@
   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+- Server routes also depend on:
+  - `FIREBASE_ADMIN_PROJECT_ID`
+  - `FIREBASE_ADMIN_CLIENT_EMAIL`
+  - `FIREBASE_ADMIN_PRIVATE_KEY`
+  - `MANAGER_SESSION_SECRET`
+  - `OWNER_SETUP_SECRET`
+  - `NEXT_PUBLIC_DEMO_BOOKING_URL`
+  - `NEXT_PUBLIC_CONTACT_EMAIL`
 
 ## Current Stack Notes
 
-- The application is heavily client-driven. There are no API routes, server actions, or backend-only services in the repo.
-- That keeps the demo simple, but it means data validation, access control, and scaling protections are mostly outside the app code today.
+- The application is still UI-heavy, but it now includes App Router API routes for store lookup, scan clock actions, manager reports/dashboard snapshots, and admin store creation.
+- Browser pages use `src/lib/client-api.ts` for data access while server-only helpers in `src/lib/firebase-admin.ts`, `src/lib/server-db.ts`, and `src/lib/server-auth.ts` handle privileged reads, writes, and signed session cookies.

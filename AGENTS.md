@@ -27,15 +27,16 @@ QRShift is a simple, QR-based time tracking tool for small businesses to replace
 - Package management is npm-based with a standard `package-lock.json`.
 ## Core Frameworks
 - `next` powers routing, bundling, metadata, and production builds.
-- `react` and `react-dom` drive a client-rendered UI-first application.
+- `react` and `react-dom` drive the client-rendered route UI.
 - TypeScript strict mode is enabled with the `@/*` path alias.
 ## UI and Styling
 - Tailwind CSS 3 is the primary styling layer.
-- Global theming is handled with CSS variables and `next-themes`.
+- Global styling is handled with CSS variables and a light-only palette in `src/app/globals.css`.
 - Icons come from `lucide-react`.
 - Fonts are loaded through `next/font`.
 ## Product Libraries
 - `firebase` provides the browser SDK for Firestore access.
+- `firebase-admin` powers server-side Firestore access in route handlers.
 - `date-fns` is used for date formatting and time display.
 - `qrcode.react` renders QR codes for store access flows.
 - `nanoid` is used for lightweight token generation.
@@ -53,9 +54,23 @@ QRShift is a simple, QR-based time tracking tool for small businesses to replace
 - The app is not built for static export because it depends on live Firestore reads.
 ## Environment Variables
 - The runtime depends on browser-safe Firebase config variables:
+  - `NEXT_PUBLIC_FIREBASE_API_KEY`
+  - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+  - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+  - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+  - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+  - `NEXT_PUBLIC_FIREBASE_APP_ID`
+- Server routes also depend on:
+  - `FIREBASE_ADMIN_PROJECT_ID`
+  - `FIREBASE_ADMIN_CLIENT_EMAIL`
+  - `FIREBASE_ADMIN_PRIVATE_KEY`
+  - `MANAGER_SESSION_SECRET`
+  - `OWNER_SETUP_SECRET`
+  - `NEXT_PUBLIC_DEMO_BOOKING_URL`
+  - `NEXT_PUBLIC_CONTACT_EMAIL`
 ## Current Stack Notes
-- The application is heavily client-driven. There are no API routes, server actions, or backend-only services in the repo.
-- That keeps the demo simple, but it means data validation, access control, and scaling protections are mostly outside the app code today.
+- The application is still UI-heavy, but it now includes App Router API routes for store lookup, scan clock actions, manager reports/dashboard snapshots, and admin store creation.
+- Browser pages use `src/lib/client-api.ts` for data access while server-only helpers in `src/lib/firebase-admin.ts`, `src/lib/server-db.ts`, and `src/lib/server-auth.ts` handle privileged reads, writes, and signed session cookies.
 <!-- GSD:stack-end -->
 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
@@ -100,9 +115,9 @@ QRShift is a simple, QR-based time tracking tool for small businesses to replace
 ## Architecture
 
 ## High-Level Shape
-- This is a client-first Next.js App Router application.
-- Most user flows are implemented as `"use client"` pages that fetch Firestore data directly from the browser.
-- There is no server-side application layer in the repo for attendance writes, report generation, or manager authorization.
+- This is a mixed Next.js App Router application with client-rendered route pages backed by route handlers.
+- Public and manager pages are still implemented primarily as `"use client"` pages, but they now fetch through internal API routes rather than reading all privileged data directly from the browser.
+- Attendance writes, manager snapshots, admin store setup, and session verification now flow through a small server-side layer under `src/app/api` plus `src/lib/server-*` helpers.
 ## Main Application Flow
 - `/`
 - `/admin/create-store`
@@ -110,8 +125,10 @@ QRShift is a simple, QR-based time tracking tool for small businesses to replace
 - `/dashboard/[qr_token]`
 - `/reports/[qr_token]`
 ## Data Boundaries
-- `src/lib/firebase.ts`
-- `src/lib/db.ts`
+- `src/lib/client-api.ts`
+- `src/lib/firebase-admin.ts`
+- `src/lib/server-db.ts`
+- `src/lib/server-auth.ts`
 - `src/features/reports/data-processing.ts`
 - `src/lib/time-calculation.ts` and `src/lib/report-utils.ts`
 ## State Management
@@ -123,16 +140,16 @@ QRShift is a simple, QR-based time tracking tool for small businesses to replace
 - Reports are the most modular slice of the codebase.
 - The page component acts mainly as an orchestrator.
 - Data shaping, export generation, and UI rendering are split across feature-level modules.
-- Inline timesheet corrections currently recalculate locally in memory and affect exports immediately.
+- Completed-shift corrections persist through the manager reports API, while same-day future clock-out drafts stay device-local in `localStorage` so dashboard and scan status continue to reflect real timelogs.
 ## Architectural Strengths
 - The app is straightforward to reason about because routes map directly to product flows.
 - Report calculations are mostly isolated into pure functions, which improves testability.
 - The feature split under `src/features/reports` gives a good foundation for future iterations.
 ## Architectural Tradeoffs
-- Security-sensitive behavior happens on the client, including manager PIN checks and attendance writes.
+- Manager PIN entry still starts in the client UI, so the overall access model remains demo-scoped rather than production-grade auth.
 - Dashboard still mixes direct Firestore listeners with shared library access instead of using one clean data access layer everywhere.
 - Timelog status is derived repeatedly from history rather than maintained through a purpose-built query model.
-- Local-only report correction state improves demo speed, but it is not an auditable source of truth.
+- Same-device future report drafts improve payroll planning UX, but they are intentionally not a shared or auditable source of truth.
 <!-- GSD:architecture-end -->
 
 <!-- GSD:skills-start source:skills/ -->
