@@ -1,27 +1,11 @@
+import type { Firestore } from "firebase-admin/firestore";
+
 import { adminDb } from "./firebase-admin";
 import { buildDemoStoreSeed } from "./demoData";
 import { hashPin } from "./pin-hash";
 import { DashboardEmployeeStatus, Employee, PublicStore, Store, Timelog } from "../types";
 
-type DbLike = {
-  collection: (name: string) => {
-    where: (field: string, op: "==", value: unknown) => {
-      limit: (count: number) => { get: () => Promise<{ empty: boolean; docs: Array<{ id: string; data: () => Record<string, unknown> }> }> };
-      get: () => Promise<{ empty: boolean; docs: Array<{ id: string; data: () => Record<string, unknown> }> }>;
-    };
-    doc: (id?: string) => unknown;
-  };
-  runTransaction: <T>(updateFunction: (transaction: {
-    get: (target: unknown) => Promise<{
-      exists?: boolean;
-      id?: string;
-      data?: () => Record<string, unknown> | undefined;
-      docs?: Array<{ id: string; data: () => Record<string, unknown> }>;
-    }>;
-    create: (ref: unknown, data: Record<string, unknown>) => void;
-    update: (ref: unknown, patch: Record<string, unknown>) => void;
-  }) => Promise<T>) => Promise<T>;
-};
+type DbLike = Pick<Firestore, "collection" | "runTransaction">;
 
 function ensureDate(value: unknown) {
   if (value instanceof Date) {

@@ -35,6 +35,7 @@ type TimelogRecord = {
 };
 
 type CollectionName = "stores" | "employees" | "timelogs";
+type DbArg = Parameters<typeof getScanRosterByQrTokenWithDb>[0];
 
 function at(value: string): Date {
   return new Date(value);
@@ -48,6 +49,10 @@ function cloneRecord<T extends Record<string, unknown>>(record: T): T {
     }
   }
   return clone;
+}
+
+function asDb(db: FakeDb): DbArg {
+  return db as unknown as DbArg;
 }
 
 class FakeDocSnapshot {
@@ -221,7 +226,7 @@ const tests: TestCase[] = [
         ],
       });
 
-      const roster = await getScanRosterByQrTokenWithDb(db, "qr-1");
+      const roster = await getScanRosterByQrTokenWithDb(asDb(db), "qr-1");
 
       assert.ok(roster);
       assert.equal(roster?.employees[0]?.status, "IN");
@@ -237,7 +242,7 @@ const tests: TestCase[] = [
         employees: [{ id: "emp-1", name: "Alex", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z") }],
       });
 
-      const result = await createClockActionWithDb(db, "qr-1", "emp-1", "IN");
+      const result = await createClockActionWithDb(asDb(db), "qr-1", "emp-1", "IN");
 
       assert.equal(result.action, "IN");
       const timelogs = db.readCollection("timelogs");
@@ -256,7 +261,7 @@ const tests: TestCase[] = [
       });
 
       await assert.rejects(
-        () => createClockActionWithDb(db, "qr-1", "emp-1", "IN"),
+        () => createClockActionWithDb(asDb(db), "qr-1", "emp-1", "IN"),
         /invalid_transition/,
       );
     },
@@ -273,7 +278,7 @@ const tests: TestCase[] = [
         ],
       });
 
-      const result = await saveReportCorrectionServerWithDb(db, {
+      const result = await saveReportCorrectionServerWithDb(asDb(db), {
         qrToken: "qr-1",
         employeeId: "emp-1",
         clockInLogId: "in-1",
@@ -298,7 +303,7 @@ const tests: TestCase[] = [
         timelogs: [{ id: "in-1", employee_id: "emp-1", store_id: "store-1", type: "IN", timestamp: at("2026-04-24T09:00:00Z") }],
       });
 
-      const result = await saveReportCorrectionServerWithDb(db, {
+      const result = await saveReportCorrectionServerWithDb(asDb(db), {
         qrToken: "qr-1",
         employeeId: "emp-1",
         clockInLogId: "in-1",
