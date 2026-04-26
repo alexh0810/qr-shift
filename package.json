@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "sucrase-node src/test.ts",
+    "test:e2e": "playwright test",
     "migrate:pins": "sucrase-node scripts/migrate-store-pins.ts"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

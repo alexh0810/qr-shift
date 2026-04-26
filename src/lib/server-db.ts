@@ -1,9 +1,27 @@
-import { nanoid } from "nanoid";
+import { adminDb } from "./firebase-admin";
+import { buildDemoStoreSeed } from "./demoData";
+import { hashPin } from "./pin-hash";
+import { DashboardEmployeeStatus, Employee, PublicStore, Store, Timelog } from "../types";
 
-import { adminDb } from "@/lib/firebase-admin";
-import { buildDemoStoreSeed } from "@/lib/demoData";
-import { hashPin } from "@/lib/pin-hash";
-import { DashboardEmployeeStatus, Employee, PublicStore, Store, Timelog } from "@/types";
+type DbLike = {
+  collection: (name: string) => {
+    where: (field: string, op: "==", value: unknown) => {
+      limit: (count: number) => { get: () => Promise<{ empty: boolean; docs: Array<{ id: string; data: () => Record<string, unknown> }> }> };
+      get: () => Promise<{ empty: boolean; docs: Array<{ id: string; data: () => Record<string, unknown> }> }>;
+    };
+    doc: (id?: string) => unknown;
+  };
+  runTransaction: <T>(updateFunction: (transaction: {
+    get: (target: unknown) => Promise<{
+      exists?: boolean;
+      id?: string;
+      data?: () => Record<string, unknown> | undefined;
+      docs?: Array<{ id: string; data: () => Record<string, unknown> }>;
+    }>;
+    create: (ref: unknown, data: Record<string, unknown>) => void;
+    update: (ref: unknown, patch: Record<string, unknown>) => void;
+  }) => Promise<T>) => Promise<T>;
+};
 
 function ensureDate(value: unknown) {
   if (value instanceof Date) {
@@ -15,6 +33,11 @@ function ensureDate(value: unknown) {
   }
 
   return new Date();
+}
+
+async function generateToken(size: number) {
+  const { nanoid } = await import("nanoid");
+  return nanoid(size);
 }
 
 function mapStore(id: string, data: Record<string, unknown>): Store {
@@ -55,8 +78,8 @@ export function toPublicStore(store: Store): PublicStore {
   };
 }
 
-export async function getStoreByQrTokenServer(qrToken: string) {
-  const snapshot = await adminDb
+export async function getStoreByQrTokenWithDb(db: DbLike, qrToken: string) {
+  const snapshot = await db
     .collection("stores")
     .where("qr_token", "==", qrToken)
     .limit(1)
@@ -70,20 +93,32 @@ export async function getStoreByQrTokenServer(qrToken: string) {
   return mapStore(document.id, document.data());
 }
 
-export async function getEmployeesByStoreIdServer(storeId: string) {
-  const snapshot = await adminDb.collection("employees").where("store_id", "==", storeId).get();
+export async function getStoreByQrTokenServer(qrToken: string) {
+  return getStoreByQrTokenWithDb(adminDb, qrToken);
+}
+
+export async function getEmployeesByStoreIdWithDb(db: DbLike, storeId: string) {
+  const snapshot = await db.collection("employees").where("store_id", "==", storeId).get();
   return snapshot.docs.map((document) => mapEmployee(document.id, document.data()));
 }
 
-export async function getStoreTimelogsServer(storeId: string) {
-  const snapshot = await adminDb.collection("timelogs").where("store_id", "==", storeId).get();
+export async function getEmployeesByStoreIdServer(storeId: string) {
+  return getEmployeesByStoreIdWithDb(adminDb, storeId);
+}
+
+export async function getStoreTimelogsWithDb(db: DbLike, storeId: string) {
+  const snapshot = await db.collection("timelogs").where("store_id", "==", storeId).get();
   return snapshot.docs
     .map((document) => mapTimelog(document.id, document.data()))
     .sort((left, right) => left.timestamp.getTime() - right.timestamp.getTime());
 }
 
-export async function getLatestTimelogForEmployeeServer(employeeId: string) {
-  const snapshot = await adminDb
+export async function getStoreTimelogsServer(storeId: string) {
+  return getStoreTimelogsWithDb(adminDb, storeId);
+}
+
+export async function getLatestTimelogForEmployeeWithDb(db: DbLike, employeeId: string) {
+  const snapshot = await db
     .collection("timelogs")
     .where("employee_id", "==", employeeId)
     .get();
@@ -97,15 +132,19 @@ export async function getLatestTimelogForEmployeeServer(employeeId: string) {
     .sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime())[0] ?? null;
 }
 
-export async function getScanRosterByQrToken(qrToken: string) {
-  const store = await getStoreByQrTokenServer(qrToken);
+export async function getLatestTimelogForEmployeeServer(employeeId: string) {
+  return getLatestTimelogForEmployeeWithDb(adminDb, employeeId);
+}
+
+export async function getScanRosterByQrTokenWithDb(db: DbLike, qrToken: string) {
+  const store = await getStoreByQrTokenWithDb(db, qrToken);
   if (!store) {
     return null;
   }
 
   const [employees, timelogs] = await Promise.all([
-    getEmployeesByStoreIdServer(store.id),
-    getStoreTimelogsServer(store.id),
+    getEmployeesByStoreIdWithDb(db, store.id),
+    getStoreTimelogsWithDb(db, store.id),
   ]);
 
   const latestLogByEmployee = new Map<string, Timelog>();
@@ -126,8 +165,12 @@ export async function getScanRosterByQrToken(qrToken: string) {
   };
 }
 
-export async function getDashboardSnapshotByQrToken(qrToken: string) {
-  const roster = await getScanRosterByQrToken(qrToken);
+export async function getScanRosterByQrToken(qrToken: string) {
+  return getScanRosterByQrTokenWithDb(adminDb, qrToken);
+}
+
+export async function getDashboardSnapshotByQrTokenWithDb(db: DbLike, qrToken: string) {
+  const roster = await getScanRosterByQrTokenWithDb(db, qrToken);
   if (!roster) {
     return null;
   }
@@ -138,15 +181,19 @@ export async function getDashboardSnapshotByQrToken(qrToken: string) {
   };
 }
 
-export async function getReportsSnapshotByQrToken(qrToken: string) {
-  const store = await getStoreByQrTokenServer(qrToken);
+export async function getDashboardSnapshotByQrToken(qrToken: string) {
+  return getDashboardSnapshotByQrTokenWithDb(adminDb, qrToken);
+}
+
+export async function getReportsSnapshotByQrTokenWithDb(db: DbLike, qrToken: string) {
+  const store = await getStoreByQrTokenWithDb(db, qrToken);
   if (!store) {
     return null;
   }
 
   const [employees, timelogs] = await Promise.all([
-    getEmployeesByStoreIdServer(store.id),
-    getStoreTimelogsServer(store.id),
+    getEmployeesByStoreIdWithDb(db, store.id),
+    getStoreTimelogsWithDb(db, store.id),
   ]);
 
   return {
@@ -156,17 +203,26 @@ export async function getReportsSnapshotByQrToken(qrToken: string) {
   };
 }
 
-export async function createClockAction(qrToken: string, employeeId: string, requestedAction: "IN" | "OUT") {
-  const store = await getStoreByQrTokenServer(qrToken);
+export async function getReportsSnapshotByQrToken(qrToken: string) {
+  return getReportsSnapshotByQrTokenWithDb(adminDb, qrToken);
+}
+
+export async function createClockActionWithDb(
+  db: DbLike,
+  qrToken: string,
+  employeeId: string,
+  requestedAction: "IN" | "OUT",
+) {
+  const store = await getStoreByQrTokenWithDb(db, qrToken);
   if (!store) {
     throw new Error("store_not_found");
   }
 
-  const employeeRef = adminDb.collection("employees").doc(employeeId);
-  const timelogsRef = adminDb.collection("timelogs");
+  const employeeRef = db.collection("employees").doc(employeeId);
+  const timelogsRef = db.collection("timelogs");
   const clockedAt = new Date();
 
-  const result = await adminDb.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const employeeSnapshot = await transaction.get(employeeRef);
     if (!employeeSnapshot.exists) {
       throw new Error("employee_not_found");
@@ -206,24 +262,31 @@ export async function createClockAction(qrToken: string, employeeId: string, req
   return result;
 }
 
-export async function saveReportCorrectionServer(input: {
+export async function createClockAction(qrToken: string, employeeId: string, requestedAction: "IN" | "OUT") {
+  return createClockActionWithDb(adminDb, qrToken, employeeId, requestedAction);
+}
+
+export async function saveReportCorrectionServerWithDb(
+  db: DbLike,
+  input: {
   qrToken: string;
   employeeId: string;
   clockInLogId: string;
   clockOutLogId: string | null;
   clockInAt: Date;
   clockOutAt: Date;
-}) {
-  const store = await getStoreByQrTokenServer(input.qrToken);
+},
+) {
+  const store = await getStoreByQrTokenWithDb(db, input.qrToken);
   if (!store) {
     throw new Error("store_not_found");
   }
 
-  const employeeRef = adminDb.collection("employees").doc(input.employeeId);
-  const clockInRef = adminDb.collection("timelogs").doc(input.clockInLogId);
+  const employeeRef = db.collection("employees").doc(input.employeeId);
+  const clockInRef = db.collection("timelogs").doc(input.clockInLogId);
   const clockOutRef = input.clockOutLogId
-    ? adminDb.collection("timelogs").doc(input.clockOutLogId)
-    : adminDb.collection("timelogs").doc();
+    ? db.collection("timelogs").doc(input.clockOutLogId)
+    : db.collection("timelogs").doc();
 
   const now = new Date();
   if (input.clockOutAt <= input.clockInAt) {
@@ -234,7 +297,7 @@ export async function saveReportCorrectionServer(input: {
     throw new Error("future_correction_not_supported");
   }
 
-  const result = await adminDb.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const [employeeSnapshot, clockInSnapshot, existingClockOutSnapshot] = await Promise.all([
       transaction.get(employeeRef),
       transaction.get(clockInRef),
@@ -298,6 +361,17 @@ export async function saveReportCorrectionServer(input: {
   return result;
 }
 
+export async function saveReportCorrectionServer(input: {
+  qrToken: string;
+  employeeId: string;
+  clockInLogId: string;
+  clockOutLogId: string | null;
+  clockInAt: Date;
+  clockOutAt: Date;
+}) {
+  return saveReportCorrectionServerWithDb(adminDb, input);
+}
+
 function normalizeEmployeeNames(employeeNames: string[]) {
   return employeeNames.map((name) => name.trim()).filter(Boolean);
 }
@@ -308,7 +382,7 @@ export async function createStoreAndEmployeesServer(
   employeeNames: string[],
 ) {
   const createdAt = new Date();
-  const qrToken = nanoid(16);
+  const qrToken = await generateToken(16);
   const batch = adminDb.batch();
 
   const storeRef = adminDb.collection("stores").doc();
@@ -339,7 +413,7 @@ export async function createStoreAndEmployeesServer(
 
 export async function createDemoStoreWithTimelogsServer() {
   const demoSeed = buildDemoStoreSeed();
-  const qrToken = nanoid(16);
+  const qrToken = await generateToken(16);
   const createdAt = new Date();
   const batch = adminDb.batch();
 
