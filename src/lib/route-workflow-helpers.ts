@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getManagerSession, isManagerSessionAuthorized } from "./server-auth";
+import { getManagerSession, getOwnerSession, isManagerSessionAuthorized } from "./server-auth";
 import {
   createClockAction,
   getDashboardSnapshotByQrToken,
+  getOwnerStoreSummariesServer,
   getReportsSnapshotByQrToken,
   getScanRosterByQrToken,
   getStoreByQrTokenServer,
@@ -28,6 +29,11 @@ type DashboardRouteDependencies = {
   getManagerSession: typeof getManagerSession;
   isManagerSessionAuthorized: typeof isManagerSessionAuthorized;
   getDashboardSnapshotByQrToken: typeof getDashboardSnapshotByQrToken;
+};
+
+type OwnerStoresRouteDependencies = {
+  getOwnerSession: typeof getOwnerSession;
+  getOwnerStoreSummariesServer: typeof getOwnerStoreSummariesServer;
 };
 
 type ReportsRouteDependencies = {
@@ -158,6 +164,23 @@ export function createDashboardGetHandler(dependencies: DashboardRouteDependenci
         },
         latest_log: serializeTimelog(entry.latestLog),
         status: entry.status,
+      })),
+    });
+  };
+}
+
+export function createOwnerStoresGetHandler(dependencies: OwnerStoresRouteDependencies) {
+  return async function GET(request: NextRequest) {
+    if (!dependencies.getOwnerSession(request)) {
+      return NextResponse.json({ error: "Owner access is required." }, { status: 401 });
+    }
+
+    const stores = await dependencies.getOwnerStoreSummariesServer();
+
+    return NextResponse.json({
+      stores: stores.map((store) => ({
+        ...store,
+        created_at: store.created_at.toISOString(),
       })),
     });
   };

@@ -13,6 +13,13 @@ export interface PublicStore {
   qr_token: string;
 }
 
+export interface OwnerStoreSummary {
+  id: string;
+  name: string;
+  qr_token: string;
+  created_at: Date;
+}
+
 export interface Employee {
   id: string; // Firestore Document ID
   name: string;

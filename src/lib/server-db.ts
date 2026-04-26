@@ -3,7 +3,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { adminDb } from "./firebase-admin";
 import { buildDemoStoreSeed } from "./demoData";
 import { hashPin } from "./pin-hash";
-import { DashboardEmployeeStatus, Employee, PublicStore, Store, Timelog } from "../types";
+import { DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, Store, Timelog } from "../types";
 
 type DbLike = Pick<Firestore, "collection" | "runTransaction">;
 
@@ -62,6 +62,15 @@ export function toPublicStore(store: Store): PublicStore {
   };
 }
 
+export function toOwnerStoreSummary(store: Store): OwnerStoreSummary {
+  return {
+    id: store.id,
+    name: store.name,
+    qr_token: store.qr_token,
+    created_at: store.created_at,
+  };
+}
+
 export async function getStoreByQrTokenWithDb(db: DbLike, qrToken: string) {
   const snapshot = await db
     .collection("stores")
@@ -79,6 +88,17 @@ export async function getStoreByQrTokenWithDb(db: DbLike, qrToken: string) {
 
 export async function getStoreByQrTokenServer(qrToken: string) {
   return getStoreByQrTokenWithDb(adminDb, qrToken);
+}
+
+export async function getOwnerStoreSummariesWithDb(db: DbLike) {
+  const snapshot = await db.collection("stores").get();
+  return snapshot.docs
+    .map((document) => toOwnerStoreSummary(mapStore(document.id, document.data())))
+    .sort((left, right) => right.created_at.getTime() - left.created_at.getTime());
+}
+
+export async function getOwnerStoreSummariesServer() {
+  return getOwnerStoreSummariesWithDb(adminDb);
 }
 
 export async function getEmployeesByStoreIdWithDb(db: DbLike, storeId: string) {

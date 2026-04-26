@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { createOwnerStoresGetHandler } from "@/lib/route-workflow-helpers";
 import { getOwnerSession } from "@/lib/server-auth";
-import { createStoreAndEmployeesServer } from "@/lib/server-db";
+import { createStoreAndEmployeesServer, getOwnerStoreSummariesServer } from "@/lib/server-db";
 
 export const runtime = "nodejs";
+
+export const GET = createOwnerStoresGetHandler({
+  getOwnerSession,
+  getOwnerStoreSummariesServer,
+});
 
 function isValidPin(pin: string) {
   return /^\d{1,6}$/.test(pin);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   createClockActionWithDb,
+  getOwnerStoreSummariesWithDb,
   getScanRosterByQrTokenWithDb,
   saveReportCorrectionServerWithDb,
 } from "./server-db";
@@ -118,6 +119,14 @@ class FakeQuery {
 class FakeCollection {
   constructor(private readonly db: FakeDb, private readonly name: CollectionName) {}
 
+  async get() {
+    return new FakeQuerySnapshot(
+      this.db
+        .readCollection(this.name)
+        .map((record) => new FakeDocSnapshot(String(record.id), cloneRecord(record))),
+    );
+  }
+
   where(field: string, op: "==", value: unknown) {
     return new FakeQuery(this.db, this.name).where(field, op, value);
   }
@@ -210,6 +219,24 @@ class FakeDb {
 }
 
 const tests: TestCase[] = [
+  {
+    name: "lists owner store summaries newest first",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [
+          { id: "store-1", name: "Downtown", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") },
+          { id: "store-2", name: "Midtown", qr_token: "qr-2", created_at: at("2026-04-10T00:00:00Z") },
+        ],
+      });
+
+      const stores = await getOwnerStoreSummariesWithDb(asDb(db));
+
+      assert.equal(stores.length, 2);
+      assert.equal(stores[0]?.id, "store-2");
+      assert.equal(stores[0]?.name, "Midtown");
+      assert.equal(stores[1]?.id, "store-1");
+    },
+  },
   {
     name: "builds scan roster statuses from latest employee logs",
     run: async () => {

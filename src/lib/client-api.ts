@@ -2,15 +2,17 @@
 
 import {
   DashboardSnapshotDto,
+  OwnerStoreListDto,
   ReportsSnapshotDto,
   ScanRosterDto,
   SerializedEmployee,
+  SerializedOwnerStoreSummary,
   SerializedScanEmployeeStatus,
   SerializedTimelog,
   StoreLookupDto,
 } from "@/lib/api-types";
 import type { TimesheetRow } from "@/features/reports/types";
-import { DashboardEmployeeStatus, Employee, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
+import { DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -32,6 +34,13 @@ function parseTimelog(timelog: SerializedTimelog): Timelog {
   return {
     ...timelog,
     timestamp: new Date(timelog.timestamp),
+  };
+}
+
+function parseOwnerStoreSummary(store: SerializedOwnerStoreSummary): OwnerStoreSummary {
+  return {
+    ...store,
+    created_at: new Date(store.created_at),
   };
 }
 
@@ -122,6 +131,15 @@ export async function getOwnerSession() {
     cache: "no-store",
   });
   return readJson<{ authenticated: boolean }>(response);
+}
+
+export async function getOwnerStores() {
+  const response = await fetch("/api/admin/stores", {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = await readJson<OwnerStoreListDto>(response);
+  return payload.stores.map(parseOwnerStoreSummary);
 }
 
 export async function loginOwner(secret: string) {

@@ -1,4 +1,4 @@
-import { Employee, PublicStore, Timelog } from "@/types";
+import { Employee, OwnerStoreSummary, PublicStore, Timelog } from "@/types";
 
 export interface SerializedEmployee extends Omit<Employee, "created_at"> {
   created_at: string;
@@ -6,6 +6,10 @@ export interface SerializedEmployee extends Omit<Employee, "created_at"> {
 
 export interface SerializedTimelog extends Omit<Timelog, "timestamp"> {
   timestamp: string;
+}
+
+export interface SerializedOwnerStoreSummary extends Omit<OwnerStoreSummary, "created_at"> {
+  created_at: string;
 }
 
 export type PublicStoreDto = PublicStore;
@@ -34,4 +38,8 @@ export interface StoreLookupDto {
 export interface ScanRosterDto {
   store: PublicStoreDto;
   employees: SerializedScanEmployeeStatus[];
+}
+
+export interface OwnerStoreListDto {
+  stores: SerializedOwnerStoreSummary[];
 }

@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import {
   createClockPostHandler,
   createDashboardGetHandler,
+  createOwnerStoresGetHandler,
   createPublicStoreGetHandler,
   createReportsGetHandler,
   createReportsPostHandler,
@@ -37,6 +38,55 @@ const baseDependencies = {
 };
 
 const tests: TestCase[] = [
+  {
+    name: "owner stores route rejects unauthorized owner requests",
+    run: async () => {
+      const GET = createOwnerStoresGetHandler({
+        getOwnerSession: () => null,
+        getOwnerStoreSummariesServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+      });
+
+      const response = await GET(makeRequest("http://localhost/api/admin/stores"));
+
+      assert.equal(response.status, 401);
+      assert.deepEqual(await response.json(), { error: "Owner access is required." });
+    },
+  },
+  {
+    name: "owner stores route serializes created timestamps",
+    run: async () => {
+      const GET = createOwnerStoresGetHandler({
+        getOwnerSession: () => ({
+          kind: "owner" as const,
+          exp: Date.now() + 60_000,
+        }),
+        getOwnerStoreSummariesServer: async () => [
+          {
+            id: "store-1",
+            name: "Downtown",
+            qr_token: "qr-1",
+            created_at: at("2026-04-11T00:00:00Z"),
+          },
+        ],
+      });
+
+      const response = await GET(makeRequest("http://localhost/api/admin/stores"));
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        stores: [
+          {
+            id: "store-1",
+            name: "Downtown",
+            qr_token: "qr-1",
+            created_at: "2026-04-11T00:00:00.000Z",
+          },
+        ],
+      });
+    },
+  },
   {
     name: "public store route returns 404 when the qr token is unknown",
     run: async () => {
