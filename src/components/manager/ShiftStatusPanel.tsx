@@ -38,6 +38,7 @@ export function ShiftStatusPanel({
       title={title}
       description={description}
       statusBadge={statusBadge}
+      inlineHeaderOnMobile
       headerActions={
         <div
           className={`flex items-center justify-center ${
@@ -65,14 +66,14 @@ export function ShiftStatusPanel({
           {items.map((item) => (
             <li
               key={item.id}
-              className={`flex min-w-0 flex-col gap-2.5 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-3 ${
+              className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 ${
                 compact ? "px-3 py-3 sm:px-4" : "px-4 py-4 md:px-5"
               }`}
             >
               <div className="flex min-w-0 items-center gap-3">
                 <div
                   className={`flex shrink-0 items-center justify-center border ${
-                    compact ? "h-9 w-9 rounded-[12px]" : "h-11 w-11 rounded-[16px]"
+                    compact ? "h-9 w-9 rounded-[12px]" : "h-9 w-9 rounded-[12px] sm:h-11 sm:w-11 sm:rounded-[16px]"
                   } ${
                     item.tone === "active"
                       ? "border-success/15 bg-success/10"
@@ -80,7 +81,7 @@ export function ShiftStatusPanel({
                   }`}
                 >
                   <span
-                    className={`${compact ? "text-sm" : "text-base"} font-bold ${
+                    className={`${compact ? "text-sm" : "text-sm sm:text-base"} font-bold ${
                       item.tone === "active" ? "text-success" : "text-text-muted"
                     }`}
                   >
@@ -89,12 +90,12 @@ export function ShiftStatusPanel({
                 </div>
 
                 <div className="min-w-0">
-                  <p className={`${compact ? "text-sm" : "text-base"} font-bold text-foreground`}>
+                  <p className={`${compact ? "text-sm" : "text-sm sm:text-base"} truncate font-bold text-foreground`}>
                     {item.name}
                   </p>
                   <p
-                    className={`truncate font-medium text-text-muted ${
-                      compact ? "text-[11px]" : "text-xs"
+                    className={`font-medium text-text-muted ${
+                      compact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-[11px] sm:line-clamp-1 sm:text-xs"
                     }`}
                   >
                     {item.detail}
@@ -103,8 +104,10 @@ export function ShiftStatusPanel({
               </div>
 
               <span
-                className={`inline-flex self-start items-center justify-center rounded-full font-bold uppercase tracking-[0.24em] md:justify-self-end ${
-                  compact ? "min-h-[34px] px-2.5 py-1.5 text-[10px]" : "min-h-[40px] px-3 py-2 text-[11px]"
+                className={`inline-flex items-center justify-center justify-self-end whitespace-nowrap rounded-full font-bold uppercase tracking-[0.18em] ${
+                  compact
+                    ? "min-h-[34px] px-2.5 py-1.5 text-[10px]"
+                    : "min-h-[30px] px-2.5 py-1 text-[10px] sm:min-h-[40px] sm:px-3 sm:py-2 sm:text-[11px]"
                 } ${
                   item.tone === "active"
                     ? "bg-success text-white"
@@ -114,10 +117,10 @@ export function ShiftStatusPanel({
                 {item.tone === "active" ? (
                   item.statusLabel
                 ) : (
-                  <Circle className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+                  <Circle className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5 sm:h-4 sm:w-4"} />
                 )}
                 {item.tone === "active" ? null : (
-                  <span className={compact ? "ml-1.5" : "ml-2"}>{item.statusLabel}</span>
+                  <span className={compact ? "ml-1.5" : "ml-1.5 sm:ml-2"}>{item.statusLabel}</span>
                 )}
               </span>
             </li>

@@ -1,5 +1,7 @@
 "use client";
 
+import { format } from "date-fns";
+
 import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { formatPayrollDuration } from "@/lib/time-calculation";
 import { EditableTimeInput } from "./EditableTimeInput";
@@ -35,9 +37,10 @@ export function AllEmployeesTimesheetTable({
     <WorkspacePanel
       title="Timesheet"
       bodyClassName="p-0"
+      className={isPhoneWidth ? "rounded-[24px]" : ""}
     >
       {isPhoneWidth ? (
-        <div className="space-y-5 p-4 sm:p-5">
+        <div className="space-y-4 p-3 sm:p-5">
           {!hasReports ? (
             <div className="rounded-[22px] border border-dashed border-surfacestroke bg-background px-4 py-10 text-center text-sm font-medium text-text-muted">
               {emptyMessage}
@@ -46,9 +49,9 @@ export function AllEmployeesTimesheetTable({
             reports.map((report) => (
               <section
                 key={report.employee.id}
-                className="space-y-4 rounded-[22px] border border-surfacestroke bg-background px-4 py-4"
+                className="space-y-3"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 rounded-[18px] border border-surfacestroke bg-background px-4 py-4">
                   <div>
                     <p className="font-bold text-foreground">{report.name}</p>
                   </div>
@@ -70,14 +73,16 @@ export function AllEmployeesTimesheetTable({
                   report.timesheetRows.map((row, index) => (
                     <article
                       key={`${row.employeeId}-${row.date}-${row.clockIn}-${index}`}
-                      className="space-y-4 rounded-[20px] border border-surfacestroke bg-surface px-4 py-4"
+                      className="space-y-4 rounded-[18px] border border-surfacestroke bg-background px-4 py-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                             Date
                           </p>
-                          <p className="mt-1 font-semibold text-foreground">{row.date}</p>
+                          <p className="mt-1 font-semibold text-foreground">
+                            {format(row.clockInAt, "dd-MM-yyyy")}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
@@ -121,6 +126,20 @@ export function AllEmployeesTimesheetTable({
                     </article>
                   ))
                 )}
+
+                {report.timesheetRows.length > 0 ? (
+                  <div className="flex items-center justify-between gap-3 rounded-[18px] border border-surfacestroke bg-background px-4 py-4">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                        Total
+                      </p>
+                      <p className="mt-1 font-semibold text-foreground">{report.name}</p>
+                    </div>
+                    <p className="font-mono-brand font-bold text-foreground">
+                      {formatPayrollDuration(report.totalMinutes)}
+                    </p>
+                  </div>
+                ) : null}
               </section>
             ))
           )}
@@ -175,7 +194,9 @@ export function AllEmployeesTimesheetTable({
                       className="transition-colors hover:bg-background"
                     >
                       <td className="px-5 py-4 align-top md:px-6"></td>
-                      <td className="px-5 py-4 font-medium text-foreground md:px-6">{row.date}</td>
+                      <td className="px-5 py-4 font-medium text-foreground md:px-6">
+                        {format(row.clockInAt, "dd-MM-yyyy")}
+                      </td>
                       <td className="px-5 py-4 font-medium text-foreground md:px-6">
                         <EditableTimeInput
                           value={row.clockIn}

@@ -10,6 +10,7 @@ import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShel
 import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { AllEmployeesTimesheetTable } from "@/features/reports/components/AllEmployeesTimesheetTable";
 import { EmployeeReportDetail } from "@/features/reports/components/EmployeeReportDetail";
+import { useIsPhoneWidth } from "@/features/reports/useIsPhoneWidth";
 import {
   buildReportData,
   rebuildEmployeeReport,
@@ -53,6 +54,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
   const [reportData, setReportData] = useState<ReturnType<typeof buildReportData>["employeeGroups"]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<"ALL" | string>("ALL");
   const [drafts, setDrafts] = useState<ReportDraft[]>([]);
+  const isPhoneWidth = useIsPhoneWidth();
 
   const syncDrafts = useCallback(
     (nextDrafts: ReportDraft[]) => {
@@ -299,13 +301,13 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
 
   return (
     <ManagerWorkspaceShell qrToken={qrToken} currentPath={`/reports/${qrToken}`}>
-      <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+      <div className="space-y-5 px-0">
         <ManagerWorkspaceHeader
           eyebrow="Reports"
           title={store?.name ?? "QRShift"}
           meta={
             <p className="text-sm font-medium text-text-muted">
-              {format(new Date(dateStrStart), "MMM d, yyyy")} to {format(new Date(dateStrEnd), "MMM d, yyyy")}
+              {format(new Date(dateStrStart), "dd-MM-yyyy")} to {format(new Date(dateStrEnd), "dd-MM-yyyy")}
             </p>
           }
           primaryAction={
@@ -334,9 +336,15 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
           }
         />
 
-        <WorkspacePanel>
+        <WorkspacePanel className={isPhoneWidth ? "rounded-[24px]" : ""}>
           <div className="space-y-4">
-            <div className="rounded-[20px] border border-primary/15 bg-primary/8 px-4 py-4 sm:px-5">
+            <div
+              className={`rounded-[20px] px-4 py-4 sm:px-5 ${
+                isPhoneWidth
+                  ? "bg-primary/8"
+                  : "border border-primary/15 bg-primary/8"
+              }`}
+            >
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary">
@@ -352,7 +360,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
                   </div>
                 </div>
 
-                <div className="rounded-[18px] border border-surfacestroke bg-background px-4 py-3 md:min-w-[220px] md:text-right">
+                <div className="w-full rounded-[18px] border border-surfacestroke bg-background px-4 py-3 md:min-w-[220px] md:w-auto md:text-right">
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
                     Total hours
                   </p>
@@ -366,7 +374,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
 
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap">
-                <div className="flex min-h-[44px] flex-col gap-2 rounded-[20px] border border-surfacestroke bg-background px-3 py-3 sm:flex-row sm:items-center">
+                <div className="flex min-h-[44px] flex-col gap-2 rounded-[18px] border border-surfacestroke bg-background px-3 py-3 sm:flex-row sm:items-center sm:rounded-[20px]">
                   <input
                     type="date"
                     value={dateStrStart}
@@ -382,7 +390,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
                   />
                 </div>
 
-                <label className="flex min-h-[44px] min-w-[220px] flex-col justify-center rounded-[20px] border border-surfacestroke bg-background px-3 py-3">
+                <label className="flex min-h-[44px] min-w-0 flex-col justify-center rounded-[18px] border border-surfacestroke bg-background px-3 py-3 sm:min-w-[220px] sm:rounded-[20px]">
                   <span className="sr-only">Employee</span>
                   <select
                     value={selectedEmployeeId}
@@ -406,7 +414,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
                     await fetchSnapshot();
                   }}
                   disabled={calculating}
-                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface disabled:opacity-70"
+                  className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-background px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-surface disabled:opacity-70 sm:w-auto"
                 >
                   <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
                   <span>{calculating ? "Refreshing" : "Refresh"}</span>

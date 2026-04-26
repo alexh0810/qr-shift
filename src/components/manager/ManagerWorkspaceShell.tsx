@@ -65,11 +65,11 @@ export function ManagerWorkspaceShell({
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(36,92,255,0.08),transparent_42%),var(--color-background)]">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-2 py-3 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <div
-          className={`overflow-hidden rounded-[32px] border border-border-strong bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_78%,var(--color-surface))] shadow-[var(--shadow-panel)] ${frameClassName}`.trim()}
+          className={`overflow-hidden rounded-[28px] border border-border-strong bg-[color:color-mix(in_srgb,var(--color-bg-elevated)_78%,var(--color-surface))] shadow-[var(--shadow-panel)] sm:rounded-[32px] ${frameClassName}`.trim()}
         >
-          <div className="qr-grid-accent border-b border-surfacestroke px-5 py-4 sm:px-6 sm:py-5">
+          <div className="qr-grid-accent border-b border-surfacestroke px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center justify-between gap-4">
@@ -123,7 +123,7 @@ export function ManagerWorkspaceShell({
             </div>
           </div>
 
-          <main className={`px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 ${contentClassName}`.trim()}>
+          <main className={`px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 ${contentClassName}`.trim()}>
             {children}
           </main>
         </div>

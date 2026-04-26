@@ -122,7 +122,7 @@ function DashboardWorkspace({ qrToken }: { qrToken: string }) {
 
   return (
     <ManagerWorkspaceShell qrToken={qrToken} currentPath={`/dashboard/${qrToken}`}>
-      <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+      <div className="space-y-5 px-0">
         <ManagerWorkspaceHeader
           eyebrow="Dashboard"
           title={store.name}
@@ -157,7 +157,7 @@ function DashboardWorkspace({ qrToken }: { qrToken: string }) {
           }
         />
 
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-5 xl:grid-cols-2">
           <ShiftStatusPanel
             title="On Shift"
             emptyMessage="No one is currently clocked in."

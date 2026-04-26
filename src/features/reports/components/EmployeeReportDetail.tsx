@@ -47,9 +47,10 @@ export function EmployeeReportDetail({
     <WorkspacePanel
       title="Timesheet"
       bodyClassName="p-0"
+      className={isPhoneWidth ? "rounded-[24px]" : ""}
     >
         {isPhoneWidth ? (
-          <div className="space-y-4 p-4">
+          <div className="space-y-4 p-3">
             {!hasDetailData || !selectedReport ? (
               <div className="rounded-[22px] border border-dashed border-surfacestroke bg-background px-4 py-10 text-center text-sm font-medium text-text-muted">
                 {mobileEmptyMessage}
@@ -59,7 +60,7 @@ export function EmployeeReportDetail({
                 {selectedReport.timesheetRows.map((row, index) => (
                   <article
                     key={`${row.employeeId}-${row.date}-${row.clockIn}-${index}`}
-                    className="space-y-4 rounded-[20px] border border-surfacestroke bg-background px-4 py-4"
+                    className="space-y-4 rounded-[18px] border border-surfacestroke bg-background px-4 py-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -67,7 +68,7 @@ export function EmployeeReportDetail({
                           Date
                         </p>
                         <p className="mt-1 font-semibold text-foreground">
-                          {format(row.clockInAt, "EEE, MMM d, yyyy")}
+                          {format(row.clockInAt, "dd-MM-yyyy")}
                         </p>
                       </div>
                       <div className="text-right">
@@ -160,7 +161,7 @@ export function EmployeeReportDetail({
                     >
                       <td className="px-5 py-4 md:px-6">
                         <p className="font-semibold text-foreground">
-                          {format(row.clockInAt, "EEE, MMM d, yyyy")}
+                          {format(row.clockInAt, "dd-MM-yyyy")}
                         </p>
                         {row.note ? (
                           <p className={`mt-1 ${rowStatusClassName(row)}`}>

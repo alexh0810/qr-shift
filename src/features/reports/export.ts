@@ -47,7 +47,7 @@ export function buildReportsCsv(
       rows.push(
         [
           escapeCsvValue(group.name),
-          escapeCsvValue(format(row.clockInAt, "MMM d, yyyy")),
+          escapeCsvValue(format(row.clockInAt, "dd-MM-yyyy")),
           escapeCsvValue(row.clockIn),
           escapeCsvValue(exportedClockOut),
           escapeCsvValue(row.durationDisplay),
@@ -80,7 +80,7 @@ export function buildReportsCsv(
         escapeCsvValue(""),
         escapeCsvValue(""),
         escapeCsvValue(formatPayrollDuration(globalSummary.totalMinutes)),
-        escapeCsvValue(String(groupsToExport.length)),
+        escapeCsvValue(""),
       ].join(","),
     );
   }

@@ -4,6 +4,7 @@ interface WorkspacePanelProps {
   description?: string;
   statusBadge?: React.ReactNode;
   headerActions?: React.ReactNode;
+  inlineHeaderOnMobile?: boolean;
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
@@ -16,6 +17,7 @@ export function WorkspacePanel({
   description,
   statusBadge,
   headerActions,
+  inlineHeaderOnMobile = false,
   children,
   className = "",
   bodyClassName = "",
@@ -33,7 +35,13 @@ export function WorkspacePanel({
             compact ? "px-4 py-4 sm:px-4" : "px-5 py-5 sm:px-6"
           }`}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div
+            className={
+              inlineHeaderOnMobile
+                ? "flex items-start justify-between gap-4"
+                : "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+            }
+          >
             <div className="space-y-2">
               {eyebrow ? (
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">
@@ -64,7 +72,13 @@ export function WorkspacePanel({
             </div>
 
             {headerActions ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+              <div
+                className={
+                  inlineHeaderOnMobile
+                    ? "flex shrink-0 items-center justify-end"
+                    : "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end"
+                }
+              >
                 {headerActions}
               </div>
             ) : null}

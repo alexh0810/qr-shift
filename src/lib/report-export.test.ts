@@ -176,11 +176,11 @@ const tests: TestCase[] = [
       );
       assert.equal(
         lines[1],
-        '"Kim","Apr 22, 2026","19:30","19:35","0.08 h (0h 5m)","",""',
+        '"Kim","22-04-2026","19:30","19:35","0.08 h (0h 5m)","",""',
       );
       assert.equal(
         lines[2],
-        '"Kim","Apr 22, 2026","19:38","21:50","2.20 h (2h 12m)","",""',
+        '"Kim","22-04-2026","19:38","21:50","2.20 h (2h 12m)","",""',
       );
       assert.equal(
         lines[3],
@@ -209,7 +209,7 @@ const tests: TestCase[] = [
       assert.ok(lines.includes('"Alex","Summary","","","","8.00 h (8h 0m)","1"'));
       assert.equal(
         lines[lines.length - 1],
-        '"All Employees","Summary","","","","10.28 h (10h 17m)","2"',
+        '"All Employees","Summary","","","","10.28 h (10h 17m)",""',
       );
     },
   },
@@ -235,7 +235,7 @@ const tests: TestCase[] = [
 
       assert.equal(
         lines[1],
-        '"Alex","Apr 25, 2026","12:00","Ongoing","3.00 h (3h 0m)","",""',
+        '"Alex","25-04-2026","12:00","Ongoing","3.00 h (3h 0m)","",""',
       );
     },
   },
