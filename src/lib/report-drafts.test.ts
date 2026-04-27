@@ -13,12 +13,22 @@ function at(value: string): Date {
   return new Date(value);
 }
 
+function localAt(
+  year: number,
+  monthIndex: number,
+  day: number,
+  hours = 0,
+  minutes = 0,
+) {
+  return new Date(year, monthIndex, day, hours, minutes, 0, 0);
+}
+
 const ongoingReport: EmployeeReport = {
   employee: {
     id: "emp-1",
     name: "Alex",
     store_id: "store-1",
-    created_at: at("2026-01-01T00:00:00"),
+    created_at: localAt(2026, 0, 1),
   },
   name: "Alex",
   totalMinutes: 180,
@@ -27,7 +37,7 @@ const ongoingReport: EmployeeReport = {
   shifts: [],
   dailySummaries: [
     {
-      date: at("2026-04-25T00:00:00"),
+      date: localAt(2026, 3, 25),
       dateKey: "2026-04-25",
       shifts: [],
       totalMinutes: 180,
@@ -46,8 +56,8 @@ const ongoingReport: EmployeeReport = {
       clockOut: "15:00",
       durationMinutes: 180,
       durationDisplay: "3.00 h (3h 0m)",
-      clockInAt: at("2026-04-25T12:00:00"),
-      clockOutAt: at("2026-04-25T15:00:00"),
+      clockInAt: localAt(2026, 3, 25, 12, 0),
+      clockOutAt: localAt(2026, 3, 25, 15, 0),
       shiftState: "ongoing",
       note: "Ongoing",
     },
@@ -67,8 +77,8 @@ function makeLog(id: string, employeeId: string, type: "IN" | "OUT", timestamp: 
 const activeDraft: ReportDraft = {
   employeeId: "emp-1",
   clockInLogId: "log-in-1",
-  draftClockOutAt: "2026-04-25T17:00:00.000Z",
-  savedAt: "2026-04-25T15:30:00.000Z",
+  draftClockOutAt: localAt(2026, 3, 25, 20, 0).toISOString(),
+  savedAt: localAt(2026, 3, 25, 18, 30).toISOString(),
 };
 
 const tests: TestCase[] = [
