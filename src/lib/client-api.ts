@@ -2,6 +2,7 @@
 
 import {
   DashboardSnapshotDto,
+  OwnerStoreRosterDto,
   OwnerStoreListDto,
   ReportsSnapshotDto,
   ScanRosterDto,
@@ -194,6 +195,51 @@ export async function createDemoStore() {
   });
 
   return readJson<{ storeId: string; storeName: string; qrToken: string; pin: string }>(response);
+}
+
+export async function getOwnerStoreRoster(storeId: string): Promise<{
+  store: OwnerStoreSummary;
+  employees: Employee[];
+}> {
+  const response = await fetch(`/api/admin/stores/${storeId}/employees`, {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = await readJson<OwnerStoreRosterDto>(response);
+  return {
+    store: parseOwnerStoreSummary(payload.store),
+    employees: payload.employees.map(parseEmployee),
+  };
+}
+
+export async function createStoreEmployee(storeId: string, name: string) {
+  const response = await fetch(`/api/admin/stores/${storeId}/employees`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({ name }),
+  });
+
+  return readJson<{ employee: SerializedEmployee }>(response);
+}
+
+export async function updateStoreEmployee(
+  storeId: string,
+  employeeId: string,
+  payload: { name?: string; status?: "active" | "archived" },
+) {
+  const response = await fetch(`/api/admin/stores/${storeId}/employees/${employeeId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+
+  return readJson<{ employee: SerializedEmployee }>(response);
 }
 
 export async function getDashboardSnapshot(qrToken: string): Promise<{

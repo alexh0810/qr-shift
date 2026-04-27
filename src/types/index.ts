@@ -25,6 +25,7 @@ export interface Employee {
   name: string;
   store_id: string;
   created_at: Date;
+  status: "active" | "archived";
 }
 
 export interface Timelog {

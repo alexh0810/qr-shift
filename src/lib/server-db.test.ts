@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 
 import {
+  createEmployeeForStoreWithDb,
   createClockActionWithDb,
+  getOwnerStoreRosterWithDb,
   getOwnerStoreSummariesWithDb,
   getScanRosterByQrTokenWithDb,
   saveReportCorrectionServerWithDb,
+  updateEmployeeForStoreWithDb,
 } from "./server-db";
 
 type TestCase = {
@@ -25,6 +28,7 @@ type EmployeeRecord = {
   name: string;
   store_id: string;
   created_at: Date;
+  status?: "active" | "archived";
 };
 
 type TimelogRecord = {
@@ -259,6 +263,135 @@ const tests: TestCase[] = [
       assert.equal(roster?.employees[0]?.status, "IN");
       assert.equal(roster?.employees[1]?.status, "OUT");
       assert.equal(roster?.employees[1]?.latestLog?.id, "log-3");
+    },
+  },
+  {
+    name: "treats legacy employees without a stored status as active",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [{ id: "store-1", name: "Demo", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") }],
+        employees: [{ id: "emp-1", name: "Alex", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z") }],
+      });
+
+      const roster = await getOwnerStoreRosterWithDb(asDb(db), "store-1");
+
+      assert.ok(roster);
+      assert.equal(roster?.employees[0]?.status, "active");
+    },
+  },
+  {
+    name: "excludes archived employees from the scan roster",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [{ id: "store-1", name: "Demo", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") }],
+        employees: [
+          { id: "emp-1", name: "Alex", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z"), status: "active" },
+          { id: "emp-2", name: "Kim", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z"), status: "archived" },
+        ],
+      });
+
+      const roster = await getScanRosterByQrTokenWithDb(asDb(db), "qr-1");
+
+      assert.ok(roster);
+      assert.equal(roster?.employees.length, 1);
+      assert.equal(roster?.employees[0]?.employee.id, "emp-1");
+    },
+  },
+  {
+    name: "keeps archived employees in owner roster responses for historical management",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [{ id: "store-1", name: "Demo", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") }],
+        employees: [
+          { id: "emp-1", name: "Alex", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z"), status: "active" },
+          { id: "emp-2", name: "Kim", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z"), status: "archived" },
+        ],
+      });
+
+      const roster = await getOwnerStoreRosterWithDb(asDb(db), "store-1");
+
+      assert.ok(roster);
+      assert.equal(roster?.employees.length, 2);
+      assert.equal(roster?.employees[1]?.status, "archived");
+    },
+  },
+  {
+    name: "creates an active employee under the requested store",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [{ id: "store-1", name: "Demo", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") }],
+      });
+
+      const employee = await createEmployeeForStoreWithDb(asDb(db), "store-1", " Alex ");
+
+      assert.equal(employee.name, "Alex");
+      assert.equal(employee.store_id, "store-1");
+      assert.equal(employee.status, "active");
+      assert.equal(db.readCollection("employees").length, 1);
+    },
+  },
+  {
+    name: "rejects duplicate normalized employee names within the same store",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [{ id: "store-1", name: "Demo", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") }],
+        employees: [
+          { id: "emp-1", name: "Alex Kim", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z"), status: "active" },
+        ],
+      });
+
+      await assert.rejects(
+        () => createEmployeeForStoreWithDb(asDb(db), "store-1", " alex   kim "),
+        /duplicate_employee_name/,
+      );
+    },
+  },
+  {
+    name: "rejects employee updates when the employee belongs to another store",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [
+          { id: "store-1", name: "Demo", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") },
+          { id: "store-2", name: "Other", qr_token: "qr-2", created_at: at("2026-04-02T00:00:00Z") },
+        ],
+        employees: [
+          { id: "emp-1", name: "Alex", store_id: "store-2", created_at: at("2026-04-01T00:00:00Z"), status: "active" },
+        ],
+      });
+
+      await assert.rejects(
+        () =>
+          updateEmployeeForStoreWithDb(asDb(db), {
+            storeId: "store-1",
+            employeeId: "emp-1",
+            name: "Renamed",
+          }),
+        /employee_store_mismatch/,
+      );
+    },
+  },
+  {
+    name: "updates employee name and archive status",
+    run: async () => {
+      const db = new FakeDb({
+        stores: [{ id: "store-1", name: "Demo", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") }],
+        employees: [
+          { id: "emp-1", name: "Alex", store_id: "store-1", created_at: at("2026-04-01T00:00:00Z"), status: "active" },
+        ],
+      });
+
+      const employee = await updateEmployeeForStoreWithDb(asDb(db), {
+        storeId: "store-1",
+        employeeId: "emp-1",
+        name: "Alex Kim",
+        status: "archived",
+      });
+
+      assert.equal(employee.name, "Alex Kim");
+      assert.equal(employee.status, "archived");
+      const stored = db.getRecord("employees", "emp-1");
+      assert.equal(stored?.name, "Alex Kim");
+      assert.equal(stored?.status, "archived");
     },
   },
   {

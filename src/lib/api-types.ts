@@ -43,3 +43,8 @@ export interface ScanRosterDto {
 export interface OwnerStoreListDto {
   stores: SerializedOwnerStoreSummary[];
 }
+
+export interface OwnerStoreRosterDto {
+  store: SerializedOwnerStoreSummary;
+  employees: SerializedEmployee[];
+}

@@ -3,12 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getManagerSession, getOwnerSession, isManagerSessionAuthorized } from "./server-auth";
 import {
   createClockAction,
+  createEmployeeForStoreServer,
   getDashboardSnapshotByQrToken,
+  getOwnerStoreRosterServer,
   getOwnerStoreSummariesServer,
   getReportsSnapshotByQrToken,
   getScanRosterByQrToken,
   getStoreByQrTokenServer,
   saveReportCorrectionServer,
+  updateEmployeeForStoreServer,
   toPublicStore,
 } from "./server-db";
 
@@ -36,6 +39,13 @@ type OwnerStoresRouteDependencies = {
   getOwnerStoreSummariesServer: typeof getOwnerStoreSummariesServer;
 };
 
+type OwnerStoreRosterRouteDependencies = {
+  getOwnerSession: typeof getOwnerSession;
+  getOwnerStoreRosterServer: typeof getOwnerStoreRosterServer;
+  createEmployeeForStoreServer: typeof createEmployeeForStoreServer;
+  updateEmployeeForStoreServer: typeof updateEmployeeForStoreServer;
+};
+
 type ReportsRouteDependencies = {
   getManagerSession: typeof getManagerSession;
   isManagerSessionAuthorized: typeof isManagerSessionAuthorized;
@@ -59,6 +69,19 @@ function serializeTimelog(
   return {
     ...timelog,
     timestamp: timelog.timestamp.toISOString(),
+  };
+}
+
+function serializeEmployee(employee: {
+  id: string;
+  name: string;
+  store_id: string;
+  created_at: Date;
+  status: "active" | "archived";
+}) {
+  return {
+    ...employee,
+    created_at: employee.created_at.toISOString(),
   };
 }
 
@@ -186,6 +209,116 @@ export function createOwnerStoresGetHandler(dependencies: OwnerStoresRouteDepend
   };
 }
 
+export function createOwnerStoreRosterGetHandler(dependencies: OwnerStoreRosterRouteDependencies) {
+  return async function GET(
+    request: NextRequest,
+    { params }: { params: { storeId: string } },
+  ) {
+    if (!dependencies.getOwnerSession(request)) {
+      return NextResponse.json({ error: "Owner access is required." }, { status: 401 });
+    }
+
+    const roster = await dependencies.getOwnerStoreRosterServer(params.storeId);
+    if (!roster) {
+      return NextResponse.json({ error: "Store not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      store: {
+        ...roster.store,
+        created_at: roster.store.created_at.toISOString(),
+      },
+      employees: roster.employees.map(serializeEmployee),
+    });
+  };
+}
+
+export function createOwnerStoreRosterPostHandler(dependencies: OwnerStoreRosterRouteDependencies) {
+  return async function POST(
+    request: NextRequest,
+    { params }: { params: { storeId: string } },
+  ) {
+    if (!dependencies.getOwnerSession(request)) {
+      return NextResponse.json({ error: "Owner access is required." }, { status: 401 });
+    }
+
+    const body = (await request.json().catch(() => null)) as { name?: string } | null;
+    const name = body?.name?.trim();
+
+    if (!name) {
+      return NextResponse.json({ error: "Enter an employee name." }, { status: 400 });
+    }
+
+    try {
+      const employee = await dependencies.createEmployeeForStoreServer(params.storeId, name);
+      return NextResponse.json({ employee: serializeEmployee(employee) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "employee_create_failed";
+      const errorMessage =
+        message === "store_not_found"
+          ? "Store not found."
+          : message === "duplicate_employee_name"
+            ? "An employee with that name already exists for this store."
+            : message === "invalid_employee_name"
+              ? "Enter an employee name."
+              : "QRShift couldn't add that employee. Try again.";
+
+      return NextResponse.json({ error: errorMessage }, { status: message === "store_not_found" ? 404 : 400 });
+    }
+  };
+}
+
+export function createOwnerStoreEmployeePatchHandler(dependencies: OwnerStoreRosterRouteDependencies) {
+  return async function PATCH(
+    request: NextRequest,
+    { params }: { params: { storeId: string; employeeId: string } },
+  ) {
+    if (!dependencies.getOwnerSession(request)) {
+      return NextResponse.json({ error: "Owner access is required." }, { status: 401 });
+    }
+
+    const body = (await request.json().catch(() => null)) as {
+      name?: string;
+      status?: "active" | "archived";
+    } | null;
+
+    try {
+      const employee = await dependencies.updateEmployeeForStoreServer({
+        storeId: params.storeId,
+        employeeId: params.employeeId,
+        name: typeof body?.name === "string" ? body.name : undefined,
+        status: body?.status,
+      });
+
+      return NextResponse.json({ employee: serializeEmployee(employee) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "employee_update_failed";
+      const status =
+        message === "store_not_found" || message === "employee_not_found"
+          ? 404
+          : message === "employee_store_mismatch"
+            ? 400
+            : 400;
+      const errorMessage =
+        message === "store_not_found"
+          ? "Store not found."
+          : message === "employee_not_found"
+            ? "Employee not found."
+            : message === "employee_store_mismatch"
+              ? "This employee does not belong to the selected store."
+              : message === "duplicate_employee_name"
+                ? "An employee with that name already exists for this store."
+                : message === "invalid_employee_name"
+                  ? "Enter an employee name."
+                  : message === "no_employee_changes"
+                    ? "No employee changes were provided."
+                    : "QRShift couldn't update that employee. Try again.";
+
+      return NextResponse.json({ error: errorMessage }, { status });
+    }
+  };
+}
+
 export function createReportsGetHandler(dependencies: ReportsRouteDependencies) {
   return async function GET(
     request: NextRequest,
@@ -203,10 +336,7 @@ export function createReportsGetHandler(dependencies: ReportsRouteDependencies) 
 
     return NextResponse.json({
       store: snapshot.store,
-      employees: snapshot.employees.map((employee) => ({
-        ...employee,
-        created_at: employee.created_at.toISOString(),
-      })),
+      employees: snapshot.employees.map(serializeEmployee),
       timelogs: snapshot.timelogs.map((timelog) => ({
         ...timelog,
         timestamp: timelog.timestamp.toISOString(),

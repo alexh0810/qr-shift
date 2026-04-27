@@ -5,6 +5,9 @@ import { NextRequest } from "next/server";
 import {
   createClockPostHandler,
   createDashboardGetHandler,
+  createOwnerStoreEmployeePatchHandler,
+  createOwnerStoreRosterGetHandler,
+  createOwnerStoreRosterPostHandler,
   createOwnerStoresGetHandler,
   createPublicStoreGetHandler,
   createReportsGetHandler,
@@ -84,6 +87,171 @@ const tests: TestCase[] = [
             created_at: "2026-04-11T00:00:00.000Z",
           },
         ],
+      });
+    },
+  },
+  {
+    name: "owner roster route rejects unauthorized requests",
+    run: async () => {
+      const GET = createOwnerStoreRosterGetHandler({
+        getOwnerSession: () => null,
+        getOwnerStoreRosterServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+        createEmployeeForStoreServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+        updateEmployeeForStoreServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+      });
+
+      const response = await GET(makeRequest("http://localhost/api/admin/stores/store-1/employees"), {
+        params: { storeId: "store-1" },
+      });
+
+      assert.equal(response.status, 401);
+      assert.deepEqual(await response.json(), { error: "Owner access is required." });
+    },
+  },
+  {
+    name: "owner roster route serializes store roster payloads",
+    run: async () => {
+      const GET = createOwnerStoreRosterGetHandler({
+        getOwnerSession: () => ({
+          kind: "owner" as const,
+          exp: Date.now() + 60_000,
+        }),
+        getOwnerStoreRosterServer: async () => ({
+          store: {
+            id: "store-1",
+            name: "Downtown",
+            qr_token: "qr-1",
+            created_at: at("2026-04-11T00:00:00Z"),
+          },
+          employees: [
+            {
+              id: "emp-1",
+              name: "Alex",
+              store_id: "store-1",
+              created_at: at("2026-04-01T00:00:00Z"),
+              status: "active" as const,
+            },
+          ],
+        }),
+        createEmployeeForStoreServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+        updateEmployeeForStoreServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+      });
+
+      const response = await GET(makeRequest("http://localhost/api/admin/stores/store-1/employees"), {
+        params: { storeId: "store-1" },
+      });
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        store: {
+          id: "store-1",
+          name: "Downtown",
+          qr_token: "qr-1",
+          created_at: "2026-04-11T00:00:00.000Z",
+        },
+        employees: [
+          {
+            id: "emp-1",
+            name: "Alex",
+            store_id: "store-1",
+            created_at: "2026-04-01T00:00:00.000Z",
+            status: "active",
+          },
+        ],
+      });
+    },
+  },
+  {
+    name: "owner roster post route creates active employees",
+    run: async () => {
+      const POST = createOwnerStoreRosterPostHandler({
+        getOwnerSession: () => ({
+          kind: "owner" as const,
+          exp: Date.now() + 60_000,
+        }),
+        getOwnerStoreRosterServer: async () => null,
+        createEmployeeForStoreServer: async () => ({
+          id: "emp-2",
+          name: "Kim",
+          store_id: "store-1",
+          created_at: at("2026-04-02T00:00:00Z"),
+          status: "active" as const,
+        }),
+        updateEmployeeForStoreServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+      });
+
+      const response = await POST(
+        makeRequest("http://localhost/api/admin/stores/store-1/employees", {
+          method: "POST",
+          body: JSON.stringify({ name: "Kim" }),
+          headers: { "Content-Type": "application/json" },
+        }),
+        { params: { storeId: "store-1" } },
+      );
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        employee: {
+          id: "emp-2",
+          name: "Kim",
+          store_id: "store-1",
+          created_at: "2026-04-02T00:00:00.000Z",
+          status: "active",
+        },
+      });
+    },
+  },
+  {
+    name: "owner roster patch route updates employee status",
+    run: async () => {
+      const PATCH = createOwnerStoreEmployeePatchHandler({
+        getOwnerSession: () => ({
+          kind: "owner" as const,
+          exp: Date.now() + 60_000,
+        }),
+        getOwnerStoreRosterServer: async () => null,
+        createEmployeeForStoreServer: async () => {
+          throw new Error("should_not_be_called");
+        },
+        updateEmployeeForStoreServer: async () => ({
+          id: "emp-1",
+          name: "Alex",
+          store_id: "store-1",
+          created_at: at("2026-04-01T00:00:00Z"),
+          status: "archived" as const,
+        }),
+      });
+
+      const response = await PATCH(
+        makeRequest("http://localhost/api/admin/stores/store-1/employees/emp-1", {
+          method: "PATCH",
+          body: JSON.stringify({ status: "archived" }),
+          headers: { "Content-Type": "application/json" },
+        }),
+        { params: { storeId: "store-1", employeeId: "emp-1" } },
+      );
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        employee: {
+          id: "emp-1",
+          name: "Alex",
+          store_id: "store-1",
+          created_at: "2026-04-01T00:00:00.000Z",
+          status: "archived",
+        },
       });
     },
   },

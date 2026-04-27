@@ -6,6 +6,7 @@ import { hashPin } from "./pin-hash";
 import { DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, Store, Timelog } from "../types";
 
 type DbLike = Pick<Firestore, "collection" | "runTransaction">;
+type EmployeeStatus = Employee["status"];
 
 function ensureDate(value: unknown) {
   if (value instanceof Date) {
@@ -22,6 +23,25 @@ function ensureDate(value: unknown) {
 async function generateToken(size: number) {
   const { nanoid } = await import("nanoid");
   return nanoid(size);
+}
+
+function normalizeEmployeeName(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function sortEmployeesByStatusAndName(employees: Employee[]) {
+  return [...employees].sort((left, right) => {
+    if (left.status !== right.status) {
+      return left.status === "active" ? -1 : 1;
+    }
+
+    const byName = left.name.localeCompare(right.name);
+    if (byName !== 0) {
+      return byName;
+    }
+
+    return left.created_at.getTime() - right.created_at.getTime();
+  });
 }
 
 function mapStore(id: string, data: Record<string, unknown>): Store {
@@ -41,6 +61,7 @@ function mapEmployee(id: string, data: Record<string, unknown>): Employee {
     name: String(data.name ?? ""),
     store_id: String(data.store_id ?? ""),
     created_at: ensureDate(data.created_at),
+    status: data.status === "archived" ? "archived" : "active",
   };
 }
 
@@ -103,11 +124,31 @@ export async function getOwnerStoreSummariesServer() {
 
 export async function getEmployeesByStoreIdWithDb(db: DbLike, storeId: string) {
   const snapshot = await db.collection("employees").where("store_id", "==", storeId).get();
-  return snapshot.docs.map((document) => mapEmployee(document.id, document.data()));
+  return sortEmployeesByStatusAndName(
+    snapshot.docs.map((document) => mapEmployee(document.id, document.data())),
+  );
 }
 
 export async function getEmployeesByStoreIdServer(storeId: string) {
   return getEmployeesByStoreIdWithDb(adminDb, storeId);
+}
+
+export async function getOwnerStoreRosterWithDb(db: DbLike, storeId: string) {
+  const snapshot = await db.collection("stores").get();
+  const storeDocument = snapshot.docs.find((document) => document.id === storeId);
+
+  if (!storeDocument) {
+    return null;
+  }
+
+  return {
+    store: toOwnerStoreSummary(mapStore(storeDocument.id, storeDocument.data())),
+    employees: await getEmployeesByStoreIdWithDb(db, storeId),
+  };
+}
+
+export async function getOwnerStoreRosterServer(storeId: string) {
+  return getOwnerStoreRosterWithDb(adminDb, storeId);
 }
 
 export async function getStoreTimelogsWithDb(db: DbLike, storeId: string) {
@@ -150,6 +191,7 @@ export async function getScanRosterByQrTokenWithDb(db: DbLike, qrToken: string) 
     getEmployeesByStoreIdWithDb(db, store.id),
     getStoreTimelogsWithDb(db, store.id),
   ]);
+  const activeEmployees = employees.filter((employee) => employee.status !== "archived");
 
   const latestLogByEmployee = new Map<string, Timelog>();
   for (const timelog of timelogs) {
@@ -158,7 +200,7 @@ export async function getScanRosterByQrTokenWithDb(db: DbLike, qrToken: string) 
 
   return {
     store: toPublicStore(store),
-    employees: employees.map((employee) => {
+    employees: activeEmployees.map((employee) => {
       const latestLog = latestLogByEmployee.get(employee.id) ?? null;
       return {
         employee,
@@ -380,6 +422,33 @@ function normalizeEmployeeNames(employeeNames: string[]) {
   return employeeNames.map((name) => name.trim()).filter(Boolean);
 }
 
+async function getStoreByIdWithDb(db: DbLike, storeId: string) {
+  const snapshot = await db.collection("stores").get();
+  const document = snapshot.docs.find((entry) => entry.id === storeId);
+  return document ? mapStore(document.id, document.data()) : null;
+}
+
+async function assertUniqueEmployeeNameWithDb(
+  db: DbLike,
+  storeId: string,
+  nextName: string,
+  excludeEmployeeId?: string,
+) {
+  const normalizedName = normalizeEmployeeName(nextName);
+  const employees = await getEmployeesByStoreIdWithDb(db, storeId);
+  const duplicate = employees.find((employee) => {
+    if (excludeEmployeeId && employee.id === excludeEmployeeId) {
+      return false;
+    }
+
+    return normalizeEmployeeName(employee.name) === normalizedName;
+  });
+
+  if (duplicate) {
+    throw new Error("duplicate_employee_name");
+  }
+}
+
 export async function createStoreAndEmployeesServer(
   storeName: string,
   pin: string,
@@ -403,6 +472,7 @@ export async function createStoreAndEmployeesServer(
       name,
       store_id: storeRef.id,
       created_at: createdAt,
+      status: "active",
     });
   }
 
@@ -437,6 +507,7 @@ export async function createDemoStoreWithTimelogsServer() {
       name: employeeName,
       store_id: storeRef.id,
       created_at: createdAt,
+      status: "active",
     });
   }
 
@@ -463,4 +534,107 @@ export async function createDemoStoreWithTimelogsServer() {
     qrToken,
     pin: demoSeed.pin,
   };
+}
+
+export async function createEmployeeForStoreWithDb(
+  db: DbLike,
+  storeId: string,
+  name: string,
+) {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw new Error("invalid_employee_name");
+  }
+
+  const store = await getStoreByIdWithDb(db, storeId);
+  if (!store) {
+    throw new Error("store_not_found");
+  }
+
+  await assertUniqueEmployeeNameWithDb(db, storeId, trimmedName);
+
+  const createdAt = new Date();
+  const employeeRef = db.collection("employees").doc();
+
+  await db.runTransaction(async (transaction) => {
+    transaction.create(employeeRef, {
+      name: trimmedName,
+      store_id: storeId,
+      created_at: createdAt,
+      status: "active",
+    });
+  });
+
+  return mapEmployee(employeeRef.id, {
+    name: trimmedName,
+    store_id: storeId,
+    created_at: createdAt,
+    status: "active",
+  });
+}
+
+export async function createEmployeeForStoreServer(storeId: string, name: string) {
+  return createEmployeeForStoreWithDb(adminDb, storeId, name);
+}
+
+export async function updateEmployeeForStoreWithDb(
+  db: DbLike,
+  input: {
+    storeId: string;
+    employeeId: string;
+    name?: string;
+    status?: EmployeeStatus;
+  },
+) {
+  const store = await getStoreByIdWithDb(db, input.storeId);
+  if (!store) {
+    throw new Error("store_not_found");
+  }
+
+  const employees = await getEmployeesByStoreIdWithDb(db, input.storeId);
+  const employee = employees.find((entry) => entry.id === input.employeeId);
+  if (!employee) {
+    const foreignEmployeeSnapshot = await db.collection("employees").get();
+    const existsElsewhere = foreignEmployeeSnapshot.docs.some((document) => document.id === input.employeeId);
+    throw new Error(existsElsewhere ? "employee_store_mismatch" : "employee_not_found");
+  }
+
+  const patch: Record<string, unknown> = {};
+
+  if (typeof input.name === "string") {
+    const trimmedName = input.name.trim();
+    if (!trimmedName) {
+      throw new Error("invalid_employee_name");
+    }
+
+    await assertUniqueEmployeeNameWithDb(db, input.storeId, trimmedName, input.employeeId);
+    patch.name = trimmedName;
+  }
+
+  if (input.status === "active" || input.status === "archived") {
+    patch.status = input.status;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    throw new Error("no_employee_changes");
+  }
+
+  const employeeRef = db.collection("employees").doc(input.employeeId);
+  await db.runTransaction(async (transaction) => {
+    transaction.update(employeeRef, patch);
+  });
+
+  return mapEmployee(input.employeeId, {
+    ...employee,
+    ...patch,
+  });
+}
+
+export async function updateEmployeeForStoreServer(input: {
+  storeId: string;
+  employeeId: string;
+  name?: string;
+  status?: EmployeeStatus;
+}) {
+  return updateEmployeeForStoreWithDb(adminDb, input);
 }

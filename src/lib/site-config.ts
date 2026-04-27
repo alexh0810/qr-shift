@@ -6,5 +6,5 @@ export const siteConfig = {
   CONTACT_EMAIL: contactEmail
     ? `mailto:${contactEmail}?subject=QRShift%20Inquiry`
     : "mailto:youremail@gmail.com?subject=QRShift%20Inquiry",
-  INTERNAL_DEMO_PATH: "/admin/create-store",
+  INTERNAL_DEMO_PATH: "/admin",
 } as const;
