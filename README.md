@@ -1,65 +1,24 @@
 # QRShift
 
-QRShift is a mobile-first QR-based staff attendance system for small businesses. Employees scan a store QR code to clock in and out without a login, while managers monitor live shift status and generate payroll-ready reports with decimal-hour totals.
+QRShift is a browser-based time clock for small businesses. Employees clock in and out by scanning a store QR code with their phone, no app or login needed. Managers see live shifts and export payroll-ready timesheets.
 
-## Description
+## Repository layout
 
-QRShift is designed for quick demo use and lightweight business operations:
+| Path | Contents |
+| --- | --- |
+| `web/` | Next.js 14 client (App Router, React 18, Tailwind CSS) |
+| `docs/` | Architecture, API reference, decisions, operations |
 
-- Employees use a QR code to access a scan page and record attendance.
-- Managers unlock a dashboard with a PIN to monitor current shift status.
-- Reports provide payroll-ready totals, per-shift breakdowns, employee filtering, and CSV export.
+## Quick start
 
-## Features
-
-- QR-based clock in/out with no employee login required
-- Protected manager dashboard with a server-issued store session
-- Payroll-ready reporting with decimal hours and timesheet rows
-- Employee filtering and detailed timesheet views
-- CSV export for summary and payroll workflows
-- Demo data generation for private product demos
-
-## Tech Stack
-
-- Next.js (App Router)
-- Firebase / Firestore
-- TypeScript
-- Tailwind CSS
-- date-fns
-
-## Project Structure
-
-```text
-src/
-  app/
-    admin/        Admin onboarding and demo store creation
-    dashboard/    Live manager dashboard
-    reports/      Payroll-ready reporting screens
-    scan/         Employee QR scan flow
-  components/     Shared UI wrappers and compatibility exports
-  features/
-    reports/      Report types, processing, export logic, and UI components
-  lib/            Shared data access, time helpers, and demo data builders
-  types/          App-wide TypeScript domain types
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm 9+
-- A Firebase project with Firestore enabled
-
-### Installation
+Requirements: Node 22+, npm 10+, a Firebase project with Firestore enabled.
 
 ```bash
 npm install
+npm run dev     # http://localhost:3000
 ```
 
-### Environment Setup
-
-Create `.env.local` with your Firebase web app configuration, manager/admin session secrets, and Firebase Admin credentials:
+The web app reads `web/.env.local`:
 
 ```bash
 NEXT_PUBLIC_FIREBASE_API_KEY=
@@ -77,81 +36,31 @@ FIREBASE_ADMIN_CLIENT_EMAIL=
 FIREBASE_ADMIN_PRIVATE_KEY=
 ```
 
-You can copy these keys from [.env.example](.env.example).
+| Command | Runs |
+| --- | --- |
+| `npm run dev` | Web dev server |
+| `npm run lint` | Lint all workspaces |
+| `npm run typecheck` | Type-check workspaces that define it |
+| `npm test` | Unit tests in all workspaces |
+| `npm run build` | Production builds |
+| `npm run test:e2e -w web` | Playwright end-to-end tests |
+| `npm run migrate:pins -w web` | Hash legacy plaintext manager PINs (see below) |
 
-### Run Locally
+## How it works
 
-```bash
-npm run dev
-```
+- **Clock in/out:** each store has a unique QR code. Employees scan it, pick their name, and the scan page decides whether the next action is `IN` or `OUT`.
+- **Dashboard and reports:** managers open `/dashboard/[qr_token]` or `/reports/[qr_token]`. A manager PIN is checked by a server route, which sets a 7-day `HttpOnly` store session. Reports give per-employee and all-staff totals in decimal hours, with CSV export.
+- **Demo data:** the owner-protected `/admin` page creates demo stores with realistic fake timelogs for walkthroughs.
 
-Open [http://localhost:3000](http://localhost:3000).
+## Configuration notes
 
-## Usage
+- **Landing page CTAs:** `web/src/lib/site-config.ts` reads `NEXT_PUBLIC_DEMO_BOOKING_URL` (Calendly "Request a Demo") and `NEXT_PUBLIC_CONTACT_EMAIL` (`mailto:` contact link).
+- **PIN migration:** stores with a plaintext `stores.pin` must be migrated before rollout. `npm run migrate:pins -w web` writes `stores.pin_hash` and removes the plaintext field.
 
-### Employee Clock In / Clock Out
+## Documentation
 
-1. A manager creates a store and employee list.
-2. The system generates a unique QR code for that store.
-3. Employees scan the QR code and select their name.
-4. The scan page determines whether the next action is `IN` or `OUT`.
-
-### Manager Dashboard and Reports
-
-1. Managers open the dashboard or reports URL using the store QR token.
-2. A manager PIN is validated by a trusted server route and creates a 7-day `HttpOnly` store session.
-3. The dashboard refreshes a protected attendance snapshot on load and at a lightweight polling interval.
-4. Reports provide employee-level and all-staff payroll summaries with CSV export.
-
-### Demo Flow
-
-Use the admin page to create a demo store with realistic fake timelog data for customer demos and report testing. The route is now owner-protected by a server-issued session.
-
-### Manual PIN Migration
-
-Existing plaintext manager PINs must be migrated before rollout:
-
-```bash
-npm run migrate:pins
-```
-
-This script hashes `stores.pin` into `stores.pin_hash` and removes the plaintext field.
-
-### Landing Page CTAs
-
-The landing page reads its public action targets from [site-config.ts](src/lib/site-config.ts):
-
-- `NEXT_PUBLIC_DEMO_BOOKING_URL` powers the public Calendly `Request a Demo` action
-- `NEXT_PUBLIC_CONTACT_EMAIL` powers the public `Contact` mailto link
-
-The homepage should treat `Request a Demo` and `Contact` as customer-facing actions and explain the product directly through the page itself rather than exposing internal demo access.
-
-## Available Scripts
-
-```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
-npm run test
-npm run migrate:pins
-```
-
-## Roadmap
-
-- Authentication and role-based access
-- Payroll integrations
-- Expanded admin management tools
-- Mobile app or installable PWA enhancements
-- Persistent report corrections workflow
-
-## Demo Release Notes
-
-This repository is prepared for a private `v1.0-demo` release:
-
-- report logic is modularized for easier iteration
-- demo seed data supports customer walkthroughs
-- CI validates linting and test execution on pushes and pull requests
+- [Architecture](docs/architecture.md)
+- [Decisions](docs/decisions.md)
 
 ## License
 
