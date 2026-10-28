@@ -77,7 +77,7 @@ FIREBASE_ADMIN_CLIENT_EMAIL=
 FIREBASE_ADMIN_PRIVATE_KEY=
 ```
 
-You can copy these keys from [.env.example](/Users/alex/.codex/worktrees/902b/QRShift/.env.example).
+You can copy these keys from [.env.example](.env.example).
 
 ### Run Locally
 
@@ -119,7 +119,7 @@ This script hashes `stores.pin` into `stores.pin_hash` and removes the plaintext
 
 ### Landing Page CTAs
 
-The landing page reads its public action targets from [site-config.ts](/Users/alex/.codex/worktrees/902b/QRShift/src/lib/site-config.ts:1):
+The landing page reads its public action targets from [site-config.ts](src/lib/site-config.ts):
 
 - `NEXT_PUBLIC_DEMO_BOOKING_URL` powers the public Calendly `Request a Demo` action
 - `NEXT_PUBLIC_CONTACT_EMAIL` powers the public `Contact` mailto link
