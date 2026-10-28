@@ -15,3 +15,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** keep Next.js route handlers; Express; Fastify.
 - **Decision:** Fastify 5 in TypeScript (NodeNext ESM). Tests use `node:test` with `tsx` and Fastify's in-process `app.inject()`.
 - **Consequences:** no HTTP server or port needed in tests; built output is plain JS run by `node`, so production has no TypeScript runtime.
+
+## D3. PostgreSQL on Neon with Drizzle; PGlite for tests
+
+- **Context:** The data is relational (stores → employees → timelogs) and reports aggregate across all three; Firestore has no joins or cross-document constraints.
+- **Options:** keep Firestore; Cloud SQL; Supabase; Neon. ORM: Prisma; Drizzle; raw SQL.
+- **Decision:** Neon (free tier, scales to zero) with Drizzle ORM and drizzle-kit migrations. Tests run the real migrations on PGlite, an in-memory Postgres.
+- **Consequences:** foreign keys, unique constraints and transactions protect payroll data. Tests need no Docker or network. Firestore real-time listeners go away; the dashboard will poll.
