@@ -10,4 +10,5 @@ Auth: none.
 
 | Status | Body |
 | --- | --- |
-| 200 | `{ "status": "ok" }` |
+| 200 | `{ "status": "ok" }` — the API can query the database |
+| 503 | `{ "error": "db_unavailable", "message": "Database unavailable." }` |
