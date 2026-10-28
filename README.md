@@ -7,6 +7,7 @@ QRShift is a browser-based time clock for small businesses. Employees clock in a
 | Path | Contents |
 | --- | --- |
 | `web/` | Next.js 14 client (App Router, React 18, Tailwind CSS) |
+| `api/` | Fastify REST API (Node 22, TypeScript) |
 | `docs/` | Architecture, API reference, decisions, operations |
 
 ## Quick start
@@ -39,6 +40,7 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 | Command | Runs |
 | --- | --- |
 | `npm run dev` | Web dev server |
+| `npm run dev -w api` | API dev server on http://localhost:8080 |
 | `npm run lint` | Lint all workspaces |
 | `npm run typecheck` | Type-check workspaces that define it |
 | `npm test` | Unit tests in all workspaces |
@@ -60,6 +62,7 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [API reference](docs/api.md)
 - [Decisions](docs/decisions.md)
 
 ## License
