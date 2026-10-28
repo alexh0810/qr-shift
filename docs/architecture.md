@@ -30,3 +30,4 @@ The browser only talks to the Vercel origin. Vercel forwards `/api/*` to Cloud R
 | Path | Responsibility |
 | --- | --- |
 | `web/` | UI routes: `/` landing, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, `/admin` |
+| `api/` | Fastify REST API; `buildApp()` in `src/app.ts` is the entry used by both the server and tests |
