@@ -51,7 +51,8 @@ jobs:
       - name: Deploy candidate revision (no traffic)
         run: |
           # --no-traffic is rejected when the service doesn't exist yet, so the first deploy goes live directly.
-          if gcloud run services describe qrshift-api --region "$REGION" >/dev/null 2>&1; then
+          EXISTING=$(gcloud run services list --region "$REGION" --filter="metadata.name=qrshift-api" --format='value(metadata.name)')
+          if [ -n "$EXISTING" ]; then
             STAGED="--no-traffic --tag candidate"
           fi
           gcloud run deploy qrshift-api --image "$IMAGE" --region "$REGION" \

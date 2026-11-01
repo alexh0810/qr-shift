@@ -8,6 +8,51 @@
 | API | Cloud Run service `qrshift-api`, `europe-west3` | `deploy-api` job on push to `main` |
 | Database | Neon project `qrshift`, `aws-eu-central-1` | Migrations in `deploy-api` before the deploy |
 
+## One-time setup
+
+Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). The Firebase project is the GCP project; billing must be enabled.
+
+1. **Neon:** create project `qrshift` in `aws-eu-central-1`. Copy the **direct** (non-pooled) connection string, ending in `?sslmode=require`.
+2. **Migrate once by hand** to prove the URL works:
+   ```bash
+   DATABASE_URL='<neon url>' npm run db:migrate -w api
+   ```
+3. **GCP:**
+   ```bash
+   PROJECT_ID=<firebase project id>
+   REGION=europe-west3
+   gcloud config set project $PROJECT_ID
+   PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+   gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com secretmanager.googleapis.com
+   gcloud artifacts repositories create qrshift --repository-format=docker --location=$REGION
+   printf '%s' '<neon url>' | gcloud secrets create database-url --data-file=-
+   gcloud secrets add-iam-policy-binding database-url \
+     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+     --role=roles/secretmanager.secretAccessor
+   gcloud iam service-accounts create github-deployer
+   SA=github-deployer@$PROJECT_ID.iam.gserviceaccount.com
+   for role in roles/run.admin roles/artifactregistry.writer roles/iam.serviceAccountUser; do
+     gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA" --role=$role
+   done
+   gcloud iam workload-identity-pools create github --location=global
+   gcloud iam workload-identity-pools providers create-oidc github-repo \
+     --location=global --workload-identity-pool=github \
+     --issuer-uri=https://token.actions.githubusercontent.com \
+     --attribute-mapping=google.subject=assertion.sub,attribute.repository=assertion.repository \
+     --attribute-condition="assertion.repository=='alexh0810/qr-shift' && assertion.ref=='refs/heads/main'"
+   gcloud iam service-accounts add-iam-policy-binding $SA --role=roles/iam.workloadIdentityUser \
+     --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/alexh0810/qr-shift"
+   ```
+4. **Budget alert:** Cloud Console → Billing → Budgets & alerts → $1, alerts at 50/90/100%.
+5. **GitHub settings** (as `alexh0810`):
+   ```bash
+   gh variable set GCP_PROJECT_ID --body "$PROJECT_ID"
+   gh variable set GCP_REGION --body "$REGION"
+   gh variable set GCP_SERVICE_ACCOUNT --body "$SA"
+   gh variable set GCP_WIF_PROVIDER --body "projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github-repo"
+   gh secret set DATABASE_URL   # paste the Neon URL
+   ```
+
 ## Local development
 
 ```bash
@@ -25,7 +70,7 @@ Tests need no database: they run migrations on in-memory PGlite.
 
 At most one migration per PR. If two branches both add one, rebase the second and regenerate.
 
-**Migrations must be backward compatible with the revision that is still serving.** They run before the new code deploys, and if the smoke test fails the old revision keeps running against the new schema. So expand, then contract:
+**Migrations must be backward compatible with the revision that is still serving.** They run before the new code deploys, and if any later step fails (image build, deploy, smoke test), the old revision keeps running against the new schema. So expand, then contract:
 
 - Add tables, add nullable columns, or add columns with defaults in one PR.
 - Remove or rename a column only in a later PR, after no deployed code reads it.
@@ -42,7 +87,7 @@ At most one migration per PR. If two branches both add one, rebase the second an
 5. Smoke-test `GET /api/health` on the candidate's tagged URL.
 6. Only if it passes: move 100% of traffic to it (`update-traffic --to-latest`).
 
-A failed smoke test fails the job and leaves the previous revision serving. The very first deploy skips steps 4–5 because Cloud Run cannot create a service with no traffic.
+A failed smoke test fails the job and leaves the previous revision serving. On the very first deploy the service does not exist yet, so the revision is created with traffic (Cloud Run rejects `--no-traffic` for a new service); the smoke test then checks the live URL.
 
 ## Secrets and configuration
 
