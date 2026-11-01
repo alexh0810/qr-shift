@@ -65,3 +65,7 @@ erDiagram
 ```
 
 Primary keys are text so existing Firestore document IDs (and printed QR tokens) carry over unchanged. Column names are snake_case to match the domain types in the web app.
+
+## Deployment
+
+The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cloud Run in `europe-west3`, next to Neon in Frankfurt. Cloud Run scales to zero when idle and is capped at 3 instances, which keeps it inside the free tier and under Neon's connection limit. See [operations](operations.md).

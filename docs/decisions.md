@@ -22,3 +22,17 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** keep Firestore; Cloud SQL; Supabase; Neon. ORM: Prisma; Drizzle; raw SQL.
 - **Decision:** Neon (free tier, scales to zero) with Drizzle ORM and drizzle-kit migrations. Tests run the real migrations on PGlite, an in-memory Postgres.
 - **Consequences:** foreign keys, unique constraints and transactions protect payroll data. Tests need no Docker or network. Firestore real-time listeners go away; the dashboard will poll.
+
+## D4. Cloud Run, deployed from GitHub Actions with Workload Identity Federation
+
+- **Context:** The API needs free hosting with fast cold starts, since clock-in must finish in under 10 seconds.
+- **Options:** Render free tier (sleeps, ~30 s wake-up); Fly.io; Cloud Run.
+- **Decision:** Cloud Run in `europe-west3`, `--max-instances 3`, deployed by CI. GitHub authenticates to GCP through Workload Identity Federation restricted to this repository.
+- **Consequences:** cold starts of a few seconds; no long-lived cloud credentials in GitHub; requires a GCP billing account (budget alert at $1).
+
+## D5. Smoke-tested deploys and expand/contract migrations
+
+- **Context:** A merge to `main` deploys straight to production, and migrations run before the new code is live.
+- **Options:** deploy and send traffic immediately; a manual approval gate; a full staging environment; deploy without traffic and promote after a smoke test.
+- **Decision:** deploy each revision with no traffic, health-check its tagged URL, then promote. Migrations must stay compatible with the previous revision (expand first, contract in a later PR).
+- **Consequences:** a broken build never takes traffic and rollback is rarely needed. No staging environment yet; revisit when production holds real data.

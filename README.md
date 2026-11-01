@@ -40,7 +40,7 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 | Command | Runs |
 | --- | --- |
 | `npm run dev` | Web dev server |
-| `npm run dev -w api` | API dev server on http://localhost:8080 |
+| `npm run dev -w api` | API dev server on :8080 (needs `DATABASE_URL`, see [operations](docs/operations.md)) |
 | `npm run lint` | Lint all workspaces |
 | `npm run typecheck` | Type-check workspaces that define it |
 | `npm test` | Unit tests in all workspaces |
@@ -64,6 +64,7 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 - [Architecture](docs/architecture.md)
 - [API reference](docs/api.md)
 - [Decisions](docs/decisions.md)
+- [Operations](docs/operations.md)
 
 ## License
 
