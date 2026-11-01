@@ -64,6 +64,7 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 - [Architecture](docs/architecture.md)
 - [API reference](docs/api.md)
 - [Decisions](docs/decisions.md)
+- [Operations](docs/operations.md)
 
 ## License
 

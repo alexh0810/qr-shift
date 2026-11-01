@@ -20,3 +20,50 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  deploy-api:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    concurrency: deploy-api
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/qrshift/api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci -w api
+      - run: npm run db:migrate -w api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+      - run: docker build -f api/Dockerfile -t "$IMAGE" . && docker push "$IMAGE"
+      - name: Deploy candidate revision (no traffic)
+        run: |
+          # --no-traffic is rejected when the service doesn't exist yet, so the first deploy goes live directly.
+          if gcloud run services describe qrshift-api --region "$REGION" >/dev/null 2>&1; then
+            STAGED="--no-traffic --tag candidate"
+          fi
+          gcloud run deploy qrshift-api --image "$IMAGE" --region "$REGION" \
+            --allow-unauthenticated --max-instances 3 \
+            --set-secrets DATABASE_URL=database-url:latest $STAGED
+        env:
+          REGION: ${{ vars.GCP_REGION }}
+      - name: Smoke-test candidate, then promote
+        run: |
+          URL=$(gcloud run services describe qrshift-api --region "$REGION" --format=json \
+            | jq -r '(.status.traffic[] | select(.tag == "candidate") | .url) // .status.url')
+          curl -fsS --max-time 10 --retry 5 --retry-delay 3 --retry-all-errors "$URL/api/health"
+          gcloud run services update-traffic qrshift-api --region "$REGION" --to-latest
+        env:
+          REGION: ${{ vars.GCP_REGION }}
