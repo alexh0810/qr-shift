@@ -12,7 +12,7 @@
 
 Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). The Firebase project is the GCP project; billing must be enabled.
 
-1. **Neon:** create project `qrshift` in `aws-eu-central-1`. Copy the **direct** (non-pooled) connection string, ending in `?sslmode=require`.
+1. **Neon:** create project `qrshift` in `aws-eu-central-1`. Copy the **direct** (non-pooled) connection string and change `sslmode=require` to `sslmode=verify-full`. Both verify the server certificate today, but `pg` warns that `require` will mean less in its next major version.
 2. **Migrate once by hand** to prove the URL works:
    ```bash
    DATABASE_URL='<neon url>' npm run db:migrate -w api
@@ -25,6 +25,9 @@ Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). 
    PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
    gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com secretmanager.googleapis.com
    gcloud artifacts repositories create qrshift --repository-format=docker --location=$REGION
+   # Keep the 3 newest images so storage stays inside the 0.5 GB free tier.
+   printf '%s' '[{"name":"keep-3","action":{"type":"Keep"},"mostRecentVersions":{"keepCount":3}},{"name":"delete-rest","action":{"type":"Delete"},"condition":{"tagState":"ANY"}}]' > /tmp/ar-cleanup.json
+   gcloud artifacts repositories set-cleanup-policies qrshift --location=$REGION --policy=/tmp/ar-cleanup.json --no-dry-run
    printf '%s' '<neon url>' | gcloud secrets create database-url --data-file=-
    gcloud secrets add-iam-policy-binding database-url \
      --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
