@@ -28,3 +28,18 @@ Auth: none. Used by the employee scan page.
 | `POST /api/stores/:qr_token/clock` | `{ employeeId, requestedAction: "IN" \| "OUT" }` | `{ action, timestamp }` | 400 `Choose an employee and confirm the next action.` · 400 `This shift status changed. Go back and try again.` · 400 `QRShift couldn't save that clock action. Try again.` |
 
 A clock action is accepted only if it is the opposite of the employee's latest log. The employee row is locked during the check, so concurrent duplicate scans record one event.
+
+## Manager routes
+
+Auth: cookie `qrshift_manager_session` — an HMAC-SHA256-signed payload `{ kind: "manager", storeId, qrToken, exp }` valid for 7 days, `HttpOnly`, `SameSite=Lax`, `Secure` in production, issued after a correct store PIN (scrypt-hashed). A session only authorizes routes for its own `qr_token`.
+
+| Method & path | Body | 200 | Errors |
+| --- | --- | --- | --- |
+| `GET /api/manager/session?qr_token=` | — | `{ authenticated }` (for that store, or any store when `qr_token` is omitted) | — |
+| `POST /api/manager/session` | `{ qr_token, pin }` | `{ ok: true }` + session cookie | 400 `Enter the manager PIN to continue.` · 400 `This store is not ready for secure manager access yet.` · 401 `Incorrect PIN. Please try again.` |
+| `DELETE /api/manager/session` | — | `{ ok: true }`, cookie cleared | — |
+| `GET /api/manager/:qr_token/dashboard` | — | `{ store, employees: [{ employee, latest_log, status }] }` | 401 `Manager access is required.` · 404 `Store not found.` |
+| `GET /api/manager/:qr_token/reports` | — | `{ store, employees, timelogs }` — all employees including archived; timelogs oldest first | 401 · 404 |
+| `POST /api/manager/:qr_token/reports` | `{ employeeId, clockInLogId, clockOutLogId \| null, clockInAt, clockOutAt }` (ISO times) | `{ ok: true, clockOutLogId }` | 401 · 400 `Invalid report correction.` · 400 `Clock-out must be after clock-in.` · 400 `Only completed shifts can be saved right now.` · 400 `QRShift couldn't save that report correction. Try again.` |
+
+A correction overwrites the shift's IN and OUT timestamps in one transaction; with `clockOutLogId: null` it creates the missing OUT log.
