@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import Fastify from "fastify";
 
 import type { Db } from "./db/client.js";
+import { managerRoutes } from "./routes/manager.js";
 import { publicRoutes } from "./routes/public.js";
 
 export function buildApp({ db }: { db: Db }) {
@@ -30,6 +31,7 @@ export function buildApp({ db }: { db: Db }) {
   });
 
   publicRoutes(app, { db });
+  managerRoutes(app, { db });
 
   return app;
 }
