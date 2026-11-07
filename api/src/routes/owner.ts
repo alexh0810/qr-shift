@@ -94,7 +94,7 @@ export function ownerRoutes(app: FastifyInstance, { db }: { db: Db }) {
         const code = errorCode(error, "employee_create_failed");
         return reply
           .code(code === "store_not_found" ? 404 : 400)
-          .send({ error: EMPLOYEE_ERRORS[code] ?? "QRShift couldn't add that employee. Try again." });
+          .send({ error: (Object.hasOwn(EMPLOYEE_ERRORS, code) ? EMPLOYEE_ERRORS[code] : undefined) ?? "QRShift couldn't add that employee. Try again." });
       }
     },
   );
@@ -115,7 +115,7 @@ export function ownerRoutes(app: FastifyInstance, { db }: { db: Db }) {
         const code = errorCode(error, "employee_update_failed");
         return reply
           .code(code === "store_not_found" || code === "employee_not_found" ? 404 : 400)
-          .send({ error: EMPLOYEE_ERRORS[code] ?? "QRShift couldn't update that employee. Try again." });
+          .send({ error: (Object.hasOwn(EMPLOYEE_ERRORS, code) ? EMPLOYEE_ERRORS[code] : undefined) ?? "QRShift couldn't update that employee. Try again." });
       }
     },
   );

@@ -55,9 +55,9 @@ Auth: cookie `qrshift_owner_session` (signed `{ kind: "owner", exp }`, same cook
 | `DELETE /api/admin/session` | — | `{ ok: true }`, cookie cleared | — |
 | `GET /api/admin/stores` | — | `{ stores: [{ id, name, qr_token, created_at }] }`, newest first | 401 |
 | `POST /api/admin/stores` | `{ storeName, pin, employeeNames: string[] }` | `{ storeId, storeName, qrToken }` | 400 `Add a store name, manager PIN, and at least one employee.` · 400 `Manager PIN must be numeric and 6 digits or fewer.` |
-| `GET /api/admin/stores/:storeId/employees` | — | `{ store, employees }` — archived included, active first | 404 `Store not found.` |
+| `GET /api/admin/stores/:storeId/employees` | — | `{ store, employees }` — archived included, active first | 401 · 404 `Store not found.` |
 | `POST /api/admin/stores/:storeId/employees` | `{ name }` | `{ employee }` | 400 `Enter an employee name.` · 400 `An employee with that name already exists for this store.` · 404 `Store not found.` |
 | `PATCH /api/admin/stores/:storeId/employees/:employeeId` | `{ name?, status?: "active" \| "archived" }` | `{ employee }` | 404 `Store not found.` / `Employee not found.` · 400 `This employee does not belong to the selected store.` · 400 duplicate / empty name · 400 `No employee changes were provided.` |
-| `POST /api/admin/demo-store` | — | `{ storeId, storeName, qrToken, pin }` — a store with 4 employees and about 2 weeks of shifts | 401 |
+| `POST /api/admin/demo-store` | — | `{ storeId, storeName, qrToken, pin }` — a store with 4 employees and the past 7 days of shifts, one employee still clocked in | 401 |
 
 Employee names are unique per store after trimming, lowercasing and collapsing spaces.
