@@ -6,5 +6,5 @@ import * as schema from "./schema.js";
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 export function connect(url: string): Db {
-  return drizzle(url, { schema });
+  return drizzle({ connection: { connectionString: url, connectionTimeoutMillis: 5000 }, schema });
 }
