@@ -1,6 +1,6 @@
 # API reference
 
-Base path: `/api`. All responses are JSON. Errors use `{ "error": "<code>", "message": "<user-facing text>" }`.
+Base path: `/api`. All responses are JSON. Errors: see [Error format](#error-format).
 
 ## Health
 
