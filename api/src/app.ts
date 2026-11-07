@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import Fastify from "fastify";
 
 import type { Db } from "./db/client.js";
+import { publicRoutes } from "./routes/public.js";
 
 export function buildApp({ db }: { db: Db }) {
   const app = Fastify({ logger: process.env.NODE_ENV === "production" });
@@ -27,6 +28,8 @@ export function buildApp({ db }: { db: Db }) {
       return reply.code(503).send({ error: "db_unavailable", message: "Database unavailable." });
     }
   });
+
+  publicRoutes(app, { db });
 
   return app;
 }
