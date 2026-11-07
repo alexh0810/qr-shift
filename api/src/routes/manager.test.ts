@@ -121,3 +121,15 @@ test("reports POST saves a correction", async () => {
   assert.equal(response.json().ok, true);
   assert.equal(typeof response.json().clockOutLogId, "string");
 });
+
+test("reports POST rejects corrections for another store's employee", async () => {
+  const app = buildApp({ db: await seededDb() });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/manager/qr-1/reports",
+    cookies: managerCookie(),
+    payload: { employeeId: "emp-9", clockInLogId: "log-1", clockOutLogId: null, clockInAt: "2026-04-20T08:00:00Z", clockOutAt: "2026-04-20T09:00:00Z" },
+  });
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.json(), { error: "QRShift couldn't save that report correction. Try again." });
+});

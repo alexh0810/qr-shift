@@ -114,7 +114,7 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     } catch (error) {
       const message = error instanceof Error ? error.message : "report_correction_failed";
       if (message !== "invalid_range" && message !== "future_correction_not_supported") {
-        request.log.error({ employeeId, clockInLogId, clockOutLogId, message }, "Failed to save report correction");
+        request.log.error({ qrToken: request.params.qr_token, employeeId, clockInLogId, clockOutLogId, message }, "Failed to save report correction");
       }
       return reply.code(400).send({
         error:
