@@ -4,6 +4,7 @@ import Fastify from "fastify";
 
 import type { Db } from "./db/client.js";
 import { managerRoutes } from "./routes/manager.js";
+import { ownerRoutes } from "./routes/owner.js";
 import { publicRoutes } from "./routes/public.js";
 
 export function buildApp({ db }: { db: Db }) {
@@ -32,6 +33,7 @@ export function buildApp({ db }: { db: Db }) {
 
   publicRoutes(app, { db });
   managerRoutes(app, { db });
+  ownerRoutes(app, { db });
 
   return app;
 }
