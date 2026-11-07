@@ -36,3 +36,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** deploy and send traffic immediately; a manual approval gate; a full staging environment; deploy without traffic and promote after a smoke test.
 - **Decision:** deploy each revision with no traffic, health-check its tagged URL, then promote. Migrations must stay compatible with the previous revision (expand first, contract in a later PR).
 - **Consequences:** a broken build never takes traffic and rollback is rarely needed. No staging environment yet; revisit when production holds real data.
+
+## D6. Same HTTP contract for ported routes; no shared core package yet
+
+- **Context:** The legacy Next.js route handlers move to the Fastify API. The client must keep working at the moment traffic switches.
+- **Options:** redesign the API (new error shape `{ error: code, message }`, new paths) and update the client in the same change; or port routes with an identical contract.
+- **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed is copied until the web server code is deleted.
+- **Consequences:** the cutover is a rewrite switch with no client change and a one-step rollback. Two error shapes exist until phase 3 updates the client (health uses `{ error, message }`).
