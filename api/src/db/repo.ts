@@ -172,7 +172,7 @@ export async function saveReportCorrection(
   }
 
   return db.transaction(async (tx) => {
-    const [employee] = await tx.select().from(employees).where(eq(employees.id, input.employeeId));
+    const [employee] = await tx.select().from(employees).where(eq(employees.id, input.employeeId)).for("update");
     if (!employee) {
       throw new Error("employee_not_found");
     }

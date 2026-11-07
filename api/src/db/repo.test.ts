@@ -178,3 +178,16 @@ test("rejects employee updates across stores", async () => {
   await assert.rejects(updateEmployeeForStore(db, { storeId: "store-1", employeeId: "emp-9", status: "archived" }), /employee_store_mismatch/);
   await assert.rejects(updateEmployeeForStore(db, { storeId: "store-1", employeeId: "nobody", status: "archived" }), /employee_not_found/);
 });
+
+test("correction rolls back the IN update when the OUT log is invalid", async () => {
+  const db = await seededDb();
+  await assert.rejects(
+    saveReportCorrection(db, {
+      qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-1",
+      clockInAt: at("2026-04-20T07:00:00Z"), clockOutAt: at("2026-04-20T12:00:00Z"),
+    }),
+    /invalid_clock_out/,
+  );
+  const logIn = (await getStoreTimelogs(db, "store-1")).find((log) => log.id === "log-1");
+  assert.equal(logIn?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
+});
