@@ -1,3 +1,4 @@
+// shortcut: duplicated in api/src/demo-data.ts; delete this copy when phase 3 removes the web server code.
 import { subDays, set } from "date-fns";
 
 export interface DemoTimelogInput {
