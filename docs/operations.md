@@ -81,7 +81,7 @@ At most one migration per PR. If two branches both add one, rebase the second an
 
 ## Deploy pipeline
 
-`verify` (lint, typecheck, tests, build) → `deploy-api`:
+`verify` (lint, typecheck, unit tests, build, Playwright end-to-end tests) → `deploy-api`:
 
 1. Migrate Neon (`db:migrate`).
 2. Authenticate to GCP with Workload Identity Federation (no stored keys).
