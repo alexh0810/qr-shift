@@ -34,6 +34,7 @@ Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). 
      --role=roles/secretmanager.secretAccessor
    # Session secrets: use the same values as Vercel's MANAGER_SESSION_SECRET and OWNER_SETUP_SECRET so existing sessions stay valid.
    for name in manager-session-secret owner-setup-secret; do
+     printf '%s: ' "$name"
      read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create $name --data-file=- && unset VALUE
      gcloud secrets add-iam-policy-binding $name \
        --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
@@ -133,14 +134,14 @@ npm run import:firestore
 The web app forwards `/api/*` to Cloud Run only when the Vercel env var `API_ORIGIN` is set (`web/next.config.mjs`). Switching and rolling back are env changes plus a redeploy.
 
 1. Confirm the latest `deploy-api` run on `main` is green and `GET <cloud run url>/api/health` returns `{"status":"ok"}`.
-2. **Preview first:** in Vercel → Settings → Environment Variables, add `API_ORIGIN = <cloud run url>` for **Preview** only. Redeploy the latest preview. On that preview: open `/admin`, sign in, create a demo store, scan its QR page, clock in, sign in as manager, check the dashboard and reports, save one correction.
-3. **Import:** run the [Firestore import](#firestore-import) right before switching production, so no writes land in Firestore after the copy. It must end with `Parity check passed`.
-4. **Switch production:** add `API_ORIGIN` for **Production**, then redeploy production. Repeat the smoke test from step 2 on the production URL with a real store.
+2. **Preview first:** in Vercel → Settings → Environment Variables, add `API_ORIGIN = <cloud run url>` for **Preview** only, then deploy a preview of current main: `git push origin main:cutover-preview`. This preview reads and writes the **production** Neon database; the demo store and clock-ins created here are wiped by the import in step 3. Require `<preview url>/api/health` → `{"status":"ok"}` (the legacy app has no health route and returns 404, so this proves the rewrite is live). Then: open `/admin`, sign in, create a demo store, scan its QR page, clock in, sign in as manager, check the dashboard and reports, save one correction. Afterwards delete the Preview `API_ORIGIN` and the branch (`git push origin --delete cutover-preview`) so PR previews don't hit the production database.
+3. **Import:** do steps 3–4 outside shift hours: Firestore writes cannot be stopped from here, and a clock-in between the import and the switch is not copied. Note the import start time, then run the [Firestore import](#firestore-import). It must end with `Parity check passed`.
+4. **Switch production:** add `API_ORIGIN` for **Production**, then redeploy production. Require `<production url>/api/health` → `{"status":"ok"}`. Smoke-test writes (clock-in, correction) on a demo store only; on real stores only open the dashboard and reports. Then check Firestore has no timelog newer than the import start time. If it does, re-run the import before any new Postgres clock-ins (safe until then) or re-enter them by hand.
 5. **Watch:** Cloud Run logs and the dashboard for an hour.
 
-**Rollback:** delete `API_ORIGIN` from Production and redeploy. Traffic returns to the Next.js handlers and Firestore. Writes made to Postgres after the switch are not copied back; re-enter them by hand if a rollback happens.
+**Rollback:** first use Vercel Instant Rollback to the previous production deployment (built without `API_ORIGIN`, takes seconds). Then delete `API_ORIGIN` from Production so the next deploy doesn't switch back. Writes made to Postgres after the switch are not copied back; re-enter them by hand if a rollback happens.
 
-Firestore stays read-only and untouched for 7 days after the switch. Phase 3 then deletes `web/src/app/api`, `web/src/lib/server-*.ts`, `firebase-admin` in web and `firestore.rules`.
+Firestore stays unused (not deleted) for 7 days after the switch. Phase 3 then deletes `web/src/app/api`, `web/src/lib/server-*.ts`, `firebase-admin` in web and `firestore.rules`.
 
 ## Rollback
 

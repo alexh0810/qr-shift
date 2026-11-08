@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    const apiOrigin = process.env.API_ORIGIN;
+    const apiOrigin = process.env.API_ORIGIN?.replace(/\/+$/, "");
     if (!apiOrigin) {
       return [];
     }
