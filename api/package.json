@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "import:firestore": "tsx scripts/import-firestore.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
@@ -24,6 +25,7 @@
     "@types/node": "^20.19.37",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",
+    "firebase-admin": "^13.8.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
