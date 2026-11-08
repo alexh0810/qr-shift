@@ -43,3 +43,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** redesign the API (new error shape `{ error: code, message }`, new paths) and update the client in the same change; or port routes with an identical contract.
 - **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed is copied until the web server code is deleted.
 - **Consequences:** the cutover is a rewrite switch with no client change and a one-step rollback. Two error shapes exist until phase 3 updates the client (health uses `{ error, message }`).
+
+## D7. Cutover by rewrite, controlled by one env var
+
+- **Context:** Production must move from the Next.js handlers + Firestore to the API + Postgres without client changes, with a fast way back.
+- **Options:** delete the Next.js handlers and deploy; proxy per route group; a single `beforeFiles` rewrite gated on `API_ORIGIN`.
+- **Decision:** one rewrite of `/api/*`, active only when `API_ORIGIN` is set; tried on Vercel Preview before Production.
+- **Consequences:** switching or rolling back is an env change plus redeploy. The legacy handlers stay in the codebase until phase 3, and writes made after the switch are lost on rollback unless re-entered.

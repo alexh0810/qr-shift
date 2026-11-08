@@ -32,6 +32,13 @@ Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). 
    gcloud secrets add-iam-policy-binding database-url \
      --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
      --role=roles/secretmanager.secretAccessor
+   # Session secrets: use the same values as Vercel's MANAGER_SESSION_SECRET and OWNER_SETUP_SECRET so existing sessions stay valid.
+   for name in manager-session-secret owner-setup-secret; do
+     read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create $name --data-file=- && unset VALUE
+     gcloud secrets add-iam-policy-binding $name \
+       --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+       --role=roles/secretmanager.secretAccessor
+   done
    gcloud iam service-accounts create github-deployer
    SA=github-deployer@$PROJECT_ID.iam.gserviceaccount.com
    for role in roles/run.admin roles/artifactregistry.writer roles/iam.serviceAccountUser; do
@@ -86,7 +93,7 @@ At most one migration per PR. If two branches both add one, rebase the second an
 1. Migrate Neon (`db:migrate`).
 2. Authenticate to GCP with Workload Identity Federation (no stored keys).
 3. Build `api/Dockerfile` and push to Artifact Registry `qrshift`.
-4. Deploy a **candidate revision with no traffic**, tagged `candidate` (`--max-instances 3`, `DATABASE_URL` from Secret Manager `database-url`).
+4. Deploy a **candidate revision with no traffic**, tagged `candidate` (`--max-instances 3`, `DATABASE_URL`, `MANAGER_SESSION_SECRET` and `OWNER_SETUP_SECRET` from Secret Manager).
 5. Smoke-test `GET /api/health` on the candidate's tagged URL.
 6. Only if it passes: move 100% of traffic to it (`update-traffic --to-latest`).
 
@@ -98,6 +105,8 @@ A failed smoke test fails the job and leaves the previous revision serving. On t
 | --- | --- | --- |
 | `DATABASE_URL` | GitHub secret | `db:migrate` in CI |
 | `database-url` | Secret Manager | Cloud Run runtime env `DATABASE_URL` |
+| `manager-session-secret`, `owner-setup-secret` | Secret Manager | Cloud Run runtime env `MANAGER_SESSION_SECRET`, `OWNER_SETUP_SECRET`; same values as in Vercel |
+| `API_ORIGIN` | Vercel env var | `web/next.config.mjs` rewrite of `/api/*` to Cloud Run |
 | `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT` | GitHub variables | `deploy-api` |
 
 Rotate the database password: update it in Neon, then `printf '%s' '<url>' | gcloud secrets versions add database-url --data-file=-`, `gh secret set DATABASE_URL`, and redeploy.
@@ -118,6 +127,20 @@ set -a && source ../web/.env.local && set +a
 read -rs DATABASE_URL && export DATABASE_URL
 npm run import:firestore
 ```
+
+## Cutover from Firestore
+
+The web app forwards `/api/*` to Cloud Run only when the Vercel env var `API_ORIGIN` is set (`web/next.config.mjs`). Switching and rolling back are env changes plus a redeploy.
+
+1. Confirm the latest `deploy-api` run on `main` is green and `GET <cloud run url>/api/health` returns `{"status":"ok"}`.
+2. **Preview first:** in Vercel → Settings → Environment Variables, add `API_ORIGIN = <cloud run url>` for **Preview** only. Redeploy the latest preview. On that preview: open `/admin`, sign in, create a demo store, scan its QR page, clock in, sign in as manager, check the dashboard and reports, save one correction.
+3. **Import:** run the [Firestore import](#firestore-import) right before switching production, so no writes land in Firestore after the copy. It must end with `Parity check passed`.
+4. **Switch production:** add `API_ORIGIN` for **Production**, then redeploy production. Repeat the smoke test from step 2 on the production URL with a real store.
+5. **Watch:** Cloud Run logs and the dashboard for an hour.
+
+**Rollback:** delete `API_ORIGIN` from Production and redeploy. Traffic returns to the Next.js handlers and Firestore. Writes made to Postgres after the switch are not copied back; re-enter them by hand if a rollback happens.
+
+Firestore stays read-only and untouched for 7 days after the switch. Phase 3 then deletes `web/src/app/api`, `web/src/lib/server-*.ts`, `firebase-admin` in web and `firestore.rules`.
 
 ## Rollback
 
