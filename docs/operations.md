@@ -102,6 +102,23 @@ A failed smoke test fails the job and leaves the previous revision serving. On t
 
 Rotate the database password: update it in Neon, then `printf '%s' '<url>' | gcloud secrets versions add database-url --data-file=-`, `gh secret set DATABASE_URL`, and redeploy.
 
+## Firestore import
+
+`npm run import:firestore -w @qrshift/api` copies every store, employee and timelog from Firestore into Postgres, keeping document IDs as primary keys.
+
+- **Replaces** all rows in `stores`, `employees` and `timelogs` in one transaction, so it is safe to re-run.
+- **Refuses** to import bad data instead of guessing: a store with only a plaintext PIN (run `npm run migrate:pins -w @qrshift/web` first), a missing or invalid timestamp, a timelog type other than `IN`/`OUT`, or a reference to a missing store or employee. The error names the document.
+- **Verifies** afterwards by reading every row back and comparing it with Firestore field by field. It exits non-zero on any difference.
+
+Env: `DATABASE_URL` (Neon, `sslmode=verify-full`) and the `FIREBASE_ADMIN_*` values from `web/.env.local`:
+
+```bash
+cd api
+read -rs DATABASE_URL && export DATABASE_URL
+set -a && source ../web/.env.local && set +a
+npm run import:firestore
+```
+
 ## Rollback
 
 ```bash
