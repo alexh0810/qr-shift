@@ -59,7 +59,7 @@ jobs:
           fi
           gcloud run deploy qrshift-api --image "$IMAGE" --region "$REGION" \
             --allow-unauthenticated --max-instances 3 \
-            --set-secrets DATABASE_URL=database-url:latest $STAGED
+            --set-secrets DATABASE_URL=database-url:latest,MANAGER_SESSION_SECRET=manager-session-secret:latest,OWNER_SETUP_SECRET=owner-setup-secret:latest $STAGED
         env:
           REGION: ${{ vars.GCP_REGION }}
       - name: Smoke-test candidate, then promote

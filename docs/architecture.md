@@ -7,8 +7,8 @@ QRShift is moving from a single Next.js app (client + route handlers + Firestore
 | Component | Current | Target |
 | --- | --- | --- |
 | Client | Next.js on Vercel (`web/`) | Same, with no server code |
-| API | Next.js route handlers (`web/src/app/api`) | Fastify on Cloud Run (`api/`) |
-| Database | Cloud Firestore | PostgreSQL on Neon |
+| API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes once `API_ORIGIN` is set; legacy Next.js handlers kept for rollback until phase 3 | Fastify on Cloud Run (`api/`) |
+| Database | PostgreSQL on Neon once `API_ORIGIN` is set (Firestore kept read-only for rollback) | PostgreSQL on Neon |
 | Auth | Store PIN + signed cookie | Firebase Authentication + roles |
 
 ## Target system
