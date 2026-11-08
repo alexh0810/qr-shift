@@ -40,5 +40,5 @@ if (differences.length > 0) {
   console.error(`Parity check failed:\n${differences.join("\n")}`);
   process.exit(1);
 }
-console.log("Parity check passed: every row matches Firestore.");
+console.log("Parity check passed: every Postgres row matches the rows mapped from Firestore.");
 process.exit(0);

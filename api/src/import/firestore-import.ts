@@ -48,6 +48,10 @@ export function toRows(snapshot: FirestoreSnapshot): ImportRows {
 
   const employeeRows = snapshot.employees.map(({ id, data }): Employee => {
     const where = `employees/${id}`;
+    const status = data.status ?? "active";
+    if (status !== "active" && status !== "archived") {
+      throw new Error(`${where}.status: invalid status ${String(status)}`);
+    }
     const storeId = requireString(data.store_id, `${where}.store_id`);
     if (!storeIds.has(storeId)) {
       throw new Error(`${where}: references missing store ${storeId}`);
@@ -56,11 +60,11 @@ export function toRows(snapshot: FirestoreSnapshot): ImportRows {
       id,
       store_id: storeId,
       name: requireString(data.name, `${where}.name`),
-      status: data.status === "archived" ? "archived" : "active",
+      status,
       created_at: toDate(data.created_at, `${where}.created_at`),
     };
   });
-  const employeeIds = new Set(employeeRows.map((employee) => employee.id));
+  const employeeStoreIds = new Map(employeeRows.map((employee) => [employee.id, employee.store_id]));
 
   const timelogRows = snapshot.timelogs.map(({ id, data }): Timelog => {
     const where = `timelogs/${id}`;
@@ -69,11 +73,15 @@ export function toRows(snapshot: FirestoreSnapshot): ImportRows {
     }
     const employeeId = requireString(data.employee_id, `${where}.employee_id`);
     const storeId = requireString(data.store_id, `${where}.store_id`);
-    if (!employeeIds.has(employeeId)) {
+    const employeeStoreId = employeeStoreIds.get(employeeId);
+    if (employeeStoreId === undefined) {
       throw new Error(`${where}: references missing employee ${employeeId}`);
     }
     if (!storeIds.has(storeId)) {
       throw new Error(`${where}: references missing store ${storeId}`);
+    }
+    if (storeId !== employeeStoreId) {
+      throw new Error(`${where}: store ${storeId} differs from employee ${employeeId} store ${employeeStoreId}`);
     }
     return { id, employee_id: employeeId, store_id: storeId, type: data.type, timestamp: toDate(data.timestamp, `${where}.timestamp`) };
   });

@@ -44,6 +44,27 @@ test("refuses unknown timelog types and orphaned references", () => {
   const orphan = snapshot();
   orphan.timelogs[0].data = { ...orphan.timelogs[0].data, employee_id: "ghost" };
   assert.throws(() => toRows(orphan), /timelogs\/t1.*employee ghost/);
+
+  const crossStore = snapshot();
+  crossStore.stores.push({ id: "s2", data: { name: "Bar", qr_token: "qr2", pin_hash: "scrypt$c$d", created_at: timestamp("2026-04-01T00:00:00Z") } });
+  crossStore.timelogs[0].data = { ...crossStore.timelogs[0].data, store_id: "s2" };
+  assert.throws(() => toRows(crossStore), /timelogs\/t1.*store s2/);
+});
+
+test("refuses unknown employee statuses", () => {
+  const input = snapshot();
+  input.employees[0].data = { ...input.employees[0].data, status: "deleted" };
+  assert.throws(() => toRows(input), /employees\/e1\.status: invalid status deleted/);
+});
+
+test("accepts plain Dates but refuses invalid ones", () => {
+  const plain = snapshot();
+  plain.stores[0].data = { ...plain.stores[0].data, created_at: new Date("2026-04-01T00:00:00Z") };
+  assert.equal(toRows(plain).stores[0].created_at.toISOString(), "2026-04-01T00:00:00.000Z");
+
+  const invalid = snapshot();
+  invalid.stores[0].data = { ...invalid.stores[0].data, created_at: new Date("x") };
+  assert.throws(() => toRows(invalid), /stores\/s1\.created_at: missing or invalid timestamp/);
 });
 
 test("replaceAll is re-runnable and the read-back matches exactly", async () => {
@@ -59,7 +80,9 @@ test("diffRows reports changed, missing and extra rows", async () => {
   const changed = structuredClone(rows);
   changed.employees[0].name = "Anna";
   changed.timelogs = [];
+  changed.stores.push({ ...changed.stores[0], id: "s9" });
   const diff = diffRows(rows, changed);
-  assert.ok(diff.some((line) => line.includes("employees/e1")));
-  assert.ok(diff.some((line) => line.includes("timelogs/t1")));
+  assert.ok(diff.includes("employees/e1: differs"));
+  assert.ok(diff.includes("timelogs/t1: missing in Postgres"));
+  assert.ok(diff.includes("stores/s9: extra in Postgres"));
 });
