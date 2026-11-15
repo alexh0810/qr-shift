@@ -31,6 +31,11 @@ const rows = toRows({
   employees: await readCollection("employees"),
   timelogs: await readCollection("timelogs"),
 });
+if (rows.skipped.employees > 0 || rows.skipped.timelogs > 0) {
+  console.log(
+    `Skipping ${rows.skipped.employees} employees and ${rows.skipped.timelogs} timelogs of ${rows.skipped.missingStoreIds.length} deleted stores: ${rows.skipped.missingStoreIds.join(", ")}`,
+  );
+}
 const db = connect(requireEnv("DATABASE_URL"));
 
 await replaceAll(db, rows);
