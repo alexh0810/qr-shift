@@ -115,7 +115,7 @@ sequenceDiagram
   participant T as Display tablet
   participant E as Employee phone
   participant A as API
-  T->>A: GET /api/display/:storeId/qr (x-display-key)
+  T->>A: GET /api/display/:storeId/qr (x-display-key, display endpoint, separate PR)
   A-->>T: { qr_token, window, sig }
   T-->>E: QR /scan/{qr_token}?w&sig
   E->>A: GET scan-ticket?w&sig

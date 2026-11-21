@@ -4,7 +4,8 @@ import { test } from "node:test";
 import { eq } from "drizzle-orm";
 
 import { buildApp } from "../app.js";
-import { stores } from "../db/schema.js";
+import type { Db } from "../db/client.js";
+import { stores, timelogs } from "../db/schema.js";
 import { SECRET, displayDb } from "../qr-fixtures.js";
 import { TICKET_TTL_MS, WINDOW_MS, issueTicket } from "../qr.js";
 
@@ -21,13 +22,15 @@ async function setup() {
 
 const body = { employeeId: "emp-1", requestedAction: "IN" };
 
+const logCount = async (db: Db) => (await db.select().from(timelogs)).length;
+
 test("display mode without a ticket is rejected and nothing is written", async () => {
-  const { app, clock } = await setup();
+  const { db, clock } = await setup();
+  const logs = await logCount(db);
   const response = await clock("qr-1", body);
   assert.equal(response.statusCode, 403);
   assert.equal(response.json().error, "qr_required");
-  const roster = (await app.inject({ method: "GET", url: "/api/stores/qr-1/employees" })).json();
-  assert.equal(roster.employees[0].status, "OUT");
+  assert.equal(await logCount(db), logs);
 });
 
 test("a valid ticket clocks in at the server time", async () => {
@@ -38,20 +41,26 @@ test("a valid ticket clocks in at the server time", async () => {
 });
 
 test("a ticket works for 120 s, not a millisecond longer", async () => {
-  const { clock, setNow } = await setup();
+  const { db, clock, setNow } = await setup();
   const ticket = issueTicket(SECRET, "store-1", T0);
   setNow(T0 + TICKET_TTL_MS - 1);
   assert.equal((await clock("qr-1", { ...body, ticket })).statusCode, 200);
+  const logs = await logCount(db);
   setNow(T0 + TICKET_TTL_MS);
   const expired = await clock("qr-1", { employeeId: "emp-1", requestedAction: "OUT", ticket });
   assert.equal(expired.statusCode, 403);
   assert.equal(expired.json().error, "qr_expired");
+  assert.equal(await logCount(db), logs);
 });
 
 test("tickets from another store, tampered tickets and garbage are rejected", async () => {
-  const { clock } = await setup();
+  const { db, clock } = await setup();
+  const logs = await logCount(db);
+  await db.update(stores).set({ qr_mode: "display", qr_secret: "store-2-secret" }).where(eq(stores.id, "store-2"));
   const own = issueTicket(SECRET, "store-1", T0);
   const attempts = [
+    issueTicket("store-2-secret", "store-2", T0),
+    { ...own, storeId: "store-2" },
     issueTicket("other-secret", "store-2", T0),
     { ...own, mac: own.mac.slice(0, -1) + (own.mac.endsWith("A") ? "B" : "A") },
     { ...own, exp: own.exp + 1 },
@@ -63,6 +72,7 @@ test("tickets from another store, tampered tickets and garbage are rejected", as
     assert.equal(response.statusCode, 403, JSON.stringify(ticket));
     assert.equal(response.json().error, "qr_expired");
   }
+  assert.equal(await logCount(db), logs);
 });
 
 test("a display store without a secret rejects every ticket", async () => {
@@ -76,6 +86,7 @@ test("printed stores still clock in without a ticket", async () => {
   const { clock } = await setup();
   const response = await clock("qr-2", { employeeId: "emp-9", requestedAction: "IN" });
   assert.equal(response.statusCode, 200);
+  assert.equal(response.json().timestamp, new Date(T0).toISOString());
 });
 
 test("invalid bodies still get the legacy 400 before the ticket check", async () => {
