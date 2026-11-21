@@ -41,6 +41,7 @@ erDiagram
   stores ||--o{ employees : has
   stores ||--o{ timelogs : records
   employees ||--o{ timelogs : clocks
+  stores ||--o{ store_members : grants
   stores {
     text id PK
     text name
@@ -65,9 +66,16 @@ erDiagram
     timelog_type type
     timestamptz timestamp
   }
+  store_members {
+    text store_id PK
+    text email PK
+    member_role role
+  }
 ```
 
 Primary keys are text so existing Firestore document IDs (and printed QR tokens) carry over unchanged. Column names are snake_case to match the domain types in the web app.
+
+`store_members` grants a signed-in email a role on a store: `owner` or `manager`. Emails are stored trimmed and lowercase (`normalizeEmail`), the primary key is `(store_id, email)` and an index on `email` serves the "my stores" lookup. Queries live in `api/src/db/repo.ts`: `getMemberRole`, `getMemberships` (newest store first) and `assignOwnerToAllStores`. The table is added by an expand-only migration, so the running revision ignores it.
 
 At cutover, `npm run import:firestore -w @qrshift/api` copies Firestore into these tables once, rejecting invalid documents and checking every row after the write. See [operations](operations.md#firestore-import).
 
