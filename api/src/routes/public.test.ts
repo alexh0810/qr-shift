@@ -1,31 +1,30 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildApp } from "../app.js";
-import { seededDb } from "../test-support.js";
+import { buildTestApp, seededDb } from "../test-support.js";
 
 test("public store route returns 404 for unknown qr tokens", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const response = await app.inject({ method: "GET", url: "/api/stores/missing" });
   assert.equal(response.statusCode, 404);
   assert.deepEqual(response.json(), { error: "store_not_found", message: "Store not found." });
 });
 
 test("public store route returns the scan-safe store payload", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const response = await app.inject({ method: "GET", url: "/api/stores/qr-1" });
   assert.deepEqual(response.json(), { store: { id: "store-1", name: "Downtown", qr_token: "qr-1", qr_mode: "printed" } });
 });
 
 test("scan roster returns 404 for unknown qr tokens", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const response = await app.inject({ method: "GET", url: "/api/stores/missing/employees" });
   assert.equal(response.statusCode, 404);
   assert.deepEqual(response.json(), { error: "store_not_found", message: "Store not found." });
 });
 
 test("scan roster serializes employees, latest logs and statuses", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const body = (await app.inject({ method: "GET", url: "/api/stores/qr-1/employees" })).json();
   assert.equal(body.employees.length, 2);
   assert.deepEqual(body.employees[1], {
@@ -36,7 +35,7 @@ test("scan roster serializes employees, latest logs and statuses", async () => {
 });
 
 test("clock route rejects invalid bodies", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   for (const payload of ['{"employeeId":"emp-1","requestedAction":"LUNCH"}', "{not json"]) {
     const response = await app.inject({
       method: "POST",
@@ -50,7 +49,7 @@ test("clock route rejects invalid bodies", async () => {
 });
 
 test("clock route maps invalid transitions to customer-safe copy", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const response = await app.inject({
     method: "POST",
     url: "/api/stores/qr-1/clock",
@@ -61,7 +60,7 @@ test("clock route maps invalid transitions to customer-safe copy", async () => {
 });
 
 test("clock route maps other failures to the generic message", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const response = await app.inject({
     method: "POST",
     url: "/api/stores/qr-1/clock",
@@ -71,7 +70,7 @@ test("clock route maps other failures to the generic message", async () => {
 });
 
 test("clock route returns the action and timestamp, and the roster reflects it", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const response = await app.inject({
     method: "POST",
     url: "/api/stores/qr-1/clock",

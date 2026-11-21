@@ -60,6 +60,13 @@ Each entry: context, options considered, decision, consequences.
 - **Decision:** switch every surviving route; one `sendError` helper, a global error handler (4xx keep their message, 5xx become a generic `internal_error`) and a JSON `404`. User-facing messages are unchanged.
 - **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the legacy handlers and e2e mocks working. The web app must deploy before the API, because it reads `message ?? error`; Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds. Browser tabs opened before the merge show raw codes until reloaded.
 
+## D9. Firebase session cookies and `store_members` roles
+
+- **Context:** The store PIN and the shared owner secret give no per-person access, no revocation and no audit identity.
+- **Options:** send Firebase ID tokens as bearer tokens on every call; verify them in a Next.js middleware; exchange the ID token once for a server-side session cookie and check roles in the API.
+- **Decision:** `POST /api/session` exchanges a verified-email ID token for a Firebase session cookie (5 days, `__session`, `HttpOnly; Secure; SameSite=Strict`). Routes use `requireSession` / `requireRole(role)`; membership lives in `store_members (store_id, email, role)`. Verification sits behind an `AuthVerifier` interface so tests use a fake and production uses firebase-admin.
+- **Consequences:** sign-out and account disabling take effect immediately (`checkRevoked`), at the cost of one Identity Toolkit lookup per authenticated request. Authorization is by email, so an email must be verified before a session exists. Production credentials are the Cloud Run service account (no key files).
+
 ## D12. Stateless HMAC windows for the rotating QR
 
 - **Context:** In display mode a clock-in must prove the employee saw the tablet in the last minute, without a server-side session table.

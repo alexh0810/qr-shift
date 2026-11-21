@@ -111,10 +111,25 @@ A failed smoke test fails the job and leaves the previous revision serving. On t
 | `DATABASE_URL` | GitHub secret | `db:migrate` in CI |
 | `database-url` | Secret Manager | Cloud Run runtime env `DATABASE_URL` |
 | `manager-session-secret`, `owner-setup-secret` | Secret Manager | Cloud Run runtime env `MANAGER_SESSION_SECRET`, `OWNER_SETUP_SECRET`; same values as in Vercel |
+| `FIREBASE_PROJECT_ID` | Cloud Run env (set in `deploy-api`) | Firebase Admin SDK project; the runtime service account needs `roles/firebaseauth.admin` and `identitytoolkit.googleapis.com` enabled |
 | `API_ORIGIN` | Vercel env var | `web/next.config.mjs` rewrite of `/api/*` to Cloud Run |
 | `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT` | GitHub variables | `deploy-api` |
 
 Rotate the database password: update it in Neon, then `printf '%s' '<url>' | gcloud secrets versions add database-url --data-file=-`, `gh secret set DATABASE_URL`, and redeploy.
+
+## Firebase Authentication setup
+
+1. **Console:** Firebase console → Authentication → Sign-in method → enable Email/Password and Google. Under Settings → Authorized domains, add the Vercel production domain.
+2. **Enable the API and grant the runtime service account access** (once):
+   ```bash
+   gcloud services enable identitytoolkit.googleapis.com
+   gcloud projects add-iam-policy-binding $PROJECT_ID \
+     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+     --role=roles/firebaseauth.admin
+   ```
+3. **Vercel:** set `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID` and `NEXT_PUBLIC_FIREBASE_APP_ID` from the Firebase web app config (public values), then redeploy.
+
+The API reads `FIREBASE_PROJECT_ID` (set by `deploy-api`) and authenticates to Firebase with the Cloud Run service account; there are no key files.
 
 ## Firestore import
 

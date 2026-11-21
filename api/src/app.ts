@@ -5,12 +5,20 @@ import type { FastifyError } from "fastify";
 
 import type { Db } from "./db/client.js";
 import { sendError } from "./errors.js";
+import type { AuthVerifier } from "./identity.js";
 import { managerRoutes } from "./routes/manager.js";
 import { ownerRoutes } from "./routes/owner.js";
 import { publicRoutes } from "./routes/public.js";
+import { sessionRoutes } from "./session.js";
 
-export function buildApp({ db, now = Date.now }: { db: Db; now?: () => number }) {
+export function buildApp({ db, auth, now = Date.now }: { db: Db; auth: AuthVerifier; now?: () => number }) {
   const app = Fastify({ logger: process.env.NODE_ENV === "production" });
+
+  app.decorate("db", db);
+  app.decorate("auth", auth);
+  app.decorateRequest("user", null);
+  app.decorateRequest("store", null);
+  app.decorateRequest("role", null);
 
   app.register(cookie);
   app.setNotFoundHandler((_request, reply) => sendError(reply, 404, "not_found", "Not found."));
@@ -48,6 +56,7 @@ export function buildApp({ db, now = Date.now }: { db: Db; now?: () => number })
     }
   });
 
+  sessionRoutes(app);
   publicRoutes(app, { db, now });
   managerRoutes(app, { db });
   ownerRoutes(app, { db });

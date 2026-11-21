@@ -3,18 +3,18 @@ import { test } from "node:test";
 
 import { eq } from "drizzle-orm";
 
-import { buildApp } from "../app.js";
 import type { Db } from "../db/client.js";
 import { stores, timelogs } from "../db/schema.js";
 import { SECRET, displayDb } from "../qr-fixtures.js";
 import { TICKET_TTL_MS, WINDOW_MS, issueTicket } from "../qr.js";
+import { buildTestApp } from "../test-support.js";
 
 const T0 = 100 * WINDOW_MS;
 
 async function setup() {
   let nowMs = T0;
   const db = await displayDb();
-  const app = buildApp({ db, now: () => nowMs });
+  const app = buildTestApp(db, { now: () => nowMs });
   const clock = (qr: string, payload: object) =>
     app.inject({ method: "POST", url: `/api/stores/${qr}/clock`, headers: { "content-type": "application/json" }, payload });
   return { app, db, clock, setNow: (value: number) => (nowMs = value) };

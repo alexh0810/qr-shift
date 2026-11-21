@@ -30,6 +30,16 @@ Auth: none. Used by the employee scan page.
 
 Printed stores ignore `ticket`. A ticket is reusable until it expires (120 s), not single-use. A clock action is accepted only if it is the opposite of the employee's latest log. The employee row is locked during the check, so concurrent duplicate scans record one event.
 
+## Session routes
+
+| Method & path | Body | 200 | Errors |
+| --- | --- | --- | --- |
+| `POST /api/session` | `{ idToken }` (Firebase ID token) | `{ ok: true, email }` + cookie `__session` | 400 `invalid_request` · 401 `invalid_token` (`Sign-in failed. Try again.`) · 403 `email_not_verified` (`Verify your email address, then sign in again.`) |
+| `DELETE /api/session` | — | `{ ok: true }`, cookie cleared | — |
+| `GET /api/me` | — | `{ email, stores: [{ id, name, qr_token, role }] }`, newest store first | 401 `unauthenticated` (`Sign in to continue.`) |
+
+Cookie `__session`: Firebase session cookie, 5 days, `HttpOnly`, `Secure` in production, `SameSite=Strict`, `Path=/`. Role-guarded routes answer 401 `unauthenticated` without a valid session and 403 `forbidden` (`You don't have access to this store.`) without a sufficient role on that store.
+
 ## Manager routes
 
 Auth: cookie `qrshift_manager_session` — an HMAC-SHA256-signed payload `{ kind: "manager", storeId, qrToken, exp }` valid for 7 days, `HttpOnly`, `SameSite=Lax`, `Secure` in production, issued after a correct store PIN (scrypt-hashed). A session only authorizes routes for its own `qr_token`.
