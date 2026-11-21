@@ -12,7 +12,17 @@ import { ownerRoutes } from "./routes/owner.js";
 import { publicRoutes } from "./routes/public.js";
 import { sessionRoutes } from "./session.js";
 
-export function buildApp({ db, auth, now = Date.now }: { db: Db; auth: AuthVerifier; now?: () => number }) {
+export function buildApp({
+  db,
+  auth,
+  appOrigin,
+  now = Date.now,
+}: {
+  db: Db;
+  auth: AuthVerifier;
+  appOrigin: string;
+  now?: () => number;
+}) {
   const app = Fastify({ logger: process.env.NODE_ENV === "production" });
 
   app.decorate("db", db);
@@ -22,6 +32,12 @@ export function buildApp({ db, auth, now = Date.now }: { db: Db; auth: AuthVerif
   app.decorateRequest("role", null);
 
   app.register(cookie);
+  app.addHook("onRequest", async (request, reply) => {
+    if (request.method === "GET" || request.method === "HEAD") return;
+    if (request.headers.origin !== appOrigin) {
+      return sendError(reply, 403, "forbidden_origin", "Request not allowed from this origin.");
+    }
+  });
   app.setNotFoundHandler((_request, reply) => sendError(reply, 404, "not_found", "Not found."));
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const status = error.statusCode ?? 500;
@@ -38,6 +54,8 @@ export function buildApp({ db, auth, now = Date.now }: { db: Db; auth: AuthVerif
     return sendError(reply, 400, "invalid_request", "The request could not be processed.");
   });
   // Matches the legacy handlers' `request.json().catch(() => null)`: empty or malformed JSON reaches routes as null.
+  // text/plain is a CORS "simple" type; without a parser it answers 415 like form posts.
+  app.removeContentTypeParser("text/plain");
   app.removeContentTypeParser("application/json");
   app.addContentTypeParser("application/json", { parseAs: "string" }, (_request, body, done) => {
     try {

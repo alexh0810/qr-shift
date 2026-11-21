@@ -47,6 +47,13 @@ sequenceDiagram
 
 **Authorization.** `store_members(store_id, email, role)` is the only source of access. `requireRole('manager' | 'owner')` is a Fastify `preHandler` that resolves the store from `:storeId` or `:qr_token`, looks up the caller's role and answers **403** unless the role is sufficient (owner satisfies manager). Unknown stores are also 403. Handlers contain no role checks. `requireSession` only requires a signed-in user (used by store creation and `/api/me`).
 
+**CSRF (three independent layers).**
+1. `SameSite=Strict` session cookie; the site and API share one origin through the Vercel rewrite.
+2. State-changing routes accept only `application/json`. Form-encoded, multipart and `text/plain` bodies (the CORS "simple" types that cross-site forms can send without a preflight) answer 415 `unsupported_media_type`, and the API sends no CORS headers, so other sites cannot read responses or send credentialed cross-origin JSON.
+3. A global `onRequest` hook answers 403 `forbidden_origin` to any non-GET/HEAD request whose `Origin` is not `APP_ORIGIN`, including `POST /api/session`, the public `POST …/clock`, and requests with no `Origin`. Browsers always send `Origin` on `fetch` POSTs, so employees' phones pass. GET routes never mutate state.
+
+Direct calls to the `*.run.app` URL carry no session cookie, so they are unauthenticated. Limit: a single `APP_ORIGIN` means Vercel preview deployments can read through the API but cannot write.
+
 **Public routes.** Scanning needs no account: `GET /api/stores/:qr_token`, `GET …/employees`, `POST …/clock`.
 
 ## Environment variables
@@ -55,6 +62,7 @@ sequenceDiagram
 | --- | --- | --- |
 | `DATABASE_URL` | API | Neon connection string |
 | `FIREBASE_PROJECT_ID` | API | Firebase project for token and session-cookie verification (`qr-shift-f2063`); credentials come from the runtime service account (Application Default Credentials) |
+| `APP_ORIGIN` | API | The site's origin (`https://…`, no path); state-changing requests from any other origin are refused. The API refuses to start without it |
 | `API_ORIGIN` | Web (Vercel) | Cloud Run URL the `/api/*` rewrite forwards to |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_APP_ID` | Web | Firebase web SDK config (public values) |
 
