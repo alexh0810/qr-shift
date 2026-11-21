@@ -9,8 +9,6 @@ import { SESSION_COOKIE } from "./roles.js";
 
 export const TEST_ORIGIN = "https://app.test";
 
-export const TEST_ORIGIN = "https://app.test";
-
 export const at = (value: string) => new Date(value);
 
 export async function seededDb(): Promise<Db> {
