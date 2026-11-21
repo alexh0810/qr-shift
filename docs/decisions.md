@@ -74,6 +74,13 @@ Each entry: context, options considered, decision, consequences.
 - **Decision:** three independent layers (see the security model): `SameSite=Strict`, JSON-only bodies (the `text/plain` parser is removed so every non-JSON type gets 415) with no CORS, and a global Origin check against `APP_ORIGIN`. The hook is `onRequest` (before body parsing) and also rejects a missing `Origin` on non-GET.
 - **Consequences:** no token plumbing in the client. Non-browser clients must send an `Origin`. Vercel previews cannot write to the production API (they fail the Origin check).
 
+## D10. CSRF: Strict cookie, JSON-only bodies, Origin check
+
+- **Context:** Cookie sessions make state-changing endpoints CSRF targets.
+- **Options:** CSRF tokens; Origin check only; layered defences without per-request tokens.
+- **Decision:** three independent layers (see the security model): `SameSite=Strict`, JSON-only bodies (the `text/plain` parser is removed so every non-JSON type gets 415) with no CORS, and a global Origin check against `APP_ORIGIN`. The hook is `onRequest` (before body parsing) and also rejects a missing `Origin` on non-GET.
+- **Consequences:** no token plumbing in the client. Non-browser clients must send an `Origin`. Vercel previews cannot write to the production API (they fail the Origin check).
+
 ## D12. Stateless HMAC windows for the rotating QR
 
 - **Context:** In display mode a clock-in must prove the employee saw the tablet in the last minute, without a server-side session table.

@@ -21,6 +21,10 @@ Every error is `{ "error": "<code>", "message": "<user-facing text>" }`; the cli
 
 Requests that change state (`POST`, `PATCH`, `DELETE`) must send `Content-Type: application/json` (or no body) and an `Origin` header equal to the site origin; otherwise the API answers 415 `unsupported_media_type` or 403 `forbidden_origin` (`Request not allowed from this origin.`). Browsers send `Origin` automatically.
 
+## Request rules
+
+Requests that change state (`POST`, `PATCH`, `DELETE`) must send `Content-Type: application/json` (or no body) and an `Origin` header equal to the site origin; otherwise the API answers 415 `unsupported_media_type` or 403 `forbidden_origin` (`Request not allowed from this origin.`). Browsers send `Origin` automatically.
+
 ## Public routes
 
 Auth: none. Used by the employee scan page.
