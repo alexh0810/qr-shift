@@ -14,6 +14,7 @@ import {
   Download,
   FlaskConical,
   Loader2,
+  LogOut,
   PlusCircle,
   QrCode,
   RefreshCcw,
@@ -22,13 +23,14 @@ import {
   Users,
 } from "lucide-react";
 
-import OwnerGuard from "@/components/OwnerGuard";
+import AuthGuard from "@/components/AuthGuard";
 import {
   createDemoStore,
   createStore,
   createStoreEmployee,
   getOwnerStoreRoster,
   getOwnerStores,
+  logout,
   updateStoreEmployee,
 } from "@/lib/client-api";
 import { Employee, OwnerStoreSummary } from "@/types";
@@ -42,7 +44,6 @@ type PreviewStatus = {
 
 type PendingDuplicate = {
   storeName: string;
-  pin: string;
   employeeNames: string[];
   matches: OwnerStoreSummary[];
 };
@@ -86,7 +87,6 @@ function formatTokenPreview(token: string) {
 
 export default function AdminConsolePage() {
   const [storeName, setStoreName] = useState("");
-  const [pin, setPin] = useState("");
   const [employeesInput, setEmployeesInput] = useState("");
   const [registryQuery, setRegistryQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -115,7 +115,6 @@ export default function AdminConsolePage() {
 
   const clearForm = () => {
     setStoreName("");
-    setPin("");
     setEmployeesInput("");
     setPendingDuplicate(null);
     setStoreCreationError("");
@@ -358,7 +357,7 @@ export default function AdminConsolePage() {
     setLoading(true);
 
     try {
-      const result = await createStore(payload.storeName, payload.pin, payload.employeeNames);
+      const result = await createStore(payload.storeName, payload.employeeNames);
       handleCreateSuccess(
         {
           id: result.storeId,
@@ -384,7 +383,7 @@ export default function AdminConsolePage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!storeName.trim() || !employeesInput.trim() || !pin.trim()) {
+    if (!storeName.trim() || !employeesInput.trim()) {
       return;
     }
 
@@ -398,7 +397,6 @@ export default function AdminConsolePage() {
     if (matches.length > 0) {
       setPendingDuplicate({
         storeName: storeName.trim(),
-        pin: pin.trim(),
         employeeNames,
         matches,
       });
@@ -409,7 +407,6 @@ export default function AdminConsolePage() {
 
     await submitStoreCreation({
       storeName: storeName.trim(),
-      pin: pin.trim(),
       employeeNames,
     });
   };
@@ -474,7 +471,7 @@ export default function AdminConsolePage() {
   const statusIconClass = previewStatus?.tone === "demo" ? "text-[color:#c98512]" : "text-[color:#1ed7b5]";
 
   return (
-    <OwnerGuard>
+    <AuthGuard>
       <div className="min-h-screen bg-[var(--background)] px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 py-2">
           <header className="rounded-[20px] border border-surfacestroke bg-surface px-5 py-4 shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:px-6">
@@ -482,7 +479,7 @@ export default function AdminConsolePage() {
               <div className="hidden h-12 w-12 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary sm:inline-flex">
                 <StoreIcon className="h-6 w-6" />
               </div>
-              <div className="space-y-1">
+              <div className="flex-1 space-y-1">
                 <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
                   Owner Console
                 </p>
@@ -490,6 +487,17 @@ export default function AdminConsolePage() {
                   Store setup and QR operations
                 </h1>
               </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout();
+                  window.location.reload();
+                }}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-background"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign out</span>
+              </button>
             </div>
           </header>
 
@@ -537,24 +545,6 @@ export default function AdminConsolePage() {
                     }}
                     placeholder="Downtown Coffee"
                     className="h-12 w-full rounded-[14px] border border-surfacestroke bg-background px-4 text-sm font-semibold text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </label>
-
-                <label className="block space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">Manager PIN</span>
-                  <input
-                    required
-                    type="text"
-                    pattern="[0-9]*"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={pin}
-                    onChange={(event) => {
-                      setPin(event.target.value);
-                      setPendingDuplicate(null);
-                    }}
-                    placeholder="1234"
-                    className="h-12 w-full rounded-[14px] border border-surfacestroke bg-background px-4 font-mono text-sm font-semibold text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </label>
 
@@ -613,7 +603,6 @@ export default function AdminConsolePage() {
 
                               void submitStoreCreation({
                                 storeName: pendingDuplicate.storeName,
-                                pin: pendingDuplicate.pin,
                                 employeeNames: pendingDuplicate.employeeNames,
                               });
                             }}
@@ -1085,6 +1074,6 @@ export default function AdminConsolePage() {
           />
         ) : null}
       </div>
-    </OwnerGuard>
+    </AuthGuard>
   );
 }

@@ -70,7 +70,7 @@ Direct calls to the `*.run.app` URL carry no session cookie, so they are unauthe
 
 | Path | Responsibility |
 | --- | --- |
-| `web/` | UI routes: `/` landing, `/display/[storeId]`, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, `/admin` |
+| `web/` | UI routes: `/` landing, `/display/[storeId]`, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, `/admin`; sign-in via the Firebase web SDK (`LoginPanel`, `AuthGuard`) |
 | `api/` | Fastify REST API; `buildApp()` in `src/app.ts` is the entry used by both the server and tests |
 
 ## Data model

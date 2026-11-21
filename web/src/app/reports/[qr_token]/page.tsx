@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { endOfDay, endOfWeek, format, startOfDay, startOfWeek } from "date-fns";
 import { AlertTriangle, Download, Loader2, LogOut, RefreshCw } from "lucide-react";
 
-import PinGuard from "@/components/PinGuard";
+import AuthGuard from "@/components/AuthGuard";
 import { ManagerWorkspaceHeader } from "@/components/manager/ManagerWorkspaceHeader";
 import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShell";
 import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
@@ -28,14 +28,14 @@ import {
 } from "@/features/reports/drafts";
 import type { ReportDraft, TimesheetRow } from "@/features/reports/types";
 import { buildReportsCsv } from "@/features/reports/export";
-import { getReportsSnapshot, logoutManager, saveReportCorrection } from "@/lib/client-api";
+import { getReportsSnapshot, logout, saveReportCorrection } from "@/lib/client-api";
 import { Employee, PublicStore, Timelog } from "@/types";
 
 export default function ReportsPage({ params }: { params: { qr_token: string } }) {
   return (
-    <PinGuard qr_token={params.qr_token}>
+    <AuthGuard qrToken={params.qr_token}>
       <ReportsWorkspace qrToken={params.qr_token} />
-    </PinGuard>
+    </AuthGuard>
   );
 }
 
@@ -324,14 +324,14 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
           secondaryAction={
             <button
               onClick={async () => {
-                await logoutManager();
+                await logout();
                 window.location.reload();
               }}
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[18px] border border-surfacestroke bg-surface px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-border-strong hover:bg-background"
-              title="Lock reports"
+              title="Sign out"
             >
               <LogOut className="h-4 w-4" />
-              <span>Lock</span>
+              <span>Sign out</span>
             </button>
           }
         />
