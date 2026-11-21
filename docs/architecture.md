@@ -47,6 +47,9 @@ erDiagram
     text qr_token UK
     text pin_hash
     timestamptz created_at
+    qr_mode qr_mode "display or printed, default printed"
+    text qr_secret "HMAC key for the rotating QR, null until display mode is first enabled"
+    text display_key "credential of the display tablet, null until display mode is first enabled"
   }
   employees {
     text id PK
@@ -85,6 +88,8 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `invalid_range`, `future_correction_not_supported`, `report_correction_failed` | 400 | Report correction rejected |
 | `employee_not_found` | 404 | Employee missing |
 | `employee_store_mismatch`, `duplicate_employee_name`, `invalid_employee_name`, `no_employee_changes`, `employee_create_failed`, `employee_update_failed` | 400 | Employee changes rejected |
+| `not_display_mode` | 400 | Scan ticket requested for a store in printed mode |
+| `qr_expired` | 403 | Display QR older than 60 s, tampered, for another store, or its `w`/`sig` missing or malformed |
 | `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
 | `unsupported_media_type` | 415 | Body is not `application/json` |
 | `internal_error` | 500 | Unexpected failure; details only in the server log |
