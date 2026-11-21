@@ -11,5 +11,5 @@ if (!databaseUrl) {
 }
 
 const count = await assignOwnerToAllStores(connect(databaseUrl), email);
-console.log(`${email.toLowerCase()} is now owner of ${count} stores.`);
+console.log(`${email.toLowerCase()} is now owner of ${count} ${count === 1 ? "store" : "stores"} on ${new URL(databaseUrl).host}.`);
 process.exit(0);

@@ -21,6 +21,7 @@ import {
   toPublicStore,
   updateEmployeeForStore,
 } from "./repo.js";
+import { createTestDb } from "./test-db.js";
 
 test("lists owner store summaries newest first without pin hashes", async () => {
   const stores = await getOwnerStoreSummaries(await seededDb());
@@ -218,4 +219,11 @@ test("assignOwnerToAllStores is idempotent, normalizes case and upgrades manager
   assert.equal(await getMemberRole(db, "store-1", "bob@example.com"), "owner");
   assert.equal(await getMemberRole(db, "store-2", "bob@example.com"), "owner");
   assert.equal(await assignOwnerToAllStores(db, "bob@example.com"), 2);
+});
+
+test("assignOwnerToAllStores returns 0 without stores and keeps existing owners", async () => {
+  assert.equal(await assignOwnerToAllStores(await createTestDb(), "alice@example.com"), 0);
+  const db = await seededDb();
+  assert.equal(await assignOwnerToAllStores(db, "alice@example.com"), 2);
+  assert.equal(await getMemberRole(db, "store-1", "alice@example.com"), "owner");
 });
