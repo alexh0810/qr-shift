@@ -50,3 +50,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** delete the Next.js handlers and deploy; proxy per route group; a single `beforeFiles` rewrite gated on `API_ORIGIN`.
 - **Decision:** one rewrite of `/api/*`, active only when `API_ORIGIN` is set; tried on Vercel Preview before Production.
 - **Consequences:** switching or rolling back is an env change plus redeploy. The legacy handlers stay in the codebase until phase 3, and writes made after the switch are lost on rollback unless re-entered.
+
+## D8. Stateless HMAC windows for the rotating QR
+
+- **Context:** In display mode a clock-in must prove the employee saw the tablet in the last minute, without a server-side session table.
+- **Options:** random one-time codes stored in Postgres; signed time windows; JWTs.
+- **Decision:** `HMAC-SHA256(qr_secret, storeId.window)` over 30 s windows, current plus previous window accepted, then a 120 s HMAC ticket for the clock call.
+- **Consequences:** nothing to store or clean up; a forwarded screenshot works for up to 60 s (documented limit); the ticket allows several clock actions within 120 s; rotating `qr_secret` is the revoke switch.
