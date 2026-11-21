@@ -153,6 +153,10 @@ Code: `api/src/qr.ts`.
 
 The tablet opens `/display/[storeId]#<display_key>`. The key is read from the URL fragment, so the browser never sends it to a server except in the `x-display-key` header of `GET /api/display/:storeId/qr`, and it does not appear in logs or `Referer`. The page renders `/scan/{qr_token}?w&sig` as a QR with `qrcode.react` and re-fetches at each window boundary (`refresh_in_ms`). A 401 `invalid_display_key` shows a "link is no longer valid" message and stops polling; network errors keep retrying every 5 s while the last QR stays on screen.
 
+### Scan page
+
+For a display-mode store the scan page reads `w`/`sig` from the URL, exchanges them for a ticket (kept in memory only) before the roster is usable (the parameters leave the address bar only after a successful exchange or a `qr_expired` answer, so a transient failure keeps them and a retry works within their ~60 s validity), and sends the ticket with `POST /clock`. It shows "QR code expired" when `w`/`sig` are missing, when `scan-ticket` answers `qr_expired`, or when `/clock` answers `qr_expired` or `qr_required` (for example after more than 120 s on the name picker). Reloading the page therefore also needs a fresh scan. Only clocking is gated: the roster is readable with the printed token or a display link. Printed-mode stores skip all of this.
+
 ### Clock-in sequences
 
 ```mermaid

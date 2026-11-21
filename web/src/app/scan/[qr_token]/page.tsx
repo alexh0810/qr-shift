@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, Loader2, QrCode } from "lucide-react";
 
 import { BrandMark } from "@/components/BrandMark";
 import { ScanActionPanel } from "@/components/scan/ScanActionPanel";
 import { ScanEmployeeCard } from "@/components/scan/ScanEmployeeCard";
-import { getScanRoster, submitClockAction } from "@/lib/client-api";
+import { ApiError, ClockTicket, getScanRoster, getScanTicket, submitClockAction } from "@/lib/client-api";
 import { PublicStore, ScanEmployeeStatus } from "@/types";
 
 export default function ScanPage({ params }: { params: { qr_token: string } }) {
@@ -21,6 +21,9 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
 
   const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<ClockTicket | null>(null);
+  const [qrExpired, setQrExpired] = useState(false);
+  const qrParams = useRef<{ w: string | null; sig: string | null } | null>(null);
 
   const clearSelection = () => {
     setSelectedEmployee(null);
@@ -40,10 +43,34 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
     const roster = await getScanRoster(params.qr_token);
     setStore(roster.store);
     setEmployees(roster.employees);
+    return roster.store;
   }, [params.qr_token]);
 
   useEffect(() => {
     loadRoster()
+      .then(async (loadedStore) => {
+        if (loadedStore.qr_mode !== "display") {
+          return;
+        }
+        if (!qrParams.current) {
+          const query = new URLSearchParams(window.location.search);
+          qrParams.current = { w: query.get("w"), sig: query.get("sig") };
+        }
+        const { w, sig } = qrParams.current;
+        if (!w || !sig) {
+          setQrExpired(true);
+          return;
+        }
+        try {
+          setTicket(await getScanTicket(params.qr_token, w, sig));
+        } catch (error) {
+          if (!(error instanceof ApiError && error.code === "qr_expired")) {
+            throw error;
+          }
+          setQrExpired(true);
+        }
+        window.history.replaceState(window.history.state, "", window.location.pathname);
+      })
       .catch(() => {
         setError(
           "QRShift couldn't load this store right now. Refresh the page and try again. If the issue continues, reopen the QR link.",
@@ -52,7 +79,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
       .finally(() => {
         setLoading(false);
       });
-  }, [loadRoster]);
+  }, [loadRoster, params.qr_token]);
 
   const handleSelectEmployee = async (employeeStatus: ScanEmployeeStatus) => {
     setSelectedEmployee(employeeStatus);
@@ -78,7 +105,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
     setError(null);
 
     try {
-      await submitClockAction(params.qr_token, selectedEmployee.employee.id, nextAction);
+      await submitClockAction(params.qr_token, selectedEmployee.employee.id, nextAction, ticket);
       setSuccessMessage(`Clocked ${nextAction === "IN" ? "in" : "out"}`);
 
       window.setTimeout(() => {
@@ -88,8 +115,13 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
           setError("QRShift couldn't refresh the clock station. Try again.");
         });
       }, 2500);
-    } catch {
-      setError("QRShift couldn't save that clock action. Try again.");
+    } catch (error) {
+      if (error instanceof ApiError && (error.code === "qr_expired" || error.code === "qr_required")) {
+        clearSelection();
+        setQrExpired(true);
+      } else {
+        setError("QRShift couldn't save that clock action. Try again.");
+      }
     } finally {
       setActionLoading(false);
     }
@@ -149,7 +181,15 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
           </div>
         ) : null}
 
-        {selectedEmployee ? (
+        {qrExpired ? (
+          <div className="rounded-[var(--radius-panel)] border border-surfacestroke bg-surface px-5 py-10 text-center shadow-[var(--shadow-panel)]">
+            <QrCode className="mx-auto h-8 w-8 text-primary" />
+            <h2 className="mt-3 font-display text-2xl font-bold tracking-[-0.04em] text-foreground">QR code expired</h2>
+            <p className="mt-2 text-sm font-medium text-text-muted">
+              Scan the code on the store display again to clock in or out.
+            </p>
+          </div>
+        ) : store?.qr_mode === "display" && !ticket ? null : selectedEmployee ? (
           <ScanActionPanel
             employeeName={selectedEmployee.employee.name}
             nextAction={nextAction ?? "IN"}

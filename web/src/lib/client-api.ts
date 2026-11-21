@@ -82,10 +82,25 @@ export async function getScanRoster(qrToken: string) {
   };
 }
 
+export interface ClockTicket {
+  storeId: string;
+  exp: number;
+  mac: string;
+}
+
+export async function getScanTicket(qrToken: string, w: string, sig: string): Promise<ClockTicket> {
+  const response = await fetch(
+    `/api/stores/${qrToken}/scan-ticket?w=${encodeURIComponent(w)}&sig=${encodeURIComponent(sig)}`,
+    { credentials: "same-origin", cache: "no-store" },
+  );
+  return (await readJson<{ ticket: ClockTicket }>(response)).ticket;
+}
+
 export async function submitClockAction(
   qrToken: string,
   employeeId: string,
   requestedAction: "IN" | "OUT",
+  ticket?: ClockTicket | null,
 ) {
   const response = await fetch(`/api/stores/${qrToken}/clock`, {
     method: "POST",
@@ -96,6 +111,7 @@ export async function submitClockAction(
     body: JSON.stringify({
       employeeId,
       requestedAction,
+      ticket: ticket ?? undefined,
     }),
   });
 
