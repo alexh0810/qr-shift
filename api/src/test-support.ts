@@ -1,6 +1,6 @@
 import { hashPin } from "./auth.js";
 import type { Db } from "./db/client.js";
-import { employees, stores, timelogs } from "./db/schema.js";
+import { employees, storeMembers, stores, timelogs } from "./db/schema.js";
 import { createTestDb } from "./db/test-db.js";
 
 process.env.MANAGER_SESSION_SECRET ??= "test-manager-secret";
@@ -24,6 +24,12 @@ export async function seededDb(): Promise<Db> {
     { id: "log-1", employee_id: "emp-1", store_id: "store-1", type: "IN", timestamp: at("2026-04-20T08:00:00Z") },
     { id: "log-2", employee_id: "emp-1", store_id: "store-1", type: "OUT", timestamp: at("2026-04-20T16:00:00Z") },
     { id: "log-3", employee_id: "emp-2", store_id: "store-1", type: "IN", timestamp: at("2026-04-21T08:00:00Z") },
+  ]);
+  await db.insert(storeMembers).values([
+    { store_id: "store-1", email: "alice@example.com", role: "owner" },
+    { store_id: "store-2", email: "alice@example.com", role: "owner" },
+    { store_id: "store-1", email: "bob@example.com", role: "manager" },
+    { store_id: "store-2", email: "carol@example.com", role: "owner" },
   ]);
   return db;
 }

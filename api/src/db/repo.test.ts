@@ -4,10 +4,13 @@ import { test } from "node:test";
 import { verifyPin } from "../auth.js";
 import { at, seededDb } from "../test-support.js";
 import {
+  assignOwnerToAllStores,
   createClockAction,
   createDemoStoreWithTimelogs,
   createEmployeeForStore,
   createStoreAndEmployees,
+  getMemberRole,
+  getMemberships,
   getOwnerStoreRoster,
   getOwnerStoreSummaries,
   getReportsSnapshot,
@@ -190,4 +193,29 @@ test("correction rolls back the IN update when the OUT log is invalid", async ()
   );
   const logIn = (await getStoreTimelogs(db, "store-1")).find((log) => log.id === "log-1");
   assert.equal(logIn?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
+});
+
+test("member roles resolve per store and ignore email case", async () => {
+  const db = await seededDb();
+  assert.equal(await getMemberRole(db, "store-1", "ALICE@example.com"), "owner");
+  assert.equal(await getMemberRole(db, "store-1", "bob@example.com"), "manager");
+  assert.equal(await getMemberRole(db, "store-2", "bob@example.com"), null);
+  assert.equal(await getMemberRole(db, "missing", "alice@example.com"), null);
+});
+
+test("memberships list the user's stores newest first with their role", async () => {
+  const rows = await getMemberships(await seededDb(), "alice@example.com");
+  assert.deepEqual(rows.map((row) => [row.id, row.role]), [
+    ["store-2", "owner"],
+    ["store-1", "owner"],
+  ]);
+  assert.deepEqual(await getMemberships(await seededDb(), "nobody@example.com"), []);
+});
+
+test("assignOwnerToAllStores is idempotent, normalizes case and upgrades managers", async () => {
+  const db = await seededDb();
+  assert.equal(await assignOwnerToAllStores(db, " Bob@Example.com "), 2);
+  assert.equal(await getMemberRole(db, "store-1", "bob@example.com"), "owner");
+  assert.equal(await getMemberRole(db, "store-2", "bob@example.com"), "owner");
+  assert.equal(await assignOwnerToAllStores(db, "bob@example.com"), 2);
 });

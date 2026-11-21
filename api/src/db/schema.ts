@@ -1,4 +1,4 @@
-import { index, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 export const employeeStatus = pgEnum("employee_status", ["active", "archived"]);
 export const timelogType = pgEnum("timelog_type", ["IN", "OUT"]);
@@ -36,4 +36,16 @@ export const timelogs = pgTable(
     index("timelogs_employee_ts_idx").on(t.employee_id, t.timestamp.desc()),
     index("timelogs_store_ts_idx").on(t.store_id, t.timestamp),
   ],
+);
+
+export const memberRole = pgEnum("member_role", ["owner", "manager"]);
+
+export const storeMembers = pgTable(
+  "store_members",
+  {
+    store_id: text().notNull().references(() => stores.id),
+    email: text().notNull(),
+    role: memberRole().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.store_id, t.email] }), index("store_members_email_idx").on(t.email)],
 );

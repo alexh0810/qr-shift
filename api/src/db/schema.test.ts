@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createTestDb } from "./test-db.js";
-import { employees, stores, timelogs } from "./schema.js";
+import { employees, storeMembers, stores, timelogs } from "./schema.js";
 
 async function seeded() {
   const db = await createTestDb();
@@ -47,4 +47,11 @@ test("timelog type is limited to IN and OUT", async () => {
       timestamp: new Date(),
     }),
   );
+});
+
+test("store_members is unique per store and email and needs an existing store", async () => {
+  const db = await seeded();
+  await db.insert(storeMembers).values({ store_id: "s1", email: "a@example.com", role: "owner" });
+  await assert.rejects(db.insert(storeMembers).values({ store_id: "s1", email: "a@example.com", role: "manager" }));
+  await assert.rejects(db.insert(storeMembers).values({ store_id: "nope", email: "a@example.com", role: "owner" }));
 });

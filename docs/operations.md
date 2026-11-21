@@ -146,6 +146,19 @@ The web app forwards `/api/*` to Cloud Run only when the Vercel env var `API_ORI
 
 Firestore stays unused (not deleted) for 7 days after the switch. Phase 3 then deletes `web/src/app/api`, `web/src/lib/server-*.ts`, `firebase-admin` in web and `firestore.rules`.
 
+## Assign owner
+
+Makes one email owner of every store; safe to re-run, and upgrades an existing manager row to owner. Run it after the `store_members` migration is deployed.
+
+```bash
+cd api
+export OWNER_EMAIL='<email>'
+read -rs DATABASE_URL && export DATABASE_URL
+npm run assign-owner
+```
+
+It prints how many stores the email now owns. Stores created later are not covered; re-run it.
+
 ## Rollback
 
 ```bash

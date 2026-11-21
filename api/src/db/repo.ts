@@ -1,10 +1,10 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { hashPin } from "../auth.js";
 import { buildDemoStoreSeed } from "../demo-data.js";
 import type { Db } from "./client.js";
-import { employees, stores, timelogs } from "./schema.js";
+import { employees, storeMembers, stores, timelogs } from "./schema.js";
 
 export type Store = typeof stores.$inferSelect;
 export type Employee = typeof employees.$inferSelect;
@@ -316,4 +316,46 @@ export async function updateEmployeeForStore(
 
   const [updated] = await db.update(employees).set(patch).where(eq(employees.id, input.employeeId)).returning();
   return updated;
+}
+
+export type MemberRole = "owner" | "manager";
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+export async function getMemberRole(db: Db, storeId: string, email: string): Promise<MemberRole | null> {
+  const [row] = await db
+    .select({ role: storeMembers.role })
+    .from(storeMembers)
+    .where(and(eq(storeMembers.store_id, storeId), eq(storeMembers.email, normalizeEmail(email))))
+    .limit(1);
+  return row?.role ?? null;
+}
+
+export async function getMemberships(db: Db, email: string) {
+  return db
+    .select({
+      id: stores.id,
+      name: stores.name,
+      qr_token: stores.qr_token,
+      created_at: stores.created_at,
+      role: storeMembers.role,
+    })
+    .from(storeMembers)
+    .innerJoin(stores, eq(stores.id, storeMembers.store_id))
+    .where(eq(storeMembers.email, normalizeEmail(email)))
+    .orderBy(desc(stores.created_at), asc(stores.id));
+}
+
+export async function assignOwnerToAllStores(db: Db, email: string) {
+  const rows = await db.select({ id: stores.id }).from(stores);
+  if (rows.length === 0) {
+    return 0;
+  }
+  await db
+    .insert(storeMembers)
+    .values(rows.map((row) => ({ store_id: row.id, email: normalizeEmail(email), role: "owner" as const })))
+    .onConflictDoUpdate({ target: [storeMembers.store_id, storeMembers.email], set: { role: "owner" } });
+  return rows.length;
 }

@@ -10,7 +10,8 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "import:firestore": "tsx scripts/import-firestore.ts"
+    "import:firestore": "tsx scripts/import-firestore.ts",
+    "assign-owner": "tsx scripts/assign-owner.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
