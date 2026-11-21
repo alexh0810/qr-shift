@@ -184,7 +184,7 @@ Open `https://qr-shift-six.vercel.app/display/<store id>#<display_key>` on the s
 - Reissue the QR (invalidates every outstanding QR and ticket): `update stores set qr_secret = encode(gen_random_bytes(32), 'hex') where id = '<store id>';`
 - Reset the display link: the same statement for `display_key`, then open the new link.
 
-Tablet setup: set the screen to never sleep and keep the browser open on the display page. It re-fetches the QR at every 30 s window and keeps retrying if the connection drops.
+Tablet setup: set the screen to never sleep and keep the display tab in the foreground (a background tab or locked screen stops refreshing; the page reloads the QR as soon as the tab is visible again). It re-fetches the QR at every 30 s window and keeps retrying if the connection drops.
 
 ## Rollback
 
