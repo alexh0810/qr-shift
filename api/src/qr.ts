@@ -17,11 +17,11 @@ export function safeEqual(a: string, b: string) {
 
 export const windowAt = (nowMs: number) => Math.floor(nowMs / WINDOW_MS);
 
-export const signWindow = (secret: string, storeId: string, window: number) => mac(secret, `${storeId}.${window}`);
+export const signWindow = (secret: string, storeId: string, window: number) => mac(secret, JSON.stringify(["w", storeId, window]));
 
 // Current or previous window only, so a QR is accepted for at most 60 s after it was first shown.
 export function verifyWindow(secret: string, storeId: string, window: number, sig: string, nowMs: number) {
-  if (!secret || !Number.isInteger(window)) {
+  if (!secret || !Number.isInteger(window) || typeof sig !== "string") {
     return false;
   }
   const current = windowAt(nowMs);
@@ -31,10 +31,10 @@ export function verifyWindow(secret: string, storeId: string, window: number, si
   return safeEqual(sig, signWindow(secret, storeId, window));
 }
 
-// The "ticket:" prefix keeps ticket MACs and window signatures from being interchangeable.
+// The "w"/"t" tags keep window signatures and ticket MACs from being interchangeable.
 export function issueTicket(secret: string, storeId: string, nowMs: number): Ticket {
   const exp = nowMs + TICKET_TTL_MS;
-  return { storeId, exp, mac: mac(secret, `ticket:${storeId}:${exp}`) };
+  return { storeId, exp, mac: mac(secret, JSON.stringify(["t", storeId, exp])) };
 }
 
 export function verifyTicket(secret: string, storeId: string, ticket: unknown, nowMs: number) {
@@ -42,8 +42,8 @@ export function verifyTicket(secret: string, storeId: string, ticket: unknown, n
     return false;
   }
   const { storeId: ticketStore, exp, mac: given } = ticket as Record<string, unknown>;
-  if (ticketStore !== storeId || typeof exp !== "number" || typeof given !== "string" || exp <= nowMs) {
+  if (ticketStore !== storeId || typeof exp !== "number" || !Number.isInteger(exp) || typeof given !== "string" || !(exp > nowMs)) {
     return false;
   }
-  return safeEqual(given, mac(secret, `ticket:${storeId}:${exp}`));
+  return safeEqual(given, mac(secret, JSON.stringify(["t", storeId, exp])));
 }

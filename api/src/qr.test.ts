@@ -77,3 +77,33 @@ test("safeEqual and helpers", () => {
   assert.notEqual(newSecret(), newSecret());
   assert.ok(newSecret().length >= 43);
 });
+
+test("ticket MACs and window signatures are not interchangeable", () => {
+  const ticket = issueTicket(SECRET, "store-1", T0);
+  assert.equal(verifyWindow(SECRET, "store-1", 100, ticket.mac, T0), false);
+  const tricky = "ticket:a:1000";
+  const sig = signWindow(SECRET, tricky, 100);
+  assert.equal(verifyTicket(SECRET, tricky, { storeId: tricky, exp: 1000, mac: sig }, 0), false);
+});
+
+test("non-integer, non-finite and NaN inputs fail closed", () => {
+  for (const exp of [Number.NaN, Number.POSITIVE_INFINITY, T0 + 0.5]) {
+    const forged = { storeId: "store-1", exp, mac: issueTicket(SECRET, "store-1", T0).mac };
+    assert.equal(verifyTicket(SECRET, "store-1", forged, T0), false);
+  }
+  const ticket = issueTicket(SECRET, "store-1", T0);
+  assert.equal(verifyTicket(SECRET, "store-1", ticket, Number.NaN), false);
+  assert.equal(verifyWindow(SECRET, "store-1", -1, signWindow(SECRET, "store-1", -1), T0), false);
+});
+
+test("store ids containing separators round-trip", () => {
+  const id = "a.b:c";
+  assert.equal(verifyWindow(SECRET, id, 100, signWindow(SECRET, id, 100), T0), true);
+  assert.equal(verifyTicket(SECRET, id, issueTicket(SECRET, id, T0), T0), true);
+});
+
+test("non-string signatures return false without throwing", () => {
+  for (const sig of [undefined, ["x"], 5]) {
+    assert.equal(verifyWindow(SECRET, "store-1", 100, sig as unknown as string, T0), false);
+  }
+});
