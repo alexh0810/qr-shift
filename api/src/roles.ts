@@ -4,6 +4,7 @@ import type { Db } from "./db/client.js";
 import { getMemberRole, getStoreById, getStoreByQrToken, normalizeEmail } from "./db/repo.js";
 import type { Store } from "./db/repo.js";
 import { sendError } from "./errors.js";
+import { isAuthRejection } from "./identity.js";
 import type { AuthVerifier } from "./identity.js";
 
 export type Role = "manager" | "owner";
@@ -31,7 +32,10 @@ async function readSession(request: FastifyRequest) {
   try {
     const { email } = await request.server.auth.verifySessionCookie(cookie);
     return { email: normalizeEmail(email) };
-  } catch {
+  } catch (error) {
+    if (!isAuthRejection(error)) {
+      throw error;
+    }
     return null;
   }
 }

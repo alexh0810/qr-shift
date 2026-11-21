@@ -9,7 +9,7 @@ QRShift is moving from a single Next.js app (client + route handlers + Firestore
 | Client | Next.js on Vercel (`web/`) | Same, with no server code |
 | API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes once `API_ORIGIN` is set; legacy Next.js handlers kept for rollback until phase 3 | Fastify on Cloud Run (`api/`) |
 | Database | PostgreSQL on Neon once `API_ORIGIN` is set (Firestore kept read-only for rollback) | PostgreSQL on Neon |
-| Auth | Store PIN + signed cookie (until T5/T6 land) | Firebase Authentication + roles |
+| Auth | Store PIN + signed cookie (until the web client switches to accounts) | Firebase Authentication + roles |
 
 ## Target system
 
@@ -43,7 +43,7 @@ sequenceDiagram
 
 ## Security model
 
-**Identity.** Users sign in with Firebase Authentication (email/password or Google). The browser posts the Firebase ID token to `POST /api/session`; the API verifies it, requires a verified email, and exchanges it for a Firebase **session cookie** (`__session`, 5 days, `HttpOnly; Secure; SameSite=Strict; Path=/`). Every protected route verifies the cookie with `verifySessionCookie(cookie, true)` (revocation checked), so signing out or disabling an account takes effect immediately.
+**Identity.** Users sign in with Firebase Authentication (email/password or Google). The browser posts the Firebase ID token to `POST /api/session`; the API verifies it, requires a verified email, and exchanges it for a Firebase **session cookie** (`__session`, 5 days, `HttpOnly; Secure; SameSite=Strict; Path=/`). Every protected route verifies the cookie with `verifySessionCookie(cookie, true)` (revocation checked), so signing out or disabling an account takes effect immediately. Signing out (`DELETE /api/session`) revokes the user's refresh tokens, which ends their sessions on every device, and then clears the cookie even if revocation fails.
 
 **Authorization.** `store_members(store_id, email, role)` is the only source of access. `requireRole('manager' | 'owner')` is a Fastify `preHandler` that resolves the store from `:storeId` or `:qr_token`, looks up the caller's role and answers **403** unless the role is sufficient (owner satisfies manager). Unknown stores are also 403. Handlers contain no role checks. `requireSession` only requires a signed-in user (used by store creation and `/api/me`).
 
@@ -134,7 +134,7 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `qr_expired` | 403 | Display QR older than 60 s or clock ticket older than 120 s, tampered, for another store, or its `w`/`sig` missing or malformed |
 | `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
 | `unsupported_media_type` | 415 | Body is not `application/json` |
-| `internal_error` | 500 | Unexpected failure; details only in the server log |
+| `internal_error` | 500 | Unexpected failure; details only in the server log. Includes Firebase outages: only `auth/*` rejections count as 401, anything else is a 500 |
 | `db_unavailable` | 503 | Health check cannot reach the database |
 
 ## QR signing

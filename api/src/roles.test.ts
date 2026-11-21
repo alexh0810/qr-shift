@@ -44,6 +44,14 @@ test("membership of one store grants nothing on another; unknown stores are 403"
   assert.deepEqual(forbidden.json(), { error: "forbidden", message: "You don't have access to this store." });
 });
 
+test("requireRole answers 500 on a non-auth verifier failure and 401 on an auth rejection", async () => {
+  const app = await appWithProbes();
+  const outage = await app.inject({ method: "GET", url: "/probe/manager/qr-1", cookies: { __session: "outage" } });
+  assert.equal(outage.statusCode, 500);
+  const rejected = await app.inject({ method: "GET", url: "/probe/manager/qr-1", cookies: { __session: "tampered" } });
+  assert.equal(rejected.statusCode, 401);
+});
+
 test("emails are matched case-insensitively", async () => {
   const app = await appWithProbes();
   assert.equal(await status(app, "/probe/manager/qr-1", "BOB@Example.com"), 200);

@@ -10,7 +10,7 @@ export function firebaseAuth(projectId: string): AuthVerifier {
 
   return {
     async verifyIdToken(idToken) {
-      const decoded = await auth.verifyIdToken(idToken);
+      const decoded = await auth.verifyIdToken(idToken, true);
       return { email: normalizeEmail(decoded.email ?? ""), emailVerified: decoded.email_verified === true };
     },
     createSessionCookie: (idToken, expiresInMs) => auth.createSessionCookie(idToken, { expiresIn: expiresInMs }),
@@ -21,6 +21,10 @@ export function firebaseAuth(projectId: string): AuthVerifier {
         throw new Error("session has no verified email");
       }
       return { email: normalizeEmail(decoded.email) };
+    },
+    async revokeSession(cookie) {
+      const decoded = await auth.verifySessionCookie(cookie);
+      await auth.revokeRefreshTokens(decoded.sub);
     },
   };
 }

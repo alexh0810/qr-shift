@@ -37,18 +37,27 @@ export async function seededDb(): Promise<Db> {
   return db;
 }
 
+// "outage" as an ID token or cookie simulates a Firebase failure that is not an auth rejection.
+const rejection = () => Object.assign(new Error("rejected"), { code: "auth/invalid-credential" });
+
+export const revokedSessions: string[] = [];
+
 export const fakeAuth: AuthVerifier = {
   async verifyIdToken(idToken) {
     if (idToken.startsWith("id:")) return { email: idToken.slice(3), emailVerified: true };
     if (idToken.startsWith("unverified:")) return { email: idToken.slice(11), emailVerified: false };
-    throw new Error("invalid token");
+    throw idToken === "outage" ? new Error("network down") : rejection();
   },
   async createSessionCookie(idToken) {
     return `session:${(await fakeAuth.verifyIdToken(idToken)).email}`;
   },
   async verifySessionCookie(cookie) {
-    if (!cookie.startsWith("session:")) throw new Error("invalid session");
-    return { email: cookie.slice(8) };
+    if (cookie.startsWith("session:")) return { email: cookie.slice(8) };
+    throw cookie === "outage" ? new Error("network down") : rejection();
+  },
+  async revokeSession(cookie) {
+    await fakeAuth.verifySessionCookie(cookie);
+    revokedSessions.push(cookie);
   },
 };
 

@@ -35,7 +35,7 @@ Printed stores ignore `ticket`. A ticket is reusable until it expires (120 s), n
 | Method & path | Body | 200 | Errors |
 | --- | --- | --- | --- |
 | `POST /api/session` | `{ idToken }` (Firebase ID token) | `{ ok: true, email }` + cookie `__session` | 400 `invalid_request` · 401 `invalid_token` (`Sign-in failed. Try again.`) · 403 `email_not_verified` (`Verify your email address, then sign in again.`) |
-| `DELETE /api/session` | — | `{ ok: true }`, cookie cleared | — |
+| `DELETE /api/session` | — | `{ ok: true }`: revokes all of the user's sessions on every device and clears the cookie (cleared even if revocation fails) | — |
 | `GET /api/me` | — | `{ email, stores: [{ id, name, qr_token, role }] }`, newest store first | 401 `unauthenticated` (`Sign in to continue.`) |
 
 Cookie `__session`: Firebase session cookie, 5 days, `HttpOnly`, `Secure` in production, `SameSite=Strict`, `Path=/`. Role-guarded routes answer 401 `unauthenticated` without a valid session and 403 `forbidden` (`You don't have access to this store.`) without a sufficient role on that store.

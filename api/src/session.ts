@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import { getMemberships, normalizeEmail } from "./db/repo.js";
 import { sendError } from "./errors.js";
+import { isAuthRejection } from "./identity.js";
 import { SESSION_COOKIE, requireSession } from "./roles.js";
 
 const SESSION_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000;
@@ -29,7 +30,10 @@ export function sessionRoutes(app: FastifyInstance) {
       }
       email = normalizeEmail(identity.email);
       cookie = await app.auth.createSessionCookie(idToken, SESSION_MAX_AGE_MS);
-    } catch {
+    } catch (error) {
+      if (!isAuthRejection(error)) {
+        throw error;
+      }
       return sendError(reply, 401, "invalid_token", "Sign-in failed. Try again.");
     }
 
@@ -37,7 +41,17 @@ export function sessionRoutes(app: FastifyInstance) {
     return { ok: true, email };
   });
 
-  app.delete("/api/session", async (_request, reply) => {
+  app.delete("/api/session", async (request, reply) => {
+    const cookie = request.cookies[SESSION_COOKIE];
+    if (cookie) {
+      try {
+        await app.auth.revokeSession(cookie);
+      } catch (error) {
+        if (!isAuthRejection(error)) {
+          request.log.error(error);
+        }
+      }
+    }
     reply.setCookie(SESSION_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
     return { ok: true };
   });
