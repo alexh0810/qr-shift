@@ -163,6 +163,29 @@ npm run assign-owner
 
 It prints how many stores the email now owns. Stores created later are not covered; re-run it.
 
+## QR modes (until the owner UI exists)
+
+Display mode is enabled per store. Until the owner console has controls for it, use SQL on Neon (replace `<store id>`). Secrets are 256-bit random values: 32 bytes from `gen_random_bytes` (pgcrypto), hex-encoded to 64 characters.
+
+```sql
+create extension if not exists pgcrypto;
+
+update stores
+set qr_mode = 'display',
+    qr_secret = coalesce(qr_secret, encode(gen_random_bytes(32), 'hex')),
+    display_key = coalesce(display_key, encode(gen_random_bytes(32), 'hex'))
+where id = '<store id>'
+returning id, display_key;
+```
+
+Open `https://qr-shift-six.vercel.app/display/<store id>#<display_key>` on the store tablet. Treat that link like a password.
+
+- Back to printed mode: `update stores set qr_mode = 'printed' where id = '<store id>';` (the printed `/scan/<qr_token>` QR works again immediately).
+- Reissue the QR (invalidates every outstanding QR and ticket): `update stores set qr_secret = encode(gen_random_bytes(32), 'hex') where id = '<store id>';`
+- Reset the display link: the same statement for `display_key`, then open the new link.
+
+Tablet setup: set the screen to never sleep and keep the browser open on the display page. It re-fetches the QR at every 30 s window and keeps retrying if the connection drops.
+
 ## Rollback
 
 ```bash
