@@ -1,4 +1,4 @@
-import { Employee, Timelog } from "../../types";
+import { Employee, LocationStatus, Timelog } from "../../types";
 import {
   applyTimeValue,
   calculateDurationMinutes,
@@ -21,6 +21,19 @@ import {
   Summary,
   TimesheetRow,
 } from "./types";
+
+const LOCATION_SEVERITY: Record<LocationStatus, number> = { inside: 0, unknown: 1, outside: 2 };
+
+function worstLocation(...logs: Timelog[]): LocationStatus | null {
+  let worst: LocationStatus | null = null;
+  for (const log of logs) {
+    const status = log.location_status ?? null;
+    if (status && (worst === null || LOCATION_SEVERITY[status] > LOCATION_SEVERITY[worst])) {
+      worst = status;
+    }
+  }
+  return worst;
+}
 
 function resolvePastOpenShift(clockInTime: Date): { out: Date; note: string; state: ShiftState } {
   const endOfPayrollDay = new Date(clockInTime);
@@ -84,6 +97,7 @@ function buildTimesheetRows(employee: Employee, shifts: Shift[]): TimesheetRow[]
       clockOutAt: shift.out,
       shiftState: shift.state,
       note: shift.note,
+      locationStatus: shift.locationStatus,
     }));
 }
 
@@ -104,6 +118,7 @@ function rowToShift(row: TimesheetRow): Shift {
     durationMinutes: row.durationMinutes,
     state: row.shiftState,
     note: row.note,
+    locationStatus: row.locationStatus,
   };
 }
 
@@ -132,6 +147,7 @@ export function calculateReportFromLogs(
     end: Date,
     state: ShiftState,
     note?: string,
+    locationStatus?: LocationStatus | null,
   ) => {
     const bounded = clampRange(start, end, rangeStart, rangeEnd);
     if (!bounded) {
@@ -151,6 +167,7 @@ export function calculateReportFromLogs(
       durationMinutes,
       state,
       note,
+      locationStatus,
     });
   };
 
@@ -164,7 +181,7 @@ export function calculateReportFromLogs(
       continue;
     }
 
-    pushShift(openClockIn.id, log.id, openClockIn.timestamp, log.timestamp, "closed");
+    pushShift(openClockIn.id, log.id, openClockIn.timestamp, log.timestamp, "closed", undefined, worstLocation(openClockIn, log));
     openClockIn = null;
   }
 
@@ -181,6 +198,7 @@ export function calculateReportFromLogs(
         fallback.out,
         fallback.state,
         fallback.note,
+        worstLocation(openClockIn),
       );
     }
   }

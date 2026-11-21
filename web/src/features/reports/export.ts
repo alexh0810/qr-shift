@@ -3,6 +3,8 @@ import { buildReportFileName, escapeCsvValue } from "../../lib/report-utils";
 import { formatPayrollDuration } from "../../lib/time-calculation";
 import { EmployeeReport, ReportSummary } from "./types";
 
+const LOCATION_LABELS = { inside: "Inside", outside: "Outside", unknown: "Unknown" } as const;
+
 export function buildReportsCsv(
   reports: EmployeeReport[],
   globalSummary: ReportSummary,
@@ -35,6 +37,7 @@ export function buildReportsCsv(
       "Shift Duration",
       "Total Hours Worked",
       "Days Worked",
+      "Location",
     ]
       .map(escapeCsvValue)
       .join(","),
@@ -53,6 +56,7 @@ export function buildReportsCsv(
           escapeCsvValue(row.durationDisplay),
           escapeCsvValue(""),
           escapeCsvValue(""),
+          escapeCsvValue(row.locationStatus ? LOCATION_LABELS[row.locationStatus] : ""),
         ].join(","),
       );
     }
@@ -66,9 +70,10 @@ export function buildReportsCsv(
         escapeCsvValue(""),
         escapeCsvValue(formatPayrollDuration(group.totalMinutes)),
         escapeCsvValue(String(group.dailySummaries.length)),
+        escapeCsvValue(""),
       ].join(","),
     );
-    rows.push(["", "", "", "", "", "", ""].map(escapeCsvValue).join(","));
+    rows.push(["", "", "", "", "", "", "", ""].map(escapeCsvValue).join(","));
   }
 
   if (selectedEmployeeId === "ALL") {
@@ -80,6 +85,7 @@ export function buildReportsCsv(
         escapeCsvValue(""),
         escapeCsvValue(""),
         escapeCsvValue(formatPayrollDuration(globalSummary.totalMinutes)),
+        escapeCsvValue(""),
         escapeCsvValue(""),
       ].join(","),
     );

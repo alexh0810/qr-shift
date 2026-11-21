@@ -192,6 +192,8 @@ Printed stores can carry `lat`, `lng` and `radius_m` (default 150). `POST /clock
 
 The scan page asks for geolocation on load, in printed mode only, and waits at most 5 s. It sends `{ lat, lng, accuracy }` or nothing; denial or timeout never blocks clocking, and coordinates are kept in memory only. Browsers require HTTPS for geolocation (Vercel provides it).
 
+Reports show a warning icon next to the date of a shift when its clock-in or clock-out was `outside` or `unknown`, and the CSV has a last `Location` column (`Inside`, `Outside`, `Unknown` or empty). A shift takes the worst status of its two events (`outside` > `unknown` > `inside`); shifts without a recorded status (display mode, stores without coordinates, rows from before this feature) show nothing and export an empty cell.
+
 The flag never blocks a clock action. The migration is expand-only (nullable columns, `radius_m` has a default).
 
 ```mermaid
