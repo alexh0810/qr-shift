@@ -1,17 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildApp } from "../app.js";
 import { MANAGER_SESSION_COOKIE, OWNER_SESSION_COOKIE, createManagerSessionValue, createOwnerSessionValue } from "../auth.js";
 import { SECRET, displayDb } from "../qr-fixtures.js";
 import { TICKET_TTL_MS, WINDOW_MS, signWindow, verifyTicket } from "../qr.js";
-import { seededDb } from "../test-support.js";
+import { buildTestApp, seededDb } from "../test-support.js";
 
 const T0 = 100 * WINDOW_MS;
 
 async function setup() {
   let nowMs = T0;
-  const app = buildApp({ db: await displayDb(), now: () => nowMs });
+  const app = buildTestApp(await displayDb(), { now: () => nowMs });
   return { app, setNow: (value: number) => (nowMs = value) };
 }
 
@@ -93,7 +92,7 @@ test("payloads expose qr_mode but never the secret or display key", async () => 
 });
 
 test("existing stores default to printed mode", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const body = (await app.inject({ method: "GET", url: "/api/stores/qr-1" })).json();
   assert.equal(body.store.qr_mode, "printed");
 });

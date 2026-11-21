@@ -3,16 +3,16 @@ import { test } from "node:test";
 
 import { eq } from "drizzle-orm";
 
-import { buildApp } from "../app.js";
 import { stores } from "../db/schema.js";
 import { DISPLAY_KEY, SECRET, displayDb } from "../qr-fixtures.js";
 import { WINDOW_MS, signWindow } from "../qr.js";
+import { buildTestApp } from "../test-support.js";
 
 const T0 = 100 * WINDOW_MS;
 
 async function setup() {
   let nowMs = T0;
-  const app = buildApp({ db: await displayDb(), now: () => nowMs });
+  const app = buildTestApp(await displayDb(), { now: () => nowMs });
   const qr = (storeId: string, key?: string) =>
     app.inject({ method: "GET", url: `/api/display/${storeId}/qr`, headers: key ? { "x-display-key": key } : {} });
   return { app, qr, setNow: (value: number) => (nowMs = value) };
@@ -52,7 +52,7 @@ test("a display-mode store without a secret or key is rejected", async () => {
   for (const column of ["qr_secret", "display_key"] as const) {
     const db = await displayDb();
     await db.update(stores).set({ [column]: null }).where(eq(stores.id, "store-1"));
-    const app = buildApp({ db, now: () => T0 });
+    const app = buildTestApp(db, { now: () => T0 });
     const response = await app.inject({ method: "GET", url: "/api/display/store-1/qr", headers: { "x-display-key": DISPLAY_KEY } });
     assert.equal(response.statusCode, 401);
   }

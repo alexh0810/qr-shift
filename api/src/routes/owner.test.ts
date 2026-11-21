@@ -1,15 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildApp } from "../app.js";
 import { OWNER_SESSION_COOKIE, createOwnerSessionValue } from "../auth.js";
 import type { Db } from "../db/client.js";
-import { seededDb } from "../test-support.js";
+import { buildTestApp, seededDb } from "../test-support.js";
 
 const ownerCookie = () => ({ [OWNER_SESSION_COOKIE]: createOwnerSessionValue() });
 
 test("owner login validates the secret and sets a cookie", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const empty = await app.inject({ method: "POST", url: "/api/admin/session", payload: {} });
   assert.deepEqual([empty.statusCode, empty.json()], [400, { error: "Enter the owner secret to continue." }]);
 
@@ -27,7 +26,7 @@ test("owner login validates the secret and sets a cookie", async () => {
 });
 
 test("owner routes reject requests without an owner session", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const requests = [
     { method: "GET" as const, url: "/api/admin/stores" },
     { method: "POST" as const, url: "/api/admin/stores", payload: {} },
@@ -44,13 +43,13 @@ test("owner routes reject requests without an owner session", async () => {
 });
 
 test("lists stores newest first with ISO timestamps", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const body = (await app.inject({ method: "GET", url: "/api/admin/stores", cookies: ownerCookie() })).json();
   assert.deepEqual(body.stores[0], { id: "store-2", name: "Midtown", qr_token: "qr-2", qr_mode: "printed", created_at: "2026-04-10T00:00:00.000Z" });
 });
 
 test("creates a store after validating name, PIN and employees", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const missing = await app.inject({ method: "POST", url: "/api/admin/stores", cookies: ownerCookie(), payload: { storeName: "Cafe", pin: "1234", employeeNames: [] } });
   assert.deepEqual(missing.json(), { error: "invalid_request", message: "Add a store name, manager PIN, and at least one employee." });
 
@@ -64,7 +63,7 @@ test("creates a store after validating name, PIN and employees", async () => {
 });
 
 test("roster GET returns 404 for unknown stores and includes archived staff", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const missing = await app.inject({ method: "GET", url: "/api/admin/stores/missing/employees", cookies: ownerCookie() });
   assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "store_not_found", message: "Store not found." }]);
 
@@ -74,7 +73,7 @@ test("roster GET returns 404 for unknown stores and includes archived staff", as
 });
 
 test("roster POST creates employees and maps duplicates", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const created = await app.inject({ method: "POST", url: "/api/admin/stores/store-1/employees", cookies: ownerCookie(), payload: { name: "Dana" } });
   assert.equal(created.json().employee.status, "active");
 
@@ -89,7 +88,7 @@ test("roster POST creates employees and maps duplicates", async () => {
 });
 
 test("employee PATCH updates status and maps errors", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const archived = await app.inject({ method: "PATCH", url: "/api/admin/stores/store-1/employees/emp-2", cookies: ownerCookie(), payload: { status: "archived" } });
   assert.equal(archived.json().employee.status, "archived");
 
@@ -104,7 +103,7 @@ test("employee PATCH updates status and maps errors", async () => {
 });
 
 test("unexpected employee failures fall back to the generic codes", async () => {
-  const app = buildApp({ db: {} as unknown as Db });
+  const app = buildTestApp({} as unknown as Db);
   const created = await app.inject({ method: "POST", url: "/api/admin/stores/store-1/employees", cookies: ownerCookie(), payload: { name: "Dana" } });
   assert.deepEqual([created.statusCode, created.json()], [400, { error: "employee_create_failed", message: "QRShift couldn't add that employee. Try again." }]);
 
@@ -113,7 +112,7 @@ test("unexpected employee failures fall back to the generic codes", async () => 
 });
 
 test("demo store creation returns its PIN and qr token", async () => {
-  const app = buildApp({ db: await seededDb() });
+  const app = buildTestApp(await seededDb());
   const body = (await app.inject({ method: "POST", url: "/api/admin/demo-store", cookies: ownerCookie() })).json();
   assert.equal(body.storeName, "Demo Payroll Store");
   assert.equal(body.pin, "1234");

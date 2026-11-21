@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildApp } from "./app.js";
+import { buildTestApp } from "./test-support.js";
 import type { Db } from "./db/client.js";
 import { createTestDb } from "./db/test-db.js";
 
 test("GET /api/health returns ok when the database answers", async () => {
-  const app = buildApp({ db: await createTestDb() });
+  const app = buildTestApp(await createTestDb());
   const response = await app.inject({ method: "GET", url: "/api/health" });
 
   assert.equal(response.statusCode, 200);
@@ -15,7 +15,7 @@ test("GET /api/health returns ok when the database answers", async () => {
 
 test("GET /api/health returns 503 when the database is down", async () => {
   const db = { execute: async () => Promise.reject(new Error("down")) } as unknown as Db;
-  const app = buildApp({ db });
+  const app = buildTestApp(db);
   const response = await app.inject({ method: "GET", url: "/api/health" });
 
   assert.equal(response.statusCode, 503);
@@ -23,7 +23,7 @@ test("GET /api/health returns 503 when the database is down", async () => {
 });
 
 test("unknown routes and unsupported bodies use the { error, message } shape", async () => {
-  const app = buildApp({ db: await createTestDb() });
+  const app = buildTestApp(await createTestDb());
 
   const missing = await app.inject({ method: "GET", url: "/api/nope" });
   assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "not_found", message: "Not found." }]);
@@ -41,7 +41,7 @@ test("unknown routes and unsupported bodies use the { error, message } shape", a
 });
 
 test("unexpected errors return a generic 500 without leaking details", async () => {
-  const app = buildApp({ db: await createTestDb() });
+  const app = buildTestApp(await createTestDb());
   app.get("/api/boom", async () => {
     throw new Error("secret detail");
   });
@@ -53,7 +53,7 @@ test("unexpected errors return a generic 500 without leaking details", async () 
 });
 
 test("oversize bodies return payload_too_large without Fastify internals", async () => {
-  const app = buildApp({ db: await createTestDb() });
+  const app = buildTestApp(await createTestDb());
   const response = await app.inject({
     method: "POST",
     url: "/api/stores/qr-1/clock",
@@ -67,7 +67,7 @@ test("oversize bodies return payload_too_large without Fastify internals", async
 });
 
 test("malformed JSON reaches the route as an empty body and fails route validation", async () => {
-  const app = buildApp({ db: await createTestDb() });
+  const app = buildTestApp(await createTestDb());
   const response = await app.inject({
     method: "POST",
     url: "/api/stores/qr-1/clock",

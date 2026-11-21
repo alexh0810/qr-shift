@@ -9,7 +9,7 @@ QRShift is moving from a single Next.js app (client + route handlers + Firestore
 | Client | Next.js on Vercel (`web/`) | Same, with no server code |
 | API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes once `API_ORIGIN` is set; legacy Next.js handlers kept for rollback until phase 3 | Fastify on Cloud Run (`api/`) |
 | Database | PostgreSQL on Neon once `API_ORIGIN` is set (Firestore kept read-only for rollback) | PostgreSQL on Neon |
-| Auth | Store PIN + signed cookie | Firebase Authentication + roles |
+| Auth | Store PIN + signed cookie (until the web client switches to accounts) | Firebase Authentication + roles |
 
 ## Target system
 
@@ -24,6 +24,39 @@ flowchart LR
 ```
 
 The browser only talks to the Vercel origin. Vercel forwards `/api/*` to Cloud Run, so session cookies stay first-party. Only the API can reach the database.
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant F as Firebase Auth
+  participant A as API (via Vercel rewrite)
+  B->>F: sign in (email/password or Google)
+  F-->>B: ID token (email verified)
+  B->>A: POST /api/session { idToken }
+  A->>F: verifyIdToken, createSessionCookie
+  A-->>B: Set-Cookie __session (HttpOnly, SameSite=Strict)
+  B->>A: GET /api/manager/:qr_token/dashboard (cookie)
+  A->>F: verifySessionCookie(cookie, checkRevoked)
+  A->>A: requireRole: store_members lookup
+  A-->>B: 200 or 403
+```
+
+## Security model
+
+**Identity.** Users sign in with Firebase Authentication (email/password or Google). The browser posts the Firebase ID token to `POST /api/session`; the API verifies it, requires a verified email, and exchanges it for a Firebase **session cookie** (`__session`, 5 days, `HttpOnly; Secure; SameSite=Strict; Path=/`). Every protected route verifies the cookie with `verifySessionCookie(cookie, true)` (revocation checked), so signing out or disabling an account takes effect immediately. Signing out (`DELETE /api/session`) revokes the user's refresh tokens, which ends their sessions on every device, and then clears the cookie even if revocation fails.
+
+**Authorization.** `store_members(store_id, email, role)` is the only source of access. `requireRole('manager' | 'owner')` is a Fastify `preHandler` that resolves the store from `:storeId` or `:qr_token`, looks up the caller's role and answers **403** unless the role is sufficient (owner satisfies manager). Unknown stores are also 403. Handlers contain no role checks. `requireSession` only requires a signed-in user (used by store creation and `/api/me`).
+
+**Public routes.** Scanning needs no account: `GET /api/stores/:qr_token`, `GET …/employees`, `POST …/clock`.
+
+## Environment variables
+
+| Name | Where | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | API | Neon connection string |
+| `FIREBASE_PROJECT_ID` | API | Firebase project for token and session-cookie verification (`qr-shift-f2063`); credentials come from the runtime service account (Application Default Credentials) |
+| `API_ORIGIN` | Web (Vercel) | Cloud Run URL the `/api/*` rewrite forwards to |
+| `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_APP_ID` | Web | Firebase web SDK config (public values) |
 
 ## Repository layout
 
@@ -101,7 +134,7 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `qr_expired` | 403 | Display QR older than 60 s or clock ticket older than 120 s, tampered, for another store, or its `w`/`sig` missing or malformed |
 | `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
 | `unsupported_media_type` | 415 | Body is not `application/json` |
-| `internal_error` | 500 | Unexpected failure; details only in the server log |
+| `internal_error` | 500 | Unexpected failure; details only in the server log. Includes Firebase outages: only `auth/*` rejections count as 401, anything else is a 500 |
 | `db_unavailable` | 503 | Health check cannot reach the database |
 
 ## QR signing
