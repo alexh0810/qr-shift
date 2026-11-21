@@ -34,6 +34,10 @@ jobs:
     env:
       IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/qrshift/api:${{ github.sha }}
     steps:
+      - name: Require APP_ORIGIN
+        run: test -n "$APP_ORIGIN" || { echo "::error::GitHub variable APP_ORIGIN is not set (gh variable set APP_ORIGIN --body https://<domain>)"; exit 1; }
+        env:
+          APP_ORIGIN: ${{ vars.APP_ORIGIN }}
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -60,14 +64,23 @@ jobs:
           gcloud run deploy qrshift-api --image "$IMAGE" --region "$REGION" \
             --allow-unauthenticated --max-instances 3 \
             --set-secrets DATABASE_URL=database-url:latest,MANAGER_SESSION_SECRET=manager-session-secret:latest,OWNER_SETUP_SECRET=owner-setup-secret:latest \
-            --update-env-vars FIREBASE_PROJECT_ID=qr-shift-f2063 $STAGED
+            --update-env-vars "FIREBASE_PROJECT_ID=qr-shift-f2063,APP_ORIGIN=$APP_ORIGIN" $STAGED
         env:
           REGION: ${{ vars.GCP_REGION }}
+          APP_ORIGIN: ${{ vars.APP_ORIGIN }}
       - name: Smoke-test candidate, then promote
         run: |
           URL=$(gcloud run services describe qrshift-api --region "$REGION" --format=json \
             | jq -r '(.status.traffic[] | select(.tag == "candidate") | .url) // .status.url')
           curl -fsS --max-time 10 --retry 5 --retry-delay 3 --retry-all-errors "$URL/api/health"
+          clock() {
+            curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -X POST "$URL/api/stores/zz-nonexistent/clock" \
+              -H "Origin: $1" -H 'Content-Type: application/json' -d "$2"
+          }
+          FORGED=$(clock https://evil.example '{}')
+          ALLOWED=$(clock "$APP_ORIGIN" '{"employeeId":"x","requestedAction":"IN"}')
+          [ "$FORGED" = 403 ] && [ "$ALLOWED" = 400 ] || { echo "::error::Origin check wiring wrong (forged=$FORGED, allowed=$ALLOWED; expected 403 and 400)"; exit 1; }
           gcloud run services update-traffic qrshift-api --region "$REGION" --to-latest
         env:
           REGION: ${{ vars.GCP_REGION }}
+          APP_ORIGIN: ${{ vars.APP_ORIGIN }}

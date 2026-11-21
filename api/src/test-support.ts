@@ -1,3 +1,5 @@
+import type { InjectOptions, LightMyRequestResponse } from "fastify";
+
 import { buildApp } from "./app.js";
 import { hashPin } from "./auth.js";
 import type { Db } from "./db/client.js";
@@ -8,6 +10,8 @@ import { SESSION_COOKIE } from "./roles.js";
 
 process.env.MANAGER_SESSION_SECRET ??= "test-manager-secret";
 process.env.OWNER_SETUP_SECRET ??= "test-owner-secret";
+
+export const TEST_ORIGIN = "https://app.test";
 
 export const at = (value: string) => new Date(value);
 
@@ -64,5 +68,9 @@ export const fakeAuth: AuthVerifier = {
 export const sessionFor = (email: string) => ({ [SESSION_COOKIE]: `session:${email}` });
 
 export function buildTestApp(db: Db, opts: { now?: () => number } = {}) {
-  return buildApp({ db, auth: fakeAuth, now: opts.now });
+  const app = buildApp({ db, auth: fakeAuth, appOrigin: TEST_ORIGIN, now: opts.now });
+  const inject = app.inject.bind(app) as (options: InjectOptions) => Promise<LightMyRequestResponse>;
+  app.inject = ((options: InjectOptions) =>
+    inject({ ...options, headers: { origin: TEST_ORIGIN, ...options.headers } })) as typeof app.inject;
+  return app;
 }

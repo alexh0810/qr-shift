@@ -67,6 +67,13 @@ Each entry: context, options considered, decision, consequences.
 - **Decision:** `POST /api/session` exchanges a verified-email ID token for a Firebase session cookie (5 days, `__session`, `HttpOnly; Secure; SameSite=Strict`). Routes use `requireSession` / `requireRole(role)`; membership lives in `store_members (store_id, email, role)`. Verification sits behind an `AuthVerifier` interface so tests use a fake and production uses firebase-admin. Sign-out revokes all of the user's sessions on every device (`revokeRefreshTokens`). ID tokens are verified with revocation checks, and Firebase rejects ID tokens older than 5 minutes when creating a session cookie (fixation guard). Only `auth/*` rejections map to 401; other Firebase failures are 500s.
 - **Consequences:** sign-out and account disabling take effect immediately (`checkRevoked`), at the cost of one Identity Toolkit lookup per authenticated request. Authorization is by email, so an email must be verified before a session exists. Production credentials are the Cloud Run service account (no key files).
 
+## D10. CSRF: Strict cookie, JSON-only bodies, Origin check
+
+- **Context:** Cookie sessions make state-changing endpoints CSRF targets.
+- **Options:** CSRF tokens; Origin check only; layered defences without per-request tokens.
+- **Decision:** three independent layers (see the security model): `SameSite=Strict`, JSON-only bodies (the `text/plain` parser is removed so every non-JSON type gets 415) with no CORS, and a global Origin check against `APP_ORIGIN`. The hook is `onRequest` (before body parsing) and also rejects a missing `Origin` on non-GET.
+- **Consequences:** no token plumbing in the client. Non-browser clients must send an `Origin`. Vercel previews cannot write to the production API (they fail the Origin check).
+
 ## D12. Stateless HMAC windows for the rotating QR
 
 - **Context:** In display mode a clock-in must prove the employee saw the tablet in the last minute, without a server-side session table.

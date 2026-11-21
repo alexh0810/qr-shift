@@ -13,5 +13,6 @@ function requireEnv(name: string) {
 const app = buildApp({
   db: connect(requireEnv("DATABASE_URL")),
   auth: firebaseAuth(requireEnv("FIREBASE_PROJECT_ID")),
+  appOrigin: new URL(requireEnv("APP_ORIGIN")).origin,
 });
 await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT ?? 8080) });

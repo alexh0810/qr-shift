@@ -17,6 +17,10 @@ Auth: none.
 
 Every error is `{ "error": "<code>", "message": "<user-facing text>" }`; the client shows `message`. The tables below list the `message`; codes are in the error-code table in [architecture](architecture.md#error-codes). Exceptions until phase 3 finishes: the PIN and owner-secret session routes and the 401 guard responses, which still return `{ "error": "<message>" }`.
 
+## Request rules
+
+Requests that change state (`POST`, `PATCH`, `DELETE`) must send `Content-Type: application/json` (or no body) and an `Origin` header equal to the site origin; otherwise the API answers 415 `unsupported_media_type` or 403 `forbidden_origin` (`Request not allowed from this origin.`). Browsers send `Origin` automatically.
+
 ## Public routes
 
 Auth: none. Used by the employee scan page.

@@ -69,7 +69,7 @@ Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). 
 ```bash
 npm install
 npm run dev               # web on :3000
-DATABASE_URL=<url> npm run dev -w api   # api on :8080
+APP_ORIGIN=http://localhost:3000 FIREBASE_PROJECT_ID=qr-shift-f2063 DATABASE_URL=<url> npm run dev -w api   # api on :8080
 ```
 Tests need no database: they run migrations on in-memory PGlite.
 
@@ -97,7 +97,7 @@ At most one migration per PR. If two branches both add one, rebase the second an
 2. Authenticate to GCP with Workload Identity Federation (no stored keys).
 3. Build `api/Dockerfile` and push to Artifact Registry `qrshift`.
 4. Deploy a **candidate revision with no traffic**, tagged `candidate` (`--max-instances 3`, `DATABASE_URL`, `MANAGER_SESSION_SECRET` and `OWNER_SETUP_SECRET` from Secret Manager).
-5. Smoke-test `GET /api/health` on the candidate's tagged URL.
+5. Smoke-test the candidate's tagged URL: `GET /api/health`, plus the origin check (a clock request with a forged `Origin` must get 403; one with `APP_ORIGIN` must pass the check and reach the route, which answers 400 for the unknown store). The job fails at the start if the `APP_ORIGIN` variable is empty.
 6. Only if it passes: move 100% of traffic to it (`update-traffic --to-latest`).
 
 Order matters for any PR that changes a response shape: the web app must deploy before the API. Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds; tabs opened before the merge keep the old client until reloaded.
@@ -111,6 +111,7 @@ A failed smoke test fails the job and leaves the previous revision serving. On t
 | `DATABASE_URL` | GitHub secret | `db:migrate` in CI |
 | `database-url` | Secret Manager | Cloud Run runtime env `DATABASE_URL` |
 | `manager-session-secret`, `owner-setup-secret` | Secret Manager | Cloud Run runtime env `MANAGER_SESSION_SECRET`, `OWNER_SETUP_SECRET`; same values as in Vercel |
+| `APP_ORIGIN` | GitHub variable, passed to Cloud Run env | Site origin for the CSRF check; set with `gh variable set APP_ORIGIN --body "https://<domain>"`. The deploy fails if it is empty and the API refuses to start without it |
 | `FIREBASE_PROJECT_ID` | Cloud Run env (set in `deploy-api`) | Firebase Admin SDK project; the runtime service account needs `roles/firebaseauth.admin` and `identitytoolkit.googleapis.com` enabled |
 | `API_ORIGIN` | Vercel env var | `web/next.config.mjs` rewrite of `/api/*` to Cloud Run |
 | `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT` | GitHub variables | `deploy-api` |
