@@ -39,6 +39,8 @@ Each entry: context, options considered, decision, consequences.
 
 ## D6. Same HTTP contract for ported routes; no shared core package yet
 
+**Superseded by D8** (error shape only).
+
 - **Context:** The legacy Next.js route handlers move to the Fastify API. The client must keep working at the moment traffic switches.
 - **Options:** redesign the API (new error shape `{ error: code, message }`, new paths) and update the client in the same change; or port routes with an identical contract.
 - **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed is copied until the web server code is deleted.
@@ -51,16 +53,16 @@ Each entry: context, options considered, decision, consequences.
 - **Decision:** one rewrite of `/api/*`, active only when `API_ORIGIN` is set; tried on Vercel Preview before Production.
 - **Consequences:** switching or rolling back is an env change plus redeploy. The legacy handlers stay in the codebase until phase 3, and writes made after the switch are lost on rollback unless re-entered.
 
+## D8. One error shape: `{ error: code, message }`
+
+- **Context:** Ported routes kept the legacy `{ error: "<message>" }` shape (D6). The client changes for accounts in this phase anyway.
+- **Options:** keep two shapes; switch every route to `{ error: <code>, message }` and have the client read `message`.
+- **Decision:** switch every surviving route; one `sendError` helper, a global error handler (4xx keep their message, 5xx become a generic `internal_error`) and a JSON `404`. User-facing messages are unchanged.
+- **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the legacy handlers and e2e mocks working. The web app must deploy before the API, because it reads `message ?? error`; Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds. Browser tabs opened before the merge show raw codes until reloaded.
+
 ## D12. Stateless HMAC windows for the rotating QR
 
 - **Context:** In display mode a clock-in must prove the employee saw the tablet in the last minute, without a server-side session table.
 - **Options:** random one-time codes stored in Postgres; signed time windows; JWTs.
 - **Decision:** `HMAC-SHA256(qr_secret, ["w", storeId, window])` over 30 s windows, current plus previous window accepted, then a 120 s HMAC ticket for the clock call.
 - **Consequences:** nothing to store or clean up; a forwarded screenshot works for up to 60 s (documented limit); the ticket allows several clock actions within 120 s; rotating `qr_secret` is the revoke switch.
-
-## D13. New routes use the final error shape
-
-- **Context:** Ported routes return `{ error: "<message>" }`; the master plan's final shape is `{ error: "<code>", message }`, adopted by phase 3.
-- **Options:** keep the legacy shape for new routes; use the final shape now.
-- **Decision:** phase 4 routes use the final shape. New web code reads `ApiError.code` instead of the shared `readJson` message, so it works before and after phase 3 changes `readJson`.
-- **Consequences:** two shapes coexist until phase 3 converts the ported routes.

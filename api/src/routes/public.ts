@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { Db } from "../db/client.js";
 import { createClockAction, getScanRoster, getStoreByQrToken, toPublicStore } from "../db/repo.js";
+import { sendError } from "../errors.js";
 import { issueTicket, verifyWindow } from "../qr.js";
 
 type QrParams = { Params: { qr_token: string } };
@@ -10,7 +11,7 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
   app.get<QrParams>("/api/stores/:qr_token", async (request, reply) => {
     const store = await getStoreByQrToken(db, request.params.qr_token);
     if (!store) {
-      return reply.code(404).send({ error: "Store not found." });
+      return sendError(reply, 404, "store_not_found", "Store not found.");
     }
     return { store: toPublicStore(store) };
   });
@@ -18,7 +19,7 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
   app.get<QrParams>("/api/stores/:qr_token/employees", async (request, reply) => {
     const roster = await getScanRoster(db, request.params.qr_token);
     if (!roster) {
-      return reply.code(404).send({ error: "Store not found." });
+      return sendError(reply, 404, "store_not_found", "Store not found.");
     }
     return {
       store: roster.store,
@@ -33,15 +34,15 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
   app.get<QrParams & { Querystring: { w?: unknown; sig?: unknown } }>("/api/stores/:qr_token/scan-ticket", async (request, reply) => {
     const store = await getStoreByQrToken(db, request.params.qr_token);
     if (!store) {
-      return reply.code(404).send({ error: "store_not_found", message: "Store not found." });
+      return sendError(reply, 404, "store_not_found", "Store not found.");
     }
     if (store.qr_mode !== "display" || !store.qr_secret) {
-      return reply.code(400).send({ error: "not_display_mode", message: "This store does not use a display QR." });
+      return sendError(reply, 400, "not_display_mode", "This store does not use a display QR.");
     }
     const { w, sig } = request.query;
     const nowMs = now();
     if (typeof w !== "string" || !/^\d+$/.test(w) || typeof sig !== "string" || !verifyWindow(store.qr_secret, store.id, Number(w), sig, nowMs)) {
-      return reply.code(403).send({ error: "qr_expired", message: "This QR code expired. Scan the code on the display again." });
+      return sendError(reply, 403, "qr_expired", "This QR code expired. Scan the code on the display again.");
     }
     return { ticket: issueTicket(store.qr_secret, store.id, nowMs) };
   });
@@ -52,7 +53,7 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
       const employeeId = request.body?.employeeId?.trim();
       const requestedAction = request.body?.requestedAction;
       if (!employeeId || (requestedAction !== "IN" && requestedAction !== "OUT")) {
-        return reply.code(400).send({ error: "Choose an employee and confirm the next action." });
+        return sendError(reply, 400, "invalid_request", "Choose an employee and confirm the next action.");
       }
 
       try {
@@ -60,12 +61,9 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
         return { action: result.action, timestamp: result.timestamp };
       } catch (error) {
         const message = error instanceof Error ? error.message : "clock_failed";
-        return reply.code(400).send({
-          error:
-            message === "invalid_transition"
-              ? "This shift status changed. Go back and try again."
-              : "QRShift couldn't save that clock action. Try again.",
-        });
+        return message === "invalid_transition"
+          ? sendError(reply, 400, "invalid_transition", "This shift status changed. Go back and try again.")
+          : sendError(reply, 400, "clock_failed", "QRShift couldn't save that clock action. Try again.");
       }
     },
   );

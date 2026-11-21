@@ -15,7 +15,7 @@ Auth: none.
 
 ## Error format
 
-Health and the routes added in phase 4 use `{ "error": "<code>", "message": "<text>" }`, the final shape from the master plan. All other routes keep the original contract: `{ "error": "<user-facing message>" }` with the status codes listed below (see D6 in [decisions](decisions.md)).
+Every error is `{ "error": "<code>", "message": "<user-facing text>" }`; the client shows `message`. The tables below list the `message`; codes are in the error-code table in [architecture](architecture.md#error-codes). Exceptions until phase 3 finishes: the PIN and owner-secret session routes and the 401 guard responses, which still return `{ "error": "<message>" }`.
 
 ## Public routes
 

@@ -100,6 +100,8 @@ At most one migration per PR. If two branches both add one, rebase the second an
 5. Smoke-test `GET /api/health` on the candidate's tagged URL.
 6. Only if it passes: move 100% of traffic to it (`update-traffic --to-latest`).
 
+Order matters for any PR that changes a response shape: the web app must deploy before the API. Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds; tabs opened before the merge keep the old client until reloaded.
+
 A failed smoke test fails the job and leaves the previous revision serving. On the very first deploy the service does not exist yet, so the revision is created with traffic (Cloud Run rejects `--no-traffic` for a new service); the smoke test then checks the live URL.
 
 ## Secrets and configuration

@@ -75,6 +75,26 @@ At cutover, `npm run import:firestore -w @qrshift/api` copies Firestore into the
 
 The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cloud Run in `europe-west3`, next to Neon in Frankfurt. Cloud Run scales to zero when idle and is capped at 3 instances, which keeps it inside the free tier and under Neon's connection limit. See [operations](operations.md).
 
+## Error codes
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `not_found` | 404 | Unknown route |
+| `store_not_found` | 404 | Store missing (public, manager and owner employee routes) |
+| `invalid_request` | 400 | Missing or malformed body fields (clock, report correction, owner create-store); any other framework 4xx |
+| `payload_too_large` | 413 | Request body over the size limit |
+| `invalid_transition` | 400 | Clock action does not follow the employee's latest log |
+| `clock_failed` | 400 | Clock action could not be saved |
+| `invalid_range`, `future_correction_not_supported`, `report_correction_failed` | 400 | Report correction rejected |
+| `employee_not_found` | 404 | Employee missing |
+| `employee_store_mismatch`, `duplicate_employee_name`, `invalid_employee_name`, `no_employee_changes`, `employee_create_failed`, `employee_update_failed` | 400 | Employee changes rejected |
+| `not_display_mode` | 400 | Scan ticket requested for a store in printed mode |
+| `qr_expired` | 403 | Display QR older than 60 s, tampered, for another store, or its `w`/`sig` missing or malformed |
+| `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
+| `unsupported_media_type` | 415 | Body is not `application/json` |
+| `internal_error` | 500 | Unexpected failure; details only in the server log |
+| `db_unavailable` | 503 | Health check cannot reach the database |
+
 ## QR signing
 
 Display-mode QR codes carry no state on the server. For a store with `qr_secret`:

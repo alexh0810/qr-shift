@@ -8,7 +8,7 @@ test("public store route returns 404 for unknown qr tokens", async () => {
   const app = buildApp({ db: await seededDb() });
   const response = await app.inject({ method: "GET", url: "/api/stores/missing" });
   assert.equal(response.statusCode, 404);
-  assert.deepEqual(response.json(), { error: "Store not found." });
+  assert.deepEqual(response.json(), { error: "store_not_found", message: "Store not found." });
 });
 
 test("public store route returns the scan-safe store payload", async () => {
@@ -21,7 +21,7 @@ test("scan roster returns 404 for unknown qr tokens", async () => {
   const app = buildApp({ db: await seededDb() });
   const response = await app.inject({ method: "GET", url: "/api/stores/missing/employees" });
   assert.equal(response.statusCode, 404);
-  assert.deepEqual(response.json(), { error: "Store not found." });
+  assert.deepEqual(response.json(), { error: "store_not_found", message: "Store not found." });
 });
 
 test("scan roster serializes employees, latest logs and statuses", async () => {
@@ -45,7 +45,7 @@ test("clock route rejects invalid bodies", async () => {
       payload,
     });
     assert.equal(response.statusCode, 400);
-    assert.deepEqual(response.json(), { error: "Choose an employee and confirm the next action." });
+    assert.deepEqual(response.json(), { error: "invalid_request", message: "Choose an employee and confirm the next action." });
   }
 });
 
@@ -57,7 +57,7 @@ test("clock route maps invalid transitions to customer-safe copy", async () => {
     payload: { employeeId: "emp-2", requestedAction: "IN" },
   });
   assert.equal(response.statusCode, 400);
-  assert.deepEqual(response.json(), { error: "This shift status changed. Go back and try again." });
+  assert.deepEqual(response.json(), { error: "invalid_transition", message: "This shift status changed. Go back and try again." });
 });
 
 test("clock route maps other failures to the generic message", async () => {
@@ -67,7 +67,7 @@ test("clock route maps other failures to the generic message", async () => {
     url: "/api/stores/qr-1/clock",
     payload: { employeeId: "nobody", requestedAction: "IN" },
   });
-  assert.deepEqual(response.json(), { error: "QRShift couldn't save that clock action. Try again." });
+  assert.deepEqual(response.json(), { error: "clock_failed", message: "QRShift couldn't save that clock action. Try again." });
 });
 
 test("clock route returns the action and timestamp, and the roster reflects it", async () => {
