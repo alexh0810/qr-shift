@@ -26,7 +26,13 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
       store: roster.store,
       employees: roster.employees.map((entry) => ({
         employee: entry.employee,
-        latest_log: entry.latestLog,
+        latest_log: entry.latestLog && {
+          id: entry.latestLog.id,
+          employee_id: entry.latestLog.employee_id,
+          store_id: entry.latestLog.store_id,
+          type: entry.latestLog.type,
+          timestamp: entry.latestLog.timestamp,
+        },
         status: entry.status,
       })),
     };

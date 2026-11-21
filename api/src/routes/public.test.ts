@@ -29,7 +29,7 @@ test("scan roster serializes employees, latest logs and statuses", async () => {
   assert.equal(body.employees.length, 2);
   assert.deepEqual(body.employees[1], {
     employee: { id: "emp-2", store_id: "store-1", name: "Kim", status: "active", created_at: "2026-04-01T00:00:00.000Z" },
-    latest_log: { id: "log-3", employee_id: "emp-2", store_id: "store-1", type: "IN", timestamp: "2026-04-21T08:00:00.000Z", location_status: null },
+    latest_log: { id: "log-3", employee_id: "emp-2", store_id: "store-1", type: "IN", timestamp: "2026-04-21T08:00:00.000Z" },
     status: "IN",
   });
 });

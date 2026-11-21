@@ -66,9 +66,10 @@ test("display mode never stores a status", async () => {
   assert.equal(await lastStatus("emp-1"), null);
 });
 
-test("the status appears on timelogs in the roster", async () => {
+test("neither the clock response nor the public roster exposes the status", async () => {
   const { app, clock } = await setup();
-  await clock("qr-2", { ...sam, location: { ...HOME, accuracy: 10 } });
+  const response = await clock("qr-2", { ...sam, location: { ...HOME, accuracy: 10 } });
+  assert.ok(!("location_status" in response.json()));
   const roster = (await app.inject({ method: "GET", url: "/api/stores/qr-2/employees" })).json();
-  assert.equal(roster.employees[0].latest_log.location_status, "inside");
+  assert.ok(!("location_status" in roster.employees[0].latest_log));
 });

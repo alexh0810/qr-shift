@@ -85,5 +85,5 @@ Each entry: context, options considered, decision, consequences.
 
 - **Context:** Printed QR codes can be photographed and used off-site; GPS in browsers is coarse and sometimes denied.
 - **Options:** block clock-ins outside a geofence; flag them; ignore location.
-- **Decision:** record `inside` / `outside` / `unknown` per clock event and show a warning in reports. Tolerance is `min(accuracy, 100 m)`, accuracy above 200 m is `unknown`. A store without coordinates records nothing, so owners who skip setup see no noise.
+- **Decision:** record `inside` / `outside` / `unknown` per clock event and expose it to managers only (a report warning follows in a later change). Tolerance is `min(accuracy, 100 m)`, accuracy above 200 m is `unknown`. A store without coordinates records nothing, so owners who skip setup see no noise.
 - **Consequences:** honest employees with bad GPS are never locked out; the flag deters, it does not prevent. Spoofed coordinates pass (documented limit).
