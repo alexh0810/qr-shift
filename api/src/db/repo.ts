@@ -110,7 +110,13 @@ async function assertUniqueEmployeeName(db: Db, storeId: string, name: string, e
   }
 }
 
-export async function createClockAction(db: Db, qrToken: string, employeeId: string, requestedAction: "IN" | "OUT") {
+export async function createClockAction(
+  db: Db,
+  qrToken: string,
+  employeeId: string,
+  requestedAction: "IN" | "OUT",
+  extra: { at?: Date } = {},
+) {
   const store = await getStoreByQrToken(db, qrToken);
   if (!store) {
     throw new Error("store_not_found");
@@ -137,7 +143,7 @@ export async function createClockAction(db: Db, qrToken: string, employeeId: str
       throw new Error("invalid_transition");
     }
 
-    const timestamp = new Date();
+    const timestamp = extra.at ?? new Date();
     await tx.insert(timelogs).values({
       id: nanoid(),
       employee_id: employeeId,

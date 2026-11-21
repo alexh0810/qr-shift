@@ -97,7 +97,8 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `employee_not_found` | 404 | Employee missing |
 | `employee_store_mismatch`, `duplicate_employee_name`, `invalid_employee_name`, `no_employee_changes`, `employee_create_failed`, `employee_update_failed` | 400 | Employee changes rejected |
 | `not_display_mode` | 400 | Scan ticket requested for a store in printed mode |
-| `qr_expired` | 403 | Display QR older than 60 s, tampered, for another store, or its `w`/`sig` missing or malformed |
+| `qr_required` | 403 | Clock at a display-mode store without a ticket |
+| `qr_expired` | 403 | Display QR older than 60 s or clock ticket older than 120 s, tampered, for another store, or its `w`/`sig` missing or malformed |
 | `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
 | `unsupported_media_type` | 415 | Body is not `application/json` |
 | `internal_error` | 500 | Unexpected failure; details only in the server log |
@@ -114,3 +115,21 @@ Display-mode QR codes carry no state on the server. For a store with `qr_secret`
 - Reissuing the QR (new `qr_secret`) invalidates every outstanding QR and ticket at once.
 
 Code: `api/src/qr.ts`.
+
+### Clock-in sequences
+
+```mermaid
+sequenceDiagram
+  participant T as Display tablet
+  participant E as Employee phone
+  participant A as API
+  T->>A: GET /api/display/:storeId/qr (x-display-key, display endpoint, separate PR)
+  A-->>T: { qr_token, window, sig }
+  T-->>E: QR /scan/{qr_token}?w&sig
+  E->>A: GET scan-ticket?w&sig
+  A-->>E: ticket (120 s)
+  E->>A: POST /clock { employeeId, requestedAction, ticket }
+  A-->>E: 200 or 403 qr_expired
+```
+
+Printed mode skips the ticket: the phone posts `/clock` directly.
