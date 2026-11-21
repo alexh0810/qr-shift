@@ -15,6 +15,13 @@
       "when": 1795271110595,
       "tag": "0001_qr_modes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795275973024,
+      "tag": "0002_store_members",
+      "breakpoints": true
     }
   ]
 }
