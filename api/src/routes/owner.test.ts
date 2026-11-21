@@ -95,6 +95,20 @@ test("members: owners add, list and remove managers", async () => {
   assert.deepEqual([lastOwner.statusCode, lastOwner.json()], [400, { error: "cannot_remove_owner", message: "Owners can't be removed." }]);
 });
 
+test("members: adding an owner's email is refused and the role stays; owners cannot remove themselves", async () => {
+  const app = buildTestApp(await seededDb());
+  const owner = ownerCookie();
+  const added = await app.inject({ method: "POST", url: "/api/admin/stores/store-1/members", cookies: owner, payload: { email: "Alice@Example.com" } });
+  assert.deepEqual([added.statusCode, added.json().error], [400, "already_member"]);
+  const list = (await app.inject({ method: "GET", url: "/api/admin/stores/store-1/members", cookies: owner })).json();
+  assert.deepEqual(list.members[0], { email: "alice@example.com", role: "owner" });
+
+  const self = await app.inject({ method: "DELETE", url: "/api/admin/stores/store-1/members/alice%40example.com", cookies: owner });
+  assert.deepEqual([self.statusCode, self.json().error], [400, "cannot_remove_owner"]);
+  const still = await app.inject({ method: "GET", url: "/api/admin/stores/store-1/members", cookies: owner });
+  assert.equal(still.statusCode, 200);
+});
+
 test("roster GET returns 403 for unknown stores and includes archived staff", async () => {
   const app = buildTestApp(await seededDb());
   const missing = await app.inject({ method: "GET", url: "/api/admin/stores/missing/employees", cookies: ownerCookie() });
