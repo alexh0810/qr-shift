@@ -71,3 +71,15 @@ At cutover, `npm run import:firestore -w @qrshift/api` copies Firestore into the
 ## Deployment
 
 The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cloud Run in `europe-west3`, next to Neon in Frankfurt. Cloud Run scales to zero when idle and is capped at 3 instances, which keeps it inside the free tier and under Neon's connection limit. See [operations](operations.md).
+
+## QR signing
+
+Display-mode QR codes carry no state on the server. For a store with `qr_secret`:
+
+- `window = floor(serverNow / 30 s)`, `sig = base64url(HMAC-SHA256(qr_secret, JSON.stringify(["w", storeId, window])))`.
+- `scan-ticket` accepts the current or previous window, so a QR works for at most 60 s after it first appears on the display. Older or future windows, tampered signatures and other stores' signatures are rejected.
+- A ticket is `{ storeId, exp = now + 120 s, mac = HMAC(qr_secret, JSON.stringify(["t", storeId, exp])) }`. The `w`/`t` tags and JSON encoding keep tickets and window signatures from being interchangeable, whatever characters a store id contains.
+- All comparisons use `timingSafeEqual`; only the server clock is used; an empty secret never verifies.
+- Reissuing the QR (new `qr_secret`) invalidates every outstanding QR and ticket at once.
+
+Code: `api/src/qr.ts`.
