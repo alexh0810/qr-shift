@@ -9,6 +9,7 @@ import {
 } from "../auth.js";
 import type { Db } from "../db/client.js";
 import { getReportsSnapshot, getScanRoster, getStoreByQrToken, saveReportCorrection } from "../db/repo.js";
+import { sendError } from "../errors.js";
 
 type QrParams = { Params: { qr_token: string } };
 type CorrectionBody = {
@@ -18,6 +19,11 @@ type CorrectionBody = {
   clockInAt?: string;
   clockOutAt?: string;
 } | null;
+
+const CORRECTION_ERRORS: Record<string, string> = {
+  invalid_range: "Clock-out must be after clock-in.",
+  future_correction_not_supported: "Only completed shifts can be saved right now.",
+};
 
 export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
   app.get<{ Querystring: { qr_token?: string } }>("/api/manager/session", async (request) => {
@@ -56,7 +62,7 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     }
     const roster = await getScanRoster(db, request.params.qr_token);
     if (!roster) {
-      return reply.code(404).send({ error: "Store not found." });
+      return sendError(reply, 404, "store_not_found", "Store not found.");
     }
     return {
       store: roster.store,
@@ -74,7 +80,7 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     }
     const snapshot = await getReportsSnapshot(db, request.params.qr_token);
     if (!snapshot) {
-      return reply.code(404).send({ error: "Store not found." });
+      return sendError(reply, 404, "store_not_found", "Store not found.");
     }
     return snapshot;
   });
@@ -99,7 +105,7 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
       !clockOutAt ||
       Number.isNaN(clockOutAt.getTime())
     ) {
-      return reply.code(400).send({ error: "Invalid report correction." });
+      return sendError(reply, 400, "invalid_request", "Invalid report correction.");
     }
 
     try {
@@ -113,17 +119,11 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "report_correction_failed";
-      if (message !== "invalid_range" && message !== "future_correction_not_supported") {
-        request.log.error({ qrToken: request.params.qr_token, employeeId, clockInLogId, clockOutLogId, message }, "Failed to save report correction");
+      if (Object.hasOwn(CORRECTION_ERRORS, message)) {
+        return sendError(reply, 400, message, CORRECTION_ERRORS[message]);
       }
-      return reply.code(400).send({
-        error:
-          message === "invalid_range"
-            ? "Clock-out must be after clock-in."
-            : message === "future_correction_not_supported"
-              ? "Only completed shifts can be saved right now."
-              : "QRShift couldn't save that report correction. Try again.",
-      });
+      request.log.error({ qrToken: request.params.qr_token, employeeId, clockInLogId, clockOutLogId, message }, "Failed to save report correction");
+      return sendError(reply, 400, "report_correction_failed", "QRShift couldn't save that report correction. Try again.");
     }
   });
 }

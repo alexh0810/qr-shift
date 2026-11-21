@@ -51,10 +51,10 @@ test("lists stores newest first with ISO timestamps", async () => {
 test("creates a store after validating name, PIN and employees", async () => {
   const app = buildApp({ db: await seededDb() });
   const missing = await app.inject({ method: "POST", url: "/api/admin/stores", cookies: ownerCookie(), payload: { storeName: "Cafe", pin: "1234", employeeNames: [] } });
-  assert.deepEqual(missing.json(), { error: "Add a store name, manager PIN, and at least one employee." });
+  assert.deepEqual(missing.json(), { error: "invalid_request", message: "Add a store name, manager PIN, and at least one employee." });
 
   const badPin = await app.inject({ method: "POST", url: "/api/admin/stores", cookies: ownerCookie(), payload: { storeName: "Cafe", pin: "12a", employeeNames: ["Ana"] } });
-  assert.deepEqual(badPin.json(), { error: "Manager PIN must be numeric and 6 digits or fewer." });
+  assert.deepEqual(badPin.json(), { error: "invalid_pin", message: "Manager PIN must be numeric and 6 digits or fewer." });
 
   const created = await app.inject({ method: "POST", url: "/api/admin/stores", cookies: ownerCookie(), payload: { storeName: "Cafe", pin: "1234", employeeNames: ["Ana"] } });
   assert.equal(created.statusCode, 200);
@@ -65,7 +65,7 @@ test("creates a store after validating name, PIN and employees", async () => {
 test("roster GET returns 404 for unknown stores and includes archived staff", async () => {
   const app = buildApp({ db: await seededDb() });
   const missing = await app.inject({ method: "GET", url: "/api/admin/stores/missing/employees", cookies: ownerCookie() });
-  assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "Store not found." }]);
+  assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "store_not_found", message: "Store not found." }]);
 
   const body = (await app.inject({ method: "GET", url: "/api/admin/stores/store-1/employees", cookies: ownerCookie() })).json();
   assert.equal(body.store.created_at, "2026-04-01T00:00:00.000Z");
@@ -78,13 +78,13 @@ test("roster POST creates employees and maps duplicates", async () => {
   assert.equal(created.json().employee.status, "active");
 
   const duplicate = await app.inject({ method: "POST", url: "/api/admin/stores/store-1/employees", cookies: ownerCookie(), payload: { name: "alex" } });
-  assert.deepEqual([duplicate.statusCode, duplicate.json()], [400, { error: "An employee with that name already exists for this store." }]);
+  assert.deepEqual([duplicate.statusCode, duplicate.json()], [400, { error: "duplicate_employee_name", message: "An employee with that name already exists for this store." }]);
 
   const empty = await app.inject({ method: "POST", url: "/api/admin/stores/store-1/employees", cookies: ownerCookie(), payload: { name: " " } });
-  assert.deepEqual(empty.json(), { error: "Enter an employee name." });
+  assert.deepEqual(empty.json(), { error: "invalid_employee_name", message: "Enter an employee name." });
 
   const missing = await app.inject({ method: "POST", url: "/api/admin/stores/missing/employees", cookies: ownerCookie(), payload: { name: "Eve" } });
-  assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "Store not found." }]);
+  assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "store_not_found", message: "Store not found." }]);
 });
 
 test("employee PATCH updates status and maps errors", async () => {
@@ -93,13 +93,13 @@ test("employee PATCH updates status and maps errors", async () => {
   assert.equal(archived.json().employee.status, "archived");
 
   const foreign = await app.inject({ method: "PATCH", url: "/api/admin/stores/store-1/employees/emp-9", cookies: ownerCookie(), payload: { status: "archived" } });
-  assert.deepEqual([foreign.statusCode, foreign.json()], [400, { error: "This employee does not belong to the selected store." }]);
+  assert.deepEqual([foreign.statusCode, foreign.json()], [400, { error: "employee_store_mismatch", message: "This employee does not belong to the selected store." }]);
 
   const missing = await app.inject({ method: "PATCH", url: "/api/admin/stores/store-1/employees/nobody", cookies: ownerCookie(), payload: { status: "archived" } });
-  assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "Employee not found." }]);
+  assert.deepEqual([missing.statusCode, missing.json()], [404, { error: "employee_not_found", message: "Employee not found." }]);
 
   const noChange = await app.inject({ method: "PATCH", url: "/api/admin/stores/store-1/employees/emp-1", cookies: ownerCookie(), payload: {} });
-  assert.deepEqual(noChange.json(), { error: "No employee changes were provided." });
+  assert.deepEqual(noChange.json(), { error: "no_employee_changes", message: "No employee changes were provided." });
 });
 
 test("demo store creation returns its PIN and qr token", async () => {

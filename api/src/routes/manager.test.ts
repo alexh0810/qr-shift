@@ -84,7 +84,7 @@ test("reports POST validates payloads and maps errors", async () => {
     payload: { employeeId: "emp-1", clockInLogId: "log-1", clockInAt: "not-a-date", clockOutAt: "2026-04-20T17:00:00Z" },
   });
   assert.equal(invalid.statusCode, 400);
-  assert.deepEqual(invalid.json(), { error: "Invalid report correction." });
+  assert.deepEqual(invalid.json(), { error: "invalid_request", message: "Invalid report correction." });
 
   const future = await app.inject({
     method: "POST",
@@ -98,7 +98,7 @@ test("reports POST validates payloads and maps errors", async () => {
       clockOutAt: new Date(Date.now() + 3_600_000).toISOString(),
     },
   });
-  assert.deepEqual(future.json(), { error: "Only completed shifts can be saved right now." });
+  assert.deepEqual(future.json(), { error: "future_correction_not_supported", message: "Only completed shifts can be saved right now." });
 
   const range = await app.inject({
     method: "POST",
@@ -106,7 +106,7 @@ test("reports POST validates payloads and maps errors", async () => {
     cookies: managerCookie(),
     payload: { employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2", clockInAt: "2026-04-20T10:00:00Z", clockOutAt: "2026-04-20T09:00:00Z" },
   });
-  assert.deepEqual(range.json(), { error: "Clock-out must be after clock-in." });
+  assert.deepEqual(range.json(), { error: "invalid_range", message: "Clock-out must be after clock-in." });
 });
 
 test("reports POST saves a correction", async () => {
@@ -131,5 +131,5 @@ test("reports POST rejects corrections for another store's employee", async () =
     payload: { employeeId: "emp-9", clockInLogId: "log-1", clockOutLogId: null, clockInAt: "2026-04-20T08:00:00Z", clockOutAt: "2026-04-20T09:00:00Z" },
   });
   assert.equal(response.statusCode, 400);
-  assert.deepEqual(response.json(), { error: "QRShift couldn't save that report correction. Try again." });
+  assert.deepEqual(response.json(), { error: "report_correction_failed", message: "QRShift couldn't save that report correction. Try again." });
 });

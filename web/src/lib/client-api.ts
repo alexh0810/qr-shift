@@ -17,8 +17,8 @@ import { DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, Scan
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(payload?.error ?? "Request failed");
+    const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+    throw new Error(payload?.message ?? payload?.error ?? "Request failed");
   }
 
   return (await response.json()) as T;

@@ -10,6 +10,7 @@ import {
   getOwnerStoreSummaries,
   updateEmployeeForStore,
 } from "../db/repo.js";
+import { sendError } from "../errors.js";
 
 type StoreParams = { Params: { storeId: string } };
 type EmployeeParams = { Params: { storeId: string; employeeId: string } };
@@ -25,6 +26,14 @@ const EMPLOYEE_ERRORS: Record<string, string> = {
 
 function errorCode(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function sendEmployeeError(reply: FastifyReply, error: unknown, fallbackCode: string, fallbackMessage: string) {
+  const code = errorCode(error, fallbackCode);
+  if (!Object.hasOwn(EMPLOYEE_ERRORS, code)) {
+    return sendError(reply, 400, fallbackCode, fallbackMessage);
+  }
+  return sendError(reply, code === "store_not_found" || code === "employee_not_found" ? 404 : 400, code, EMPLOYEE_ERRORS[code]);
 }
 
 export function ownerRoutes(app: FastifyInstance, { db }: { db: Db }) {
@@ -63,10 +72,10 @@ export function ownerRoutes(app: FastifyInstance, { db }: { db: Db }) {
       const pin = request.body?.pin?.trim();
       const employeeNames = Array.isArray(request.body?.employeeNames) ? request.body.employeeNames : [];
       if (!storeName || !pin || employeeNames.length === 0) {
-        return reply.code(400).send({ error: "Add a store name, manager PIN, and at least one employee." });
+        return sendError(reply, 400, "invalid_request", "Add a store name, manager PIN, and at least one employee.");
       }
       if (!/^\d{1,6}$/.test(pin)) {
-        return reply.code(400).send({ error: "Manager PIN must be numeric and 6 digits or fewer." });
+        return sendError(reply, 400, "invalid_pin", "Manager PIN must be numeric and 6 digits or fewer.");
       }
       return createStoreAndEmployees(db, storeName, pin, employeeNames);
     },
@@ -75,7 +84,7 @@ export function ownerRoutes(app: FastifyInstance, { db }: { db: Db }) {
   app.get<StoreParams>("/api/admin/stores/:storeId/employees", { preHandler: requireOwner }, async (request, reply) => {
     const roster = await getOwnerStoreRoster(db, request.params.storeId);
     if (!roster) {
-      return reply.code(404).send({ error: "Store not found." });
+      return sendError(reply, 404, "store_not_found", "Store not found.");
     }
     return roster;
   });
@@ -86,15 +95,12 @@ export function ownerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     async (request, reply) => {
       const name = request.body?.name?.trim();
       if (!name) {
-        return reply.code(400).send({ error: "Enter an employee name." });
+        return sendError(reply, 400, "invalid_employee_name", "Enter an employee name.");
       }
       try {
         return { employee: await createEmployeeForStore(db, request.params.storeId, name) };
       } catch (error) {
-        const code = errorCode(error, "employee_create_failed");
-        return reply
-          .code(code === "store_not_found" ? 404 : 400)
-          .send({ error: (Object.hasOwn(EMPLOYEE_ERRORS, code) ? EMPLOYEE_ERRORS[code] : undefined) ?? "QRShift couldn't add that employee. Try again." });
+        return sendEmployeeError(reply, error, "employee_create_failed", "QRShift couldn't add that employee. Try again.");
       }
     },
   );
@@ -112,10 +118,7 @@ export function ownerRoutes(app: FastifyInstance, { db }: { db: Db }) {
         });
         return { employee };
       } catch (error) {
-        const code = errorCode(error, "employee_update_failed");
-        return reply
-          .code(code === "store_not_found" || code === "employee_not_found" ? 404 : 400)
-          .send({ error: (Object.hasOwn(EMPLOYEE_ERRORS, code) ? EMPLOYEE_ERRORS[code] : undefined) ?? "QRShift couldn't update that employee. Try again." });
+        return sendEmployeeError(reply, error, "employee_update_failed", "QRShift couldn't update that employee. Try again.");
       }
     },
   );

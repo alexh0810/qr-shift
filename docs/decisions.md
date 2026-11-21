@@ -50,3 +50,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** delete the Next.js handlers and deploy; proxy per route group; a single `beforeFiles` rewrite gated on `API_ORIGIN`.
 - **Decision:** one rewrite of `/api/*`, active only when `API_ORIGIN` is set; tried on Vercel Preview before Production.
 - **Consequences:** switching or rolling back is an env change plus redeploy. The legacy handlers stay in the codebase until phase 3, and writes made after the switch are lost on rollback unless re-entered.
+
+## D8. One error shape: `{ error: code, message }`
+
+- **Context:** Ported routes kept the legacy `{ error: "<message>" }` shape (D6). The client changes for accounts in this phase anyway.
+- **Options:** keep two shapes; switch every route to `{ error: <code>, message }` and have the client read `message`.
+- **Decision:** switch every surviving route; one `sendError` helper, a global error handler (4xx keep their message, 5xx become a generic `internal_error`) and a JSON `404`. User-facing messages are unchanged.
+- **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the legacy handlers and e2e mocks working.
