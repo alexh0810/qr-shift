@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const store = { id: "store-d", name: "Display Cafe", qr_token: "qr-d", qr_mode: "display" };
 const employee = {
@@ -49,6 +49,7 @@ test("display-mode scan needs a fresh QR and sends the ticket with the clock cal
   await expect(page.getByRole("heading", { name: "Clocked in" })).toBeVisible();
   expect(clockContentType).toContain("application/json");
   expect(clockBody).toMatchObject({ employeeId: "emp-d", requestedAction: "IN", ticket: { storeId: "store-d", mac: "m" } });
+  expect((clockBody as Record<string, unknown>).location).toBeUndefined();
 });
 
 test("a ticket that expired mid-session shows the scan-again panel", async ({ page }) => {
@@ -88,4 +89,47 @@ test("a transient ticket failure keeps the signature and blocks clocking", async
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Dana/i })).toHaveCount(0);
   expect(page.url()).toContain("sig=good");
+});
+
+const printed = { id: "store-p", name: "Print Cafe", qr_token: "qr-p", qr_mode: "printed" };
+
+async function routePrinted(page: Page, onClock: (body: Record<string, unknown>) => void) {
+  await page.context().route("**/api/**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/stores/qr-p/employees") {
+      await route.fulfill({
+        json: { store: printed, employees: [{ employee: { ...employee, store_id: "store-p" }, latest_log: null, status: "OUT" }] },
+      });
+    } else if (pathname === "/api/stores/qr-p/clock") {
+      onClock(route.request().postDataJSON());
+      await route.fulfill({ json: { action: "IN", timestamp: new Date().toISOString() } });
+    } else {
+      await route.abort();
+    }
+  });
+}
+
+test("printed-mode scan sends the browser location with the clock call", async ({ page }) => {
+  let clockBody: Record<string, unknown> | null = null;
+  await page.context().grantPermissions(["geolocation"]);
+  await page.context().setGeolocation({ latitude: 60.17, longitude: 24.94, accuracy: 20 });
+  await routePrinted(page, (body) => (clockBody = body));
+
+  await page.goto("/scan/qr-p");
+  await page.getByRole("button", { name: /Dana/i }).click();
+  await page.getByRole("button", { name: "Clock In Now" }).click();
+  await expect(page.getByRole("heading", { name: "Clocked in" })).toBeVisible();
+  expect(clockBody).toMatchObject({ requestedAction: "IN", location: { lat: 60.17, lng: 24.94 } });
+});
+
+test("denied location still clocks in without a location", async ({ page }) => {
+  let clockBody: Record<string, unknown> | null = null;
+  await routePrinted(page, (body) => (clockBody = body));
+
+  await page.goto("/scan/qr-p");
+  await page.getByRole("button", { name: /Dana/i }).click();
+  await page.getByRole("button", { name: "Clock In Now" }).click();
+  await expect(page.getByRole("heading", { name: "Clocked in" })).toBeVisible();
+  expect(clockBody).not.toBeNull();
+  expect(clockBody!.location).toBeUndefined();
 });

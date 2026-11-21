@@ -6,6 +6,7 @@ import { CircleAlert, Loader2, QrCode } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { ScanActionPanel } from "@/components/scan/ScanActionPanel";
 import { ScanEmployeeCard } from "@/components/scan/ScanEmployeeCard";
+import { readLocation, ScanLocation } from "@/lib/geolocation";
 import { ApiError, ClockTicket, getScanRoster, getScanTicket, submitClockAction } from "@/lib/client-api";
 import { PublicStore, ScanEmployeeStatus } from "@/types";
 
@@ -23,6 +24,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [ticket, setTicket] = useState<ClockTicket | null>(null);
   const [qrExpired, setQrExpired] = useState(false);
+  const locationRef = useRef<Promise<ScanLocation | null> | null>(null);
   const qrParams = useRef<{ w: string | null; sig: string | null } | null>(null);
 
   const clearSelection = () => {
@@ -50,6 +52,8 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
     loadRoster()
       .then(async (loadedStore) => {
         if (loadedStore.qr_mode !== "display") {
+          // Asked on load so the permission prompt is answered before the employee confirms.
+          locationRef.current ??= readLocation();
           return;
         }
         if (!qrParams.current) {
@@ -105,7 +109,8 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
     setError(null);
 
     try {
-      await submitClockAction(params.qr_token, selectedEmployee.employee.id, nextAction, ticket);
+      const location = await locationRef.current;
+      await submitClockAction(params.qr_token, selectedEmployee.employee.id, nextAction, ticket, location);
       setSuccessMessage(`Clocked ${nextAction === "IN" ? "in" : "out"}`);
 
       window.setTimeout(() => {
