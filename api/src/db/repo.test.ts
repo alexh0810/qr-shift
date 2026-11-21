@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { verifyPin } from "../auth.js";
 import { at, seededDb } from "../test-support.js";
 import {
+  addManager,
   assignOwnerToAllStores,
   createClockAction,
   createDemoStoreWithTimelogs,
@@ -13,6 +13,8 @@ import {
   getMemberships,
   getOwnerStoreRoster,
   getOwnerStoreSummaries,
+  listMembers,
+  removeManager,
   getReportsSnapshot,
   getScanRoster,
   getStoreByQrToken,
@@ -23,10 +25,11 @@ import {
 } from "./repo.js";
 import { createTestDb } from "./test-db.js";
 
-test("lists owner store summaries newest first without pin hashes", async () => {
-  const stores = await getOwnerStoreSummaries(await seededDb());
-  assert.deepEqual(stores.map((store) => store.id), ["store-2", "store-1"]);
-  assert.equal("pin_hash" in stores[0], false);
+test("lists owner store summaries for the owner only, newest first", async () => {
+  const db = await seededDb();
+  assert.deepEqual((await getOwnerStoreSummaries(db, "Alice@example.com")).map((store) => store.id), ["store-2", "store-1"]);
+  assert.deepEqual((await getOwnerStoreSummaries(db, "carol@example.com")).map((store) => store.id), ["store-2"]);
+  assert.deepEqual(await getOwnerStoreSummaries(db, "bob@example.com"), []);
 });
 
 test("finds stores by qr token", async () => {
@@ -138,24 +141,38 @@ test("correction rejects bad ranges, future times and mismatched logs", async ()
   assert.equal(unchanged?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
 });
 
-test("creates a store with a hashed PIN and its employees", async () => {
+test("creates a store, its employees and an owner membership", async () => {
   const db = await seededDb();
-  const result = await createStoreAndEmployees(db, "  Corner Cafe ", "4321", ["Ana", " ", "Ben "]);
+  const result = await createStoreAndEmployees(db, "  Corner Cafe ", "Dave@Example.com", ["Ana", " ", "Ben "]);
   assert.equal(result.storeName, "Corner Cafe");
   assert.equal(result.qrToken.length, 16);
   const roster = await getOwnerStoreRoster(db, result.storeId);
   assert.deepEqual(roster?.employees.map((employee) => employee.name), ["Ana", "Ben"]);
-  const store = await getStoreByQrToken(db, result.qrToken);
-  assert.equal(await verifyPin("4321", store!.pin_hash!), true);
+  assert.equal(await getMemberRole(db, result.storeId, "dave@example.com"), "owner");
 });
 
-test("creates the demo store with employees and timelogs", async () => {
+test("creates the demo store with employees, timelogs and an owner", async () => {
   const db = await seededDb();
-  const result = await createDemoStoreWithTimelogs(db);
-  assert.equal(result.pin, "1234");
+  const result = await createDemoStoreWithTimelogs(db, "dave@example.com");
+  assert.equal(await getMemberRole(db, result.storeId, "dave@example.com"), "owner");
   const snapshot = await getReportsSnapshot(db, result.qrToken);
   assert.equal(snapshot?.employees.length, 4);
   assert.ok((snapshot?.timelogs.length ?? 0) > 20);
+});
+
+test("managers can be added once, listed, and removed; owners cannot be removed", async () => {
+  const db = await seededDb();
+  assert.deepEqual(await addManager(db, "store-2", " Zed@Example.com "), { email: "zed@example.com", role: "manager" });
+  await assert.rejects(addManager(db, "store-2", "zed@example.com"), /already_member/);
+  await assert.rejects(addManager(db, "store-2", "not an email"), /invalid_email/);
+  assert.deepEqual(await listMembers(db, "store-2"), [
+    { email: "alice@example.com", role: "owner" },
+    { email: "carol@example.com", role: "owner" },
+    { email: "zed@example.com", role: "manager" },
+  ]);
+  await assert.rejects(removeManager(db, "store-2", "carol@example.com"), /cannot_remove_owner/);
+  await removeManager(db, "store-2", "ZED@example.com");
+  await assert.rejects(removeManager(db, "store-2", "zed@example.com"), /member_not_found/);
 });
 
 test("creates an active employee and rejects normalized duplicates", async () => {

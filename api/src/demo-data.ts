@@ -8,7 +8,6 @@ export interface DemoTimelogInput {
 
 export interface DemoStoreSeed {
   storeName: string;
-  pin: string;
   employeeNames: string[];
   timelogs: DemoTimelogInput[];
 }
@@ -68,7 +67,6 @@ export function buildDemoStoreSeed(referenceDate = new Date()): DemoStoreSeed {
 
   return {
     storeName: "Demo Payroll Store",
-    pin: "1234",
     employeeNames: DEMO_EMPLOYEES,
     timelogs: timelogs.sort((left, right) => left.timestamp.getTime() - right.timestamp.getTime()),
   };

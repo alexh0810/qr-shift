@@ -36,14 +36,10 @@ export type Skipped = { employees: number; timelogs: number; missingStoreIds: st
 export function toRows(snapshot: FirestoreSnapshot): ImportRows & { skipped: Skipped } {
   const storeRows = snapshot.stores.map(({ id, data }): Store => {
     const where = `stores/${id}`;
-    if (typeof data.pin_hash !== "string" && typeof data.pin === "string") {
-      throw new Error(`${where}: plaintext PIN only; run npm run migrate:pins -w @qrshift/web first`);
-    }
     return {
       id,
       name: requireString(data.name, `${where}.name`),
       qr_token: requireString(data.qr_token, `${where}.qr_token`),
-      pin_hash: typeof data.pin_hash === "string" ? data.pin_hash : null,
       created_at: toDate(data.created_at, `${where}.created_at`),
       qr_mode: "printed" as const,
       qr_secret: null,

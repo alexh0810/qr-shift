@@ -32,14 +32,6 @@ Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). 
    gcloud secrets add-iam-policy-binding database-url \
      --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
      --role=roles/secretmanager.secretAccessor
-   # Session secrets: use the same values as Vercel's MANAGER_SESSION_SECRET and OWNER_SETUP_SECRET so existing sessions stay valid.
-   for name in manager-session-secret owner-setup-secret; do
-     printf '%s: ' "$name"
-     read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create $name --data-file=- && unset VALUE
-     gcloud secrets add-iam-policy-binding $name \
-       --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-       --role=roles/secretmanager.secretAccessor
-   done
    gcloud iam service-accounts create github-deployer
    SA=github-deployer@$PROJECT_ID.iam.gserviceaccount.com
    for role in roles/run.admin roles/artifactregistry.writer roles/iam.serviceAccountUser; do
@@ -96,7 +88,7 @@ At most one migration per PR. If two branches both add one, rebase the second an
 1. Migrate Neon (`db:migrate`).
 2. Authenticate to GCP with Workload Identity Federation (no stored keys).
 3. Build `api/Dockerfile` and push to Artifact Registry `qrshift`.
-4. Deploy a **candidate revision with no traffic**, tagged `candidate` (`--max-instances 3`, `DATABASE_URL`, `MANAGER_SESSION_SECRET` and `OWNER_SETUP_SECRET` from Secret Manager).
+4. Deploy a **candidate revision with no traffic**, tagged `candidate` (`--max-instances 3`, `DATABASE_URL` from Secret Manager; `FIREBASE_PROJECT_ID` and `APP_ORIGIN` as env vars).
 5. Smoke-test the candidate's tagged URL: `GET /api/health`, plus the origin check (a clock request with a forged `Origin` must get 403; one with `APP_ORIGIN` must pass the check and reach the route, which answers 400 for the unknown store). The job fails at the start if the `APP_ORIGIN` variable is empty.
 6. Only if it passes: move 100% of traffic to it (`update-traffic --to-latest`).
 
@@ -110,7 +102,6 @@ A failed smoke test fails the job and leaves the previous revision serving. On t
 | --- | --- | --- |
 | `DATABASE_URL` | GitHub secret | `db:migrate` in CI |
 | `database-url` | Secret Manager | Cloud Run runtime env `DATABASE_URL` |
-| `manager-session-secret`, `owner-setup-secret` | Secret Manager | Cloud Run runtime env `MANAGER_SESSION_SECRET`, `OWNER_SETUP_SECRET`; same values as in Vercel |
 | `APP_ORIGIN` | GitHub variable, passed to Cloud Run env | Site origin for the CSRF check; set with `gh variable set APP_ORIGIN --body "https://<domain>"`. The deploy fails if it is empty and the API refuses to start without it |
 | `FIREBASE_PROJECT_ID` | Cloud Run env (set in `deploy-api`) | Firebase Admin SDK project; the runtime service account needs `roles/firebaseauth.admin` and `identitytoolkit.googleapis.com` enabled |
 | `API_ORIGIN` | Vercel env var | `web/next.config.mjs` rewrite of `/api/*` to Cloud Run |
@@ -138,7 +129,7 @@ The API reads `FIREBASE_PROJECT_ID` (set by `deploy-api`) and authenticates to F
 
 - **Replaces** all rows in `stores`, `employees` and `timelogs` in one transaction. Run it only at cutover, with Firestore writes stopped. Re-running it before the API takes traffic is safe; after that it deletes every clock-in recorded in Postgres since.
 - **Fails** once `assign-owner` has run, because `store_members` references `stores`. It is a cutover-only tool and must not be re-run after the API takes traffic anyway.
-- **Refuses** to import bad data instead of guessing: a store with only a plaintext PIN (run `npm run migrate:pins -w @qrshift/web` first), a missing or invalid timestamp, an employee status other than `active`/`archived`, a timelog type other than `IN`/`OUT`, a timelog filed under a different store than its employee, or a timelog of an employee that never existed. The error names the document.
+- **Refuses** to import bad data instead of guessing: a missing or invalid timestamp, an employee status other than `active`/`archived`, a timelog type other than `IN`/`OUT`, a timelog filed under a different store than its employee, or a timelog of an employee that never existed. The error names the document.
 - **Wipes QR settings:** the import writes every store as `printed` with no secret or display key, so re-running it deletes QR settings along with the store rows. It is a cutover-only tool.
 - **Skips** employees and timelogs of deleted stores, which the app can no longer show, and prints how many it skipped per run. They stay in Firestore until phase 3.
 - **Verifies** afterwards by reading every Postgres row back and comparing it with the rows mapped from Firestore. It exits non-zero on any difference.

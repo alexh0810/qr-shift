@@ -9,7 +9,7 @@ QRShift is moving from a single Next.js app (client + route handlers + Firestore
 | Client | Next.js on Vercel (`web/`) | Same, with no server code |
 | API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes once `API_ORIGIN` is set; legacy Next.js handlers kept for rollback until phase 3 | Fastify on Cloud Run (`api/`) |
 | Database | PostgreSQL on Neon once `API_ORIGIN` is set (Firestore kept read-only for rollback) | PostgreSQL on Neon |
-| Auth | Store PIN + signed cookie (until the web client switches to accounts) | Firebase Authentication + roles |
+| Auth | Firebase Authentication session cookies + store roles | Firebase Authentication + roles |
 
 ## Target system
 
@@ -87,7 +87,6 @@ erDiagram
     text id PK
     text name
     text qr_token UK
-    text pin_hash
     timestamptz created_at
     qr_mode qr_mode "display or printed, default printed"
     text qr_secret "HMAC key for the rotating QR, null until display mode is first enabled"
@@ -146,7 +145,13 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `invalid_location` | 400 | Owner location outside lat/lng bounds, a half-set pair, or a radius that is not an integer from 25 to 1000 |
 | `qr_required` | 403 | Clock at a display-mode store without a ticket |
 | `qr_expired` | 403 | Display QR older than 60 s or clock ticket older than 120 s, tampered, for another store, or its `w`/`sig` missing or malformed |
-| `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
+| `unauthenticated` | 401 | No valid session cookie |
+| `forbidden` | 403 | Signed in, but no (or too low a) role in that store; also unknown stores |
+| `invalid_token` | 401 | Firebase ID token rejected at sign-in |
+| `email_not_verified` | 403 | Firebase account email is not verified |
+| `forbidden_origin` | 403 | State-changing request from another origin |
+| `invalid_email`, `already_member`, `cannot_remove_owner`, `member_add_failed`, `member_remove_failed` | 400 | Manager membership change rejected |
+| `member_not_found` | 404 | No manager with that email in the store |
 | `unsupported_media_type` | 415 | Body is not `application/json` |
 | `internal_error` | 500 | Unexpected failure; details only in the server log. Includes Firebase outages: only `auth/*` rejections count as 401, anything else is a 500 |
 | `db_unavailable` | 503 | Health check cannot reach the database |

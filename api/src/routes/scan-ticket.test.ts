@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { MANAGER_SESSION_COOKIE, OWNER_SESSION_COOKIE, createManagerSessionValue, createOwnerSessionValue } from "../auth.js";
 import { SECRET, displayDb } from "../qr-fixtures.js";
 import { TICKET_TTL_MS, WINDOW_MS, signWindow, verifyTicket } from "../qr.js";
-import { buildTestApp, seededDb } from "../test-support.js";
+import { buildTestApp, seededDb, sessionFor } from "../test-support.js";
 
 const T0 = 100 * WINDOW_MS;
 
@@ -76,8 +75,8 @@ test("payloads expose qr_mode but never the secret or display key", async () => 
     assert.doesNotMatch(JSON.stringify(body), /qr_secret|display_key|test-qr-secret|test-display-key/);
   }
 
-  const manager = { [MANAGER_SESSION_COOKIE]: createManagerSessionValue("store-1", "qr-1") };
-  const owner = { [OWNER_SESSION_COOKIE]: createOwnerSessionValue() };
+  const manager = sessionFor("bob@example.com");
+  const owner = sessionFor("alice@example.com");
   const authed = [
     { url: "/api/manager/qr-1/dashboard", cookies: manager },
     { url: "/api/manager/qr-1/reports", cookies: manager },
