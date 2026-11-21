@@ -195,7 +195,7 @@ returning id, display_key;
 
 Open `https://qr-shift-six.vercel.app/display/<store id>#<display_key>` on the store tablet. Treat that link like a password.
 
-- Back to printed mode: `update stores set qr_mode = 'printed' where id = '<store id>';` (the printed `/scan/<qr_token>` QR works again immediately).
+- Back to printed mode: `update stores set qr_mode = 'printed', display_key = null where id = '<store id>';` (the printed `/scan/<qr_token>` QR works again immediately).
 - Reissue the QR (invalidates every outstanding QR and ticket): `update stores set qr_secret = encode(gen_random_bytes(32), 'hex') where id = '<store id>';`
 - Reset the display link: the same statement for `display_key`, then open the new link.
 

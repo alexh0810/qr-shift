@@ -77,14 +77,14 @@ Employee names are unique per store after trimming, lowercasing and collapsing s
 
 ## QR settings routes
 
-Session cookie, role `owner` of the store (`requireRole('owner')`). Managers, owners of other stores and unknown stores get 403 `forbidden`; no session gets 401 `unauthenticated`. Non-GET bodies must be JSON (`{}` when there are no fields). `settings` is `{ qr_mode, has_location, lat, lng, radius_m, display_key }`; `display_key` is `null` unless the store is in display mode and is never returned to anyone but an owner. `qr_secret` is never returned.
+Session cookie, role `owner` of the store (`requireRole('owner')`). Managers, owners of other stores and unknown stores get 403 `forbidden`; no session gets 401 `unauthenticated`. Non-GET bodies must be JSON (`{}` when there are no fields). `settings` is `{ qr_mode, has_location, lat, lng, radius_m, display_key }`; `display_key` is `null` unless the store is in display mode and is never returned to anyone but an owner. `qr_secret` is never returned. Every response, including 401 and 403, carries `Cache-Control: no-store`.
 
 | Method & path | Body | 200 | Errors |
 | --- | --- | --- | --- |
 | `GET /api/admin/stores/:storeId/qr-settings` | — | `settings` | 401 · 403 |
-| `PUT /api/admin/stores/:storeId/qr-mode` | `{ qr_mode: "display" \| "printed" }` | `settings`; switching to display creates `qr_secret` and `display_key` when missing, otherwise keeps them | 400 `invalid_qr_mode` |
+| `PUT /api/admin/stores/:storeId/qr-mode` | `{ qr_mode: "display" \| "printed" }` | `settings`; switching to display creates `qr_secret` and `display_key` atomically when missing (existing values are kept); switching to printed clears `display_key` and keeps `qr_secret` | 400 `invalid_qr_mode` |
 | `PUT /api/admin/stores/:storeId/location` | `{ lat, lng, radius_m? }` — `lat` in [-90, 90], `lng` in [-180, 180], `radius_m` integer 25–1000 (kept when omitted); `{ lat: null, lng: null }` clears the location | `settings` | 400 `invalid_location` |
-| `POST /api/admin/stores/:storeId/qr/reissue` | `{}` | `{ ok: true }`; new `qr_secret` | — |
+| `POST /api/admin/stores/:storeId/qr/reissue` | `{}` | `{ ok: true }`; new `qr_secret` | 400 `not_display_mode` |
 | `POST /api/admin/stores/:storeId/display-key/reset` | `{}` | `settings` with the new `display_key` | 400 `not_display_mode` |
 
 Reissue invalidates every outstanding display QR and clock ticket within seconds. The printed `qr_token` is not rotated because manager dashboard links depend on it. Resetting the display key cuts the old tablet link.
