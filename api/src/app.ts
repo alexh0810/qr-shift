@@ -6,6 +6,7 @@ import type { FastifyError } from "fastify";
 import type { Db } from "./db/client.js";
 import { sendError } from "./errors.js";
 import type { AuthVerifier } from "./identity.js";
+import { displayRoutes } from "./routes/display.js";
 import { managerRoutes } from "./routes/manager.js";
 import { ownerRoutes } from "./routes/owner.js";
 import { publicRoutes } from "./routes/public.js";
@@ -60,6 +61,7 @@ export function buildApp({ db, auth, now = Date.now }: { db: Db; auth: AuthVerif
   publicRoutes(app, { db, now });
   managerRoutes(app, { db });
   ownerRoutes(app, { db });
+  displayRoutes(app, { db, now });
 
   return app;
 }
