@@ -97,7 +97,7 @@ At most one migration per PR. If two branches both add one, rebase the second an
 2. Authenticate to GCP with Workload Identity Federation (no stored keys).
 3. Build `api/Dockerfile` and push to Artifact Registry `qrshift`.
 4. Deploy a **candidate revision with no traffic**, tagged `candidate` (`--max-instances 3`, `DATABASE_URL`, `MANAGER_SESSION_SECRET` and `OWNER_SETUP_SECRET` from Secret Manager).
-5. Smoke-test `GET /api/health` on the candidate's tagged URL.
+5. Smoke-test the candidate's tagged URL: `GET /api/health`, plus the origin check (a clock request with a forged `Origin` must get 403; one with `APP_ORIGIN` must pass the check and reach the route, which answers 400 for the unknown store). The job fails at the start if the `APP_ORIGIN` variable is empty.
 6. Only if it passes: move 100% of traffic to it (`update-traffic --to-latest`).
 
 Order matters for any PR that changes a response shape: the web app must deploy before the API. Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds; tabs opened before the merge keep the old client until reloaded.
