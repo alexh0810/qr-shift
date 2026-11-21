@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { eq } from "drizzle-orm";
+
 import { buildApp } from "../app.js";
+import { stores } from "../db/schema.js";
 import { DISPLAY_KEY, SECRET, displayDb } from "../qr-fixtures.js";
 import { WINDOW_MS, signWindow } from "../qr.js";
 
@@ -43,6 +46,22 @@ test("missing, wrong, other-store, unknown-store and printed-store requests all 
     assert.equal(response.statusCode, 401);
     assert.equal(response.json().error, "invalid_display_key");
   }
+});
+
+test("a display-mode store without a secret or key is rejected", async () => {
+  for (const column of ["qr_secret", "display_key"] as const) {
+    const db = await displayDb();
+    await db.update(stores).set({ [column]: null }).where(eq(stores.id, "store-1"));
+    const app = buildApp({ db, now: () => T0 });
+    const response = await app.inject({ method: "GET", url: "/api/display/store-1/qr", headers: { "x-display-key": DISPLAY_KEY } });
+    assert.equal(response.statusCode, 401);
+  }
+});
+
+test("the last millisecond of a window refreshes in 1 ms", async () => {
+  const { qr, setNow } = await setup();
+  setNow(T0 + WINDOW_MS - 1);
+  assert.equal((await qr("store-1", DISPLAY_KEY)).json().refresh_in_ms, 1);
 });
 
 test("a repeated key header is rejected", async () => {

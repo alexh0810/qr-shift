@@ -67,9 +67,9 @@ Each entry: context, options considered, decision, consequences.
 - **Decision:** `HMAC-SHA256(qr_secret, ["w", storeId, window])` over 30 s windows, current plus previous window accepted, then a 120 s HMAC ticket for the clock call.
 - **Consequences:** nothing to store or clean up; a forwarded screenshot works for up to 60 s (documented limit); the ticket allows several clock actions within 120 s; rotating `qr_secret` is the revoke switch.
 
-## D14. Display key as a bearer secret in the URL fragment
+## D13. Display key as a bearer secret in the URL fragment
 
 - **Context:** The store tablet has no login and must fetch the rotating QR repeatedly.
 - **Options:** owner session on the tablet; per-store key; no key (public endpoint).
-- **Decision:** a random per-store `display_key`, sent in the `x-display-key` header; the page reads it from the URL fragment so it never reaches server logs. It works only on `GET /api/display/:storeId/qr`; the owner can reset it. Stored as plain text (like `qr_secret`; a database leak exposes both anyway).
+- **Decision:** a random per-store `display_key`, sent in the `x-display-key` header; the page reads it from the URL fragment so it never reaches server logs. It works only on `GET /api/display/:storeId/qr`; resetting it comes with the owner QR settings (separate change). It is 256-bit random (generated with `newSecret()`), so brute force needs no throttle. Stored as plain text (like `qr_secret`; a database leak exposes both anyway).
 - **Consequences:** anyone with the link can show the store's QR from anywhere, so the link is treated like a password; resetting the key cuts a leaked link immediately.
