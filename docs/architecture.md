@@ -188,6 +188,8 @@ Printed stores can carry `lat`, `lng` and `radius_m` (default 150). `POST /clock
 - `unknown` if the location is missing, malformed or `accuracy` is above 200 m.
 - `null` if the store has no coordinates, runs in display mode, or the row predates this feature.
 
+The scan page asks for geolocation on load, in printed mode only, and waits at most 5 s. It sends `{ lat, lng, accuracy }` or nothing; denial or timeout never blocks clocking, and coordinates are kept in memory only. Browsers require HTTPS for geolocation (Vercel provides it).
+
 The flag never blocks a clock action. The migration is expand-only (nullable columns, `radius_m` has a default).
 
 ```mermaid

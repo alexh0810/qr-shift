@@ -1,5 +1,6 @@
 "use client";
 
+import type { ScanLocation } from "@/lib/geolocation";
 import {
   DashboardSnapshotDto,
   OwnerStoreRosterDto,
@@ -101,6 +102,7 @@ export async function submitClockAction(
   employeeId: string,
   requestedAction: "IN" | "OUT",
   ticket?: ClockTicket | null,
+  location?: ScanLocation | null,
 ) {
   const response = await fetch(`/api/stores/${qrToken}/clock`, {
     method: "POST",
@@ -112,6 +114,7 @@ export async function submitClockAction(
       employeeId,
       requestedAction,
       ticket: ticket ?? undefined,
+      location: location ?? undefined,
     }),
   });
 
