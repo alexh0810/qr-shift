@@ -13,6 +13,7 @@ import {
   SerializedScanEmployeeStatus,
   SerializedTimelog,
   StoreLookupDto,
+  StoreMember,
 } from "@/lib/api-types";
 import type { TimesheetRow } from "@/features/reports/types";
 import { DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
@@ -316,4 +317,35 @@ export async function getDisplayQr(storeId: string, displayKey: string): Promise
     credentials: "same-origin",
   });
   return readJson<DisplayQr>(response);
+}
+
+export async function getStoreMembers(storeId: string) {
+  const response = await fetch(`/api/admin/stores/${storeId}/members`, {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = await readJson<{ members: StoreMember[] }>(response);
+  return payload.members;
+}
+
+export async function addStoreManager(storeId: string, email: string) {
+  const response = await fetch(`/api/admin/stores/${storeId}/members`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({ email }),
+  });
+
+  return readJson<{ member: StoreMember }>(response);
+}
+
+export async function removeStoreManager(storeId: string, email: string) {
+  const response = await fetch(`/api/admin/stores/${storeId}/members/${encodeURIComponent(email)}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  return readJson<{ ok: true }>(response);
 }

@@ -53,3 +53,8 @@ export interface MeDto {
   email: string;
   stores: { id: string; name: string; qr_token: string; role: "owner" | "manager" }[];
 }
+
+export interface StoreMember {
+  email: string;
+  role: "owner" | "manager";
+}
