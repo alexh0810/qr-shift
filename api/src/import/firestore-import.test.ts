@@ -51,6 +51,19 @@ test("refuses unknown timelog types and orphaned references", () => {
   assert.throws(() => toRows(crossStore), /timelogs\/t1.*store s2/);
 });
 
+test("skips and counts employees and timelogs of deleted stores", () => {
+  const input = snapshot();
+  input.employees.push({ id: "e3", data: { name: "Cy", store_id: "gone", created_at: timestamp("2026-04-01T00:00:00Z") } });
+  input.timelogs.push(
+    { id: "t2", data: { employee_id: "e3", store_id: "gone", type: "IN", timestamp: timestamp("2026-04-03T08:00:00Z") } },
+    { id: "t3", data: { employee_id: "e3", store_id: "s1", type: "OUT", timestamp: timestamp("2026-04-03T16:00:00Z") } },
+  );
+  const rows = toRows(input);
+  assert.deepEqual(rows.employees.map((employee) => employee.id), ["e1", "e2"]);
+  assert.deepEqual(rows.timelogs.map((timelog) => timelog.id), ["t1"]);
+  assert.deepEqual(rows.skipped, { employees: 1, timelogs: 2, missingStoreIds: ["gone"] });
+});
+
 test("refuses unknown employee statuses", () => {
   const input = snapshot();
   input.employees[0].data = { ...input.employees[0].data, status: "deleted" };

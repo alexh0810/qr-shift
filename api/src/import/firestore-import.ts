@@ -30,7 +30,10 @@ function requireString(value: unknown, where: string): string {
   return value;
 }
 
-export function toRows(snapshot: FirestoreSnapshot): ImportRows {
+export type Skipped = { employees: number; timelogs: number; missingStoreIds: string[] };
+
+// Employees and timelogs of deleted stores are unreachable in the app, so they are skipped and counted, not refused.
+export function toRows(snapshot: FirestoreSnapshot): ImportRows & { skipped: Skipped } {
   const storeRows = snapshot.stores.map(({ id, data }): Store => {
     const where = `stores/${id}`;
     if (typeof data.pin_hash !== "string" && typeof data.pin === "string") {
@@ -46,47 +49,61 @@ export function toRows(snapshot: FirestoreSnapshot): ImportRows {
   });
   const storeIds = new Set(storeRows.map((store) => store.id));
 
-  const employeeRows = snapshot.employees.map(({ id, data }): Employee => {
+  const missingStoreIds = new Set<string>();
+  const skippedEmployeeIds = new Set<string>();
+  const employeeRows = snapshot.employees.flatMap(({ id, data }): Employee[] => {
     const where = `employees/${id}`;
+    const storeId = requireString(data.store_id, `${where}.store_id`);
+    if (!storeIds.has(storeId)) {
+      missingStoreIds.add(storeId);
+      skippedEmployeeIds.add(id);
+      return [];
+    }
     const status = data.status ?? "active";
     if (status !== "active" && status !== "archived") {
       throw new Error(`${where}.status: invalid status ${String(status)}`);
     }
-    const storeId = requireString(data.store_id, `${where}.store_id`);
-    if (!storeIds.has(storeId)) {
-      throw new Error(`${where}: references missing store ${storeId}`);
-    }
-    return {
+    return [{
       id,
       store_id: storeId,
       name: requireString(data.name, `${where}.name`),
       status,
       created_at: toDate(data.created_at, `${where}.created_at`),
-    };
+    }];
   });
   const employeeStoreIds = new Map(employeeRows.map((employee) => [employee.id, employee.store_id]));
 
-  const timelogRows = snapshot.timelogs.map(({ id, data }): Timelog => {
+  let skippedTimelogs = 0;
+  const timelogRows = snapshot.timelogs.flatMap(({ id, data }): Timelog[] => {
     const where = `timelogs/${id}`;
+    const employeeId = requireString(data.employee_id, `${where}.employee_id`);
+    const storeId = requireString(data.store_id, `${where}.store_id`);
+    if (!storeIds.has(storeId) || skippedEmployeeIds.has(employeeId)) {
+      if (!storeIds.has(storeId)) {
+        missingStoreIds.add(storeId);
+      }
+      skippedTimelogs += 1;
+      return [];
+    }
     if (data.type !== "IN" && data.type !== "OUT") {
       throw new Error(`${where}: invalid type ${String(data.type)}`);
     }
-    const employeeId = requireString(data.employee_id, `${where}.employee_id`);
-    const storeId = requireString(data.store_id, `${where}.store_id`);
     const employeeStoreId = employeeStoreIds.get(employeeId);
     if (employeeStoreId === undefined) {
       throw new Error(`${where}: references missing employee ${employeeId}`);
     }
-    if (!storeIds.has(storeId)) {
-      throw new Error(`${where}: references missing store ${storeId}`);
-    }
     if (storeId !== employeeStoreId) {
       throw new Error(`${where}: store ${storeId} differs from employee ${employeeId} store ${employeeStoreId}`);
     }
-    return { id, employee_id: employeeId, store_id: storeId, type: data.type, timestamp: toDate(data.timestamp, `${where}.timestamp`) };
+    return [{ id, employee_id: employeeId, store_id: storeId, type: data.type, timestamp: toDate(data.timestamp, `${where}.timestamp`) }];
   });
 
-  return { stores: storeRows, employees: employeeRows, timelogs: timelogRows };
+  return {
+    stores: storeRows,
+    employees: employeeRows,
+    timelogs: timelogRows,
+    skipped: { employees: skippedEmployeeIds.size, timelogs: skippedTimelogs, missingStoreIds: [...missingStoreIds] },
+  };
 }
 
 export async function replaceAll(db: Db, rows: ImportRows) {
