@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 
 import { hashPin } from "../auth.js";
 import { buildDemoStoreSeed } from "../demo-data.js";
+import type { LocationStatus } from "../location.js";
 import type { Db } from "./client.js";
 import { employees, storeMembers, stores, timelogs } from "./schema.js";
 
@@ -115,7 +116,7 @@ export async function createClockAction(
   qrToken: string,
   employeeId: string,
   requestedAction: "IN" | "OUT",
-  extra: { at?: Date } = {},
+  extra: { at?: Date; locationStatus?: LocationStatus | null } = {},
 ) {
   const store = await getStoreByQrToken(db, qrToken);
   if (!store) {
@@ -150,6 +151,7 @@ export async function createClockAction(
       store_id: store.id,
       type: requestedAction,
       timestamp,
+      location_status: extra.locationStatus ?? null,
     });
     return { employee, action: requestedAction, timestamp };
   });
