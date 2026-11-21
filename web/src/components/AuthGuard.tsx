@@ -68,7 +68,7 @@ export default function AuthGuard({ qrToken, children }: { qrToken?: string; chi
         <button
           type="button"
           onClick={async () => {
-            await logout();
+            await logout().catch(() => undefined);
             setMe(null);
           }}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-[18px] border border-surfacestroke bg-surface px-4 py-3 text-base font-bold text-foreground transition-colors hover:border-border-strong hover:bg-background"

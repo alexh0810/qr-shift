@@ -29,6 +29,9 @@ export class ApiError extends Error {
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+    if (response.status === 401 && payload?.error === "unauthenticated" && typeof window !== "undefined") {
+      window.location.reload();
+    }
     throw new ApiError(payload?.error ?? "request_failed", payload?.message ?? payload?.error ?? "Request failed");
   }
 

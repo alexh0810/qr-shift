@@ -200,3 +200,31 @@ test("signed-in users without membership of the store see no dashboard", async (
   await expect(page.getByText("You don't have access to this store.")).toBeVisible();
   await expect(page.getByText("stranger@example.com")).toBeVisible();
 });
+
+test("signing out returns to the sign-in form", async ({ page }) => {
+  let signedIn = true;
+  await page.context().route("**/api/**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/session") {
+      signedIn = false;
+      await route.fulfill({ json: { ok: true } });
+      return;
+    }
+    if (pathname === "/api/me") {
+      await route.fulfill(
+        signedIn ? { json: me } : { status: 401, json: { error: "unauthenticated", message: "Sign in to continue." } },
+      );
+      return;
+    }
+    if (pathname === `/api/manager/${qrToken}/dashboard`) {
+      await route.fulfill({ json: { store, employees: [] } });
+      return;
+    }
+    await route.abort();
+  });
+
+  await page.goto(`/dashboard/${qrToken}`);
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  await expect(page.getByRole("heading", { name: "Sign in to QRShift" })).toBeVisible();
+});

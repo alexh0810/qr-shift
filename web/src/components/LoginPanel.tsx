@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
   GoogleAuthProvider,
@@ -16,26 +16,46 @@ import { BrandMark } from "@/components/BrandMark";
 import { ApiError, createSession } from "@/lib/client-api";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 
+const NOT_VERIFIED = "Your email isn't verified yet. Open the link in the email, then try again.";
+
 function describeError(error: unknown) {
-  const code = (error as { code?: string } | null)?.code;
-  switch (code) {
+  if (error instanceof ApiError || error instanceof DeliberateError) {
+    return error.message;
+  }
+  switch ((error as { code?: string } | null)?.code) {
     case "auth/invalid-credential":
     case "auth/wrong-password":
     case "auth/user-not-found":
       return "Incorrect email or password.";
+    case "auth/invalid-email":
+      return "Enter a valid email address.";
     case "auth/email-already-in-use":
       return "An account with that email already exists. Sign in instead.";
+    case "auth/account-exists-with-different-credential":
+      return "An account with that email already exists. Sign in with your email and password instead.";
     case "auth/weak-password":
       return "Use a password with at least 6 characters.";
     case "auth/too-many-requests":
       return "Too many attempts. Wait a moment and try again.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    case "auth/popup-blocked":
+      return "Allow pop-ups and try again.";
     case "auth/popup-closed-by-user":
     case "auth/cancelled-popup-request":
       return null;
+    case "auth/invalid-api-key":
+    case "auth/api-key-not-valid.-please-pass-a-valid-api-key.":
+    case "auth/configuration-not-found":
+    case "auth/operation-not-allowed":
+    case "auth/unauthorized-domain":
+      return "Sign-in isn't available right now.";
     default:
-      return error instanceof Error ? error.message : "Sign-in failed. Try again.";
+      return "Sign-in failed. Try again.";
   }
 }
+
+class DeliberateError extends Error {}
 
 const inputClass =
   "w-full rounded-[22px] border border-surfacestroke bg-background px-5 py-4 text-base font-semibold text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20";
@@ -51,7 +71,12 @@ export default function LoginPanel({ onSignedIn }: { onSignedIn: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [unverified, setUnverified] = useState<User | null>(null);
+  const [unverified, setUnverifiedState] = useState<User | null>(null);
+  const unverifiedRef = useRef<User | null>(null);
+  const setUnverified = (user: User | null) => {
+    unverifiedRef.current = user;
+    setUnverifiedState(user);
+  };
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -61,18 +86,24 @@ export default function LoginPanel({ onSignedIn }: { onSignedIn: () => void }) {
       await action();
     } catch (caught) {
       setError(describeError(caught));
+      if (!unverifiedRef.current) {
+        await signOut(getFirebaseAuth()).catch(() => undefined);
+      }
     } finally {
       setBusy(false);
     }
   };
 
   // The server cookie is the session, so the Firebase client session is dropped after the exchange.
-  const finish = async (user: User) => {
+  const finish = async (user: User, confirming = false) => {
     try {
       await createSession(await user.getIdToken(true));
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "email_not_verified") {
         setUnverified(user);
+        if (confirming) {
+          throw new DeliberateError(NOT_VERIFIED);
+        }
         return;
       }
       throw caught;
@@ -107,9 +138,9 @@ export default function LoginPanel({ onSignedIn }: { onSignedIn: () => void }) {
       if (!unverified) return;
       await unverified.reload();
       if (!unverified.emailVerified) {
-        throw new Error("Your email isn't verified yet. Open the link we sent you, then try again.");
+        throw new DeliberateError(NOT_VERIFIED);
       }
-      await finish(unverified);
+      await finish(unverified, true);
     });
 
   const resend = () =>

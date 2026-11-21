@@ -43,7 +43,7 @@ const benefitCards = [
 const businessHighlights = [
   "Payroll-ready CSV export",
   "Setup in under 5 minutes",
-  "Manager PIN protection",
+  "Secure manager and owner sign-in",
   "No monthly per-user fees",
   "Perfect for retail and hospitality",
 ];
