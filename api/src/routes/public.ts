@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import type { Db } from "../db/client.js";
 import { createClockAction, getScanRoster, getStoreByQrToken, toPublicStore } from "../db/repo.js";
 import { sendError } from "../errors.js";
+import { classifyLocation } from "../location.js";
 import { issueTicket, verifyTicket, verifyWindow } from "../qr.js";
 
 type QrParams = { Params: { qr_token: string } };
@@ -47,7 +48,7 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
     return { ticket: issueTicket(store.qr_secret, store.id, nowMs) };
   });
 
-  app.post<QrParams & { Body: { employeeId?: string; requestedAction?: string; ticket?: unknown } | null }>(
+  app.post<QrParams & { Body: { employeeId?: string; requestedAction?: string; ticket?: unknown; location?: unknown } | null }>(
     "/api/stores/:qr_token/clock",
     async (request, reply) => {
       const employeeId = request.body?.employeeId?.trim();
@@ -68,7 +69,10 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
       }
 
       try {
-        const result = await createClockAction(db, request.params.qr_token, employeeId, requestedAction, { at: new Date(now()) });
+        const result = await createClockAction(db, request.params.qr_token, employeeId, requestedAction, {
+          at: new Date(now()),
+          locationStatus: store?.qr_mode === "printed" ? classifyLocation(store, request.body?.location) : null,
+        });
         return { action: result.action, timestamp: result.timestamp };
       } catch (error) {
         const message = error instanceof Error ? error.message : "clock_failed";

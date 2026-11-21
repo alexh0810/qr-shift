@@ -84,6 +84,9 @@ erDiagram
     qr_mode qr_mode "display or printed, default printed"
     text qr_secret "HMAC key for the rotating QR, null until display mode is first enabled"
     text display_key "credential of the display tablet, null until display mode is first enabled"
+    float lat "store location, null until configured"
+    float lng "store location, null until configured"
+    int radius_m "geofence radius in metres, default 150"
   }
   employees {
     text id PK
@@ -98,6 +101,7 @@ erDiagram
     text store_id FK
     timelog_type type
     timestamptz timestamp
+    location_status "inside, outside, unknown or null"
   }
   store_members {
     text store_id PK
@@ -174,3 +178,24 @@ sequenceDiagram
 ```
 
 Printed mode skips the ticket: the phone posts `/clock` directly.
+
+### Location flag
+
+Printed stores can carry `lat`, `lng` and `radius_m` (default 150). `POST /clock` accepts an optional `location { lat, lng, accuracy }` and the API stores a `location_status` on the new timelog:
+
+- `inside` if the distance is at most `radius_m + min(accuracy, 100 m)`.
+- `outside` if it is farther.
+- `unknown` if the location is missing, malformed or `accuracy` is above 200 m.
+- `null` if the store has no coordinates, runs in display mode, or the row predates this feature.
+
+The flag never blocks a clock action. The migration is expand-only (nullable columns, `radius_m` has a default).
+
+```mermaid
+sequenceDiagram
+  participant E as Employee phone
+  participant A as API
+  E->>A: POST /clock { employeeId, requestedAction, location }
+  A->>A: classify (haversine vs store lat/lng)
+  A-->>E: 200 { action, timestamp }
+  Note over A: timelog row stores location_status
+```

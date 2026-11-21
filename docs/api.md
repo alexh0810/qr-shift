@@ -26,7 +26,9 @@ Auth: none. Used by the employee scan page.
 | `GET /api/stores/:qr_token` | — | `{ store: { id, name, qr_token, qr_mode } }` | 404 `Store not found.` |
 | `GET /api/stores/:qr_token/employees` | — | `{ store: { id, name, qr_token, qr_mode }, employees: [{ employee, latest_log, status }] }` — active employees only; `status` is `IN` or `OUT` from the latest log | 404 `Store not found.` |
 | `GET /api/stores/:qr_token/scan-ticket?w&sig` | — (query: window `w`, signature `sig` from the display QR) | `{ ticket: { storeId, exp, mac } }`, valid 120 s | 404 `store_not_found` · 400 `not_display_mode` · 403 `qr_expired` (QR older than 60 s, tampered, for another store, or `w`/`sig` missing, repeated or malformed) |
-| `POST /api/stores/:qr_token/clock` | `{ employeeId, requestedAction: "IN" \| "OUT", ticket? }` | `{ action, timestamp }` | 400 `Choose an employee and confirm the next action.` · 400 `This shift status changed. Go back and try again.` · 400 `QRShift couldn't save that clock action. Try again.` · 403 `qr_required` (display mode, no ticket) · 403 `qr_expired` (ticket invalid or older than 120 s) |
+| `POST /api/stores/:qr_token/clock` | `{ employeeId, requestedAction: "IN" \| "OUT", ticket?, location?: { lat, lng, accuracy } }` | `{ action, timestamp }` | 400 `Choose an employee and confirm the next action.` · 400 `This shift status changed. Go back and try again.` · 400 `QRShift couldn't save that clock action. Try again.` · 403 `qr_required` (display mode, no ticket) · 403 `qr_expired` (ticket invalid or older than 120 s) |
+
+`location` is optional and never causes an error: printed stores store `inside` / `outside` / `unknown` on the timelog, display stores store none. Timelog objects in responses carry `location_status` (`inside`, `outside`, `unknown` or `null`).
 
 Printed stores ignore `ticket`. A ticket is reusable until it expires (120 s), not single-use. A clock action is accepted only if it is the opposite of the employee's latest log. The employee row is locked during the check, so concurrent duplicate scans record one event.
 
