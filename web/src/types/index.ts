@@ -29,12 +29,15 @@ export interface Employee {
   status: "active" | "archived";
 }
 
+export type LocationStatus = "inside" | "outside" | "unknown";
+
 export interface Timelog {
   id: string; // Firestore Document ID
   employee_id: string;
   store_id: string;
   type: "IN" | "OUT";
   timestamp: Date;
+  location_status?: LocationStatus | null;
 }
 
 export interface ScanEmployeeStatus {

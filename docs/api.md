@@ -30,7 +30,9 @@ Auth: none. Used by the employee scan page.
 | `GET /api/stores/:qr_token` | — | `{ store: { id, name, qr_token, qr_mode } }` | 404 `Store not found.` |
 | `GET /api/stores/:qr_token/employees` | — | `{ store: { id, name, qr_token, qr_mode }, employees: [{ employee, latest_log, status }] }` — active employees only; `status` is `IN` or `OUT` from the latest log | 404 `Store not found.` |
 | `GET /api/stores/:qr_token/scan-ticket?w&sig` | — (query: window `w`, signature `sig` from the display QR) | `{ ticket: { storeId, exp, mac } }`, valid 120 s | 404 `store_not_found` · 400 `not_display_mode` · 403 `qr_expired` (QR older than 60 s, tampered, for another store, or `w`/`sig` missing, repeated or malformed) |
-| `POST /api/stores/:qr_token/clock` | `{ employeeId, requestedAction: "IN" \| "OUT", ticket? }` | `{ action, timestamp }` | 400 `Choose an employee and confirm the next action.` · 400 `This shift status changed. Go back and try again.` · 400 `QRShift couldn't save that clock action. Try again.` · 403 `qr_required` (display mode, no ticket) · 403 `qr_expired` (ticket invalid or older than 120 s) |
+| `POST /api/stores/:qr_token/clock` | `{ employeeId, requestedAction: "IN" \| "OUT", ticket?, location?: { lat, lng, accuracy } }` | `{ action, timestamp }` | 400 `Choose an employee and confirm the next action.` · 400 `This shift status changed. Go back and try again.` · 400 `QRShift couldn't save that clock action. Try again.` · 403 `qr_required` (display mode, no ticket) · 403 `qr_expired` (ticket invalid or older than 120 s) |
+
+`location` is optional and never causes an error: printed stores store `inside` / `outside` / `unknown` on the timelog, display stores store none. Timelog objects in manager responses (dashboard roster, reports) carry `location_status` (`inside`, `outside`, `unknown` or `null`); the public roster and the clock response omit it.
 
 Printed stores ignore `ticket`. A ticket is reusable until it expires (120 s), not single-use. A clock action is accepted only if it is the opposite of the employee's latest log. The employee row is locked during the check, so concurrent duplicate scans record one event.
 
@@ -54,7 +56,7 @@ Auth: cookie `qrshift_manager_session` — an HMAC-SHA256-signed payload `{ kind
 | `POST /api/manager/session` | `{ qr_token, pin }` | `{ ok: true }` + session cookie | 400 `Enter the manager PIN to continue.` · 400 `This store is not ready for secure manager access yet.` · 401 `Incorrect PIN. Please try again.` |
 | `DELETE /api/manager/session` | — | `{ ok: true }`, cookie cleared | — |
 | `GET /api/manager/:qr_token/dashboard` | — | `{ store, employees: [{ employee, latest_log, status }] }` | 401 `Manager access is required.` · 404 `Store not found.` |
-| `GET /api/manager/:qr_token/reports` | — | `{ store, employees, timelogs }` — all employees including archived; timelogs oldest first | 401 · 404 |
+| `GET /api/manager/:qr_token/reports` | — | `{ store, employees, timelogs }` — all employees including archived; timelogs oldest first, each with `location_status` | 401 · 404 |
 | `POST /api/manager/:qr_token/reports` | `{ employeeId, clockInLogId, clockOutLogId \| null, clockInAt, clockOutAt }` (ISO times) | `{ ok: true, clockOutLogId }` | 401 · 400 `Invalid report correction.` · 400 `Clock-out must be after clock-in.` · 400 `Only completed shifts can be saved right now.` · 400 `QRShift couldn't save that report correction. Try again.` |
 
 A correction overwrites the shift's IN and OUT timestamps in one transaction; with `clockOutLogId: null` it creates the missing OUT log.
@@ -76,6 +78,20 @@ Auth: cookie `qrshift_owner_session` (signed `{ kind: "owner", exp }`, same cook
 | `POST /api/admin/demo-store` | — | `{ storeId, storeName, qrToken, pin }` — a store with 4 employees and the past 7 days of shifts, one employee still clocked in | 401 |
 
 Employee names are unique per store after trimming, lowercasing and collapsing spaces.
+
+## QR settings routes
+
+Session cookie, role `owner` of the store (`requireRole('owner')`). Managers, owners of other stores and unknown stores get 403 `forbidden`; no session gets 401 `unauthenticated`. Non-GET bodies must be JSON (`{}` when there are no fields). `settings` is `{ qr_mode, has_location, lat, lng, radius_m, display_key }`; `display_key` is `null` unless the store is in display mode and is never returned to anyone but an owner. `qr_secret` is never returned. Every response, including 401 and 403, carries `Cache-Control: no-store`.
+
+| Method & path | Body | 200 | Errors |
+| --- | --- | --- | --- |
+| `GET /api/admin/stores/:storeId/qr-settings` | — | `settings` | 401 · 403 |
+| `PUT /api/admin/stores/:storeId/qr-mode` | `{ qr_mode: "display" \| "printed" }` | `settings`; switching to display creates `qr_secret` and `display_key` atomically when missing (existing values are kept); switching to printed clears `display_key` and keeps `qr_secret` | 400 `invalid_qr_mode` |
+| `PUT /api/admin/stores/:storeId/location` | `{ lat, lng, radius_m? }` — `lat` in [-90, 90], `lng` in [-180, 180], `radius_m` integer 25–1000 (kept when omitted); `{ lat: null, lng: null }` clears the location | `settings` | 400 `invalid_location` |
+| `POST /api/admin/stores/:storeId/qr/reissue` | `{}` | `{ ok: true }`; new `qr_secret` | 400 `not_display_mode` |
+| `POST /api/admin/stores/:storeId/display-key/reset` | `{}` | `settings` with the new `display_key` | 400 `not_display_mode` |
+
+Reissue invalidates every outstanding display QR and clock ticket within seconds. The printed `qr_token` is not rotated because manager dashboard links depend on it. Resetting the display key cuts the old tablet link.
 
 ## Display routes
 

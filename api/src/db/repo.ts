@@ -1,8 +1,10 @@
 import { and, asc, desc, eq } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { hashPin } from "../auth.js";
 import { buildDemoStoreSeed } from "../demo-data.js";
+import type { LocationStatus } from "../location.js";
 import type { Db } from "./client.js";
 import { employees, storeMembers, stores, timelogs } from "./schema.js";
 
@@ -30,6 +32,26 @@ function sortEmployeesByStatusAndName(list: Employee[]) {
 export async function getStoreByQrToken(db: Db, qrToken: string): Promise<Store | null> {
   const [store] = await db.select().from(stores).where(eq(stores.qr_token, qrToken)).limit(1);
   return store ?? null;
+}
+
+export function toQrSettings(store: Store) {
+  return {
+    qr_mode: store.qr_mode,
+    has_location: store.lat !== null && store.lng !== null,
+    lat: store.lat,
+    lng: store.lng,
+    radius_m: store.radius_m,
+    display_key: store.qr_mode === "display" ? store.display_key : null,
+  };
+}
+
+export async function updateStoreQr(
+  db: Db,
+  storeId: string,
+  patch: Partial<{ [K in "qr_mode" | "qr_secret" | "display_key" | "lat" | "lng" | "radius_m"]: Store[K] | SQL }>,
+) {
+  const [row] = await db.update(stores).set(patch).where(eq(stores.id, storeId)).returning();
+  return row;
 }
 
 export async function getStoreById(db: Db, storeId: string): Promise<Store | null> {
@@ -115,7 +137,7 @@ export async function createClockAction(
   qrToken: string,
   employeeId: string,
   requestedAction: "IN" | "OUT",
-  extra: { at?: Date } = {},
+  extra: { at?: Date; locationStatus?: LocationStatus | null } = {},
 ) {
   const store = await getStoreByQrToken(db, qrToken);
   if (!store) {
@@ -150,6 +172,7 @@ export async function createClockAction(
       store_id: store.id,
       type: requestedAction,
       timestamp,
+      location_status: extra.locationStatus ?? null,
     });
     return { employee, action: requestedAction, timestamp };
   });

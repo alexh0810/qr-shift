@@ -87,3 +87,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** owner session on the tablet; per-store key; no key (public endpoint).
 - **Decision:** a random per-store `display_key`, sent in the `x-display-key` header; the page reads it from the URL fragment so it never reaches server logs. It works only on `GET /api/display/:storeId/qr`; resetting it comes with the owner QR settings (separate change). It is 256-bit random (generated with `newSecret()`), so brute force needs no throttle. Stored as plain text (like `qr_secret`; a database leak exposes both anyway).
 - **Consequences:** anyone with the link can show the store's QR from anywhere, so the link is treated like a password; resetting the key cuts a leaked link immediately.
+
+## D14. Location is an advisory flag, never a gate
+
+- **Context:** Printed QR codes can be photographed and used off-site; GPS in browsers is coarse and sometimes denied.
+- **Options:** block clock-ins outside a geofence; flag them; ignore location.
+- **Decision:** record `inside` / `outside` / `unknown` per clock event and expose it to managers only (a report warning follows in a later change). Tolerance is `min(accuracy, 100 m)`, accuracy above 200 m is `unknown`. A store without coordinates records nothing, so owners who skip setup see no noise.
+- **Consequences:** honest employees with bad GPS are never locked out; the flag deters, it does not prevent. Spoofed coordinates pass (documented limit).

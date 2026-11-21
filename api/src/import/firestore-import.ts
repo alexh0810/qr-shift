@@ -48,6 +48,9 @@ export function toRows(snapshot: FirestoreSnapshot): ImportRows & { skipped: Ski
       qr_mode: "printed" as const,
       qr_secret: null,
       display_key: null,
+      lat: null,
+      lng: null,
+      radius_m: 150,
     };
   });
   const storeIds = new Set(storeRows.map((store) => store.id));
@@ -98,7 +101,7 @@ export function toRows(snapshot: FirestoreSnapshot): ImportRows & { skipped: Ski
     if (storeId !== employeeStoreId) {
       throw new Error(`${where}: store ${storeId} differs from employee ${employeeId} store ${employeeStoreId}`);
     }
-    return [{ id, employee_id: employeeId, store_id: storeId, type: data.type, timestamp: toDate(data.timestamp, `${where}.timestamp`) }];
+    return [{ id, employee_id: employeeId, store_id: storeId, type: data.type, timestamp: toDate(data.timestamp, `${where}.timestamp`), location_status: null }];
   });
 
   return {

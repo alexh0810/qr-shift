@@ -45,7 +45,7 @@ sequenceDiagram
 
 **Identity.** Users sign in with Firebase Authentication (email/password or Google). The browser posts the Firebase ID token to `POST /api/session`; the API verifies it, requires a verified email, and exchanges it for a Firebase **session cookie** (`__session`, 5 days, `HttpOnly; Secure; SameSite=Strict; Path=/`). Every protected route verifies the cookie with `verifySessionCookie(cookie, true)` (revocation checked), so signing out or disabling an account takes effect immediately. Signing out (`DELETE /api/session`) revokes the user's refresh tokens, which ends their sessions on every device, and then clears the cookie even if revocation fails.
 
-**Authorization.** `store_members(store_id, email, role)` is the only source of access. `requireRole('manager' | 'owner')` is a Fastify `preHandler` that resolves the store from `:storeId` or `:qr_token`, looks up the caller's role and answers **403** unless the role is sufficient (owner satisfies manager). Unknown stores are also 403. Handlers contain no role checks. `requireSession` only requires a signed-in user (used by store creation and `/api/me`).
+**Authorization.** `store_members(store_id, email, role)` is the only source of access. `requireRole('manager' | 'owner')` is a Fastify `preHandler` that resolves the store from `:storeId` or `:qr_token`, looks up the caller's role and answers **403** unless the role is sufficient (owner satisfies manager). Unknown stores are also 403. Handlers contain no role checks. `requireSession` only requires a signed-in user (used by store creation and `/api/me`). The QR controls (`api/src/routes/qr.ts`: mode, location, reissue, display-key reset) use `requireRole('owner')` with the store taken from `:storeId`, so managers cannot reach them; `qr_secret` is never returned and `display_key` only to owners.
 
 **CSRF (three independent layers).**
 1. `SameSite=Strict` session cookie; the site and API share one origin through the Vercel rewrite.
@@ -92,6 +92,9 @@ erDiagram
     qr_mode qr_mode "display or printed, default printed"
     text qr_secret "HMAC key for the rotating QR, null until display mode is first enabled"
     text display_key "credential of the display tablet, null until display mode is first enabled"
+    float lat "store location, null until configured"
+    float lng "store location, null until configured"
+    int radius_m "geofence radius in metres, default 150"
   }
   employees {
     text id PK
@@ -106,6 +109,7 @@ erDiagram
     text store_id FK
     timelog_type type
     timestamptz timestamp
+    location_status "inside, outside, unknown or null"
   }
   store_members {
     text store_id PK
@@ -138,6 +142,8 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `employee_not_found` | 404 | Employee missing |
 | `employee_store_mismatch`, `duplicate_employee_name`, `invalid_employee_name`, `no_employee_changes`, `employee_create_failed`, `employee_update_failed` | 400 | Employee changes rejected |
 | `not_display_mode` | 400 | Scan ticket requested for a store in printed mode |
+| `invalid_qr_mode` | 400 | Owner set a QR mode other than `display` or `printed` |
+| `invalid_location` | 400 | Owner location outside lat/lng bounds, a half-set pair, or a radius that is not an integer from 25 to 1000 |
 | `qr_required` | 403 | Clock at a display-mode store without a ticket |
 | `qr_expired` | 403 | Display QR older than 60 s or clock ticket older than 120 s, tampered, for another store, or its `w`/`sig` missing or malformed |
 | `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
@@ -161,6 +167,10 @@ Code: `api/src/qr.ts`.
 
 The tablet opens `/display/[storeId]#<display_key>`. The key is read from the URL fragment, so the browser never sends it to a server except in the `x-display-key` header of `GET /api/display/:storeId/qr`, and it does not appear in logs or `Referer`. The page renders `/scan/{qr_token}?w&sig` as a QR with `qrcode.react` and re-fetches at each window boundary (`refresh_in_ms`). A 401 `invalid_display_key` shows a "link is no longer valid" message and stops polling; network errors keep retrying every 5 s while the last QR stays on screen.
 
+### Scan page
+
+For a display-mode store the scan page reads `w`/`sig` from the URL, exchanges them for a ticket (kept in memory only) before the roster is usable (the parameters leave the address bar only after a successful exchange or a `qr_expired` answer, so a transient failure keeps them and a retry works within their ~60 s validity), and sends the ticket with `POST /clock`. It shows "QR code expired" when `w`/`sig` are missing, when `scan-ticket` answers `qr_expired`, or when `/clock` answers `qr_expired` or `qr_required` (for example after more than 120 s on the name picker). Reloading the page therefore also needs a fresh scan. Only clocking is gated: the roster is readable with the printed token or a display link. Printed-mode stores skip all of this.
+
 ### Clock-in sequences
 
 ```mermaid
@@ -178,3 +188,28 @@ sequenceDiagram
 ```
 
 Printed mode skips the ticket: the phone posts `/clock` directly.
+
+### Location flag
+
+Printed stores can carry `lat`, `lng` and `radius_m` (default 150). `POST /clock` accepts an optional `location { lat, lng, accuracy }` and the API stores a `location_status` on the new timelog:
+
+- `inside` if the distance is at most `radius_m + min(accuracy, 100 m)`.
+- `outside` if it is farther.
+- `unknown` if the location is missing, malformed or `accuracy` is above 200 m.
+- `null` if the store has no coordinates, runs in display mode, or the row predates this feature.
+
+The scan page asks for geolocation on load, in printed mode only, and waits at most 5 s. It sends `{ lat, lng, accuracy }` or nothing; denial or timeout never blocks clocking, and coordinates are kept in memory only. Browsers require HTTPS for geolocation (Vercel provides it).
+
+Reports show a warning icon next to the date of a shift when its clock-in or clock-out was `outside` or `unknown`, and the CSV has a last `Location` column (`Inside`, `Outside`, `Unknown` or empty). A shift takes the worst status of its two events (`outside` > `unknown` > `inside`); shifts without a recorded status (display mode, stores without coordinates, rows from before this feature) show nothing and export an empty cell.
+
+The flag never blocks a clock action. The migration is expand-only (nullable columns, `radius_m` has a default).
+
+```mermaid
+sequenceDiagram
+  participant E as Employee phone
+  participant A as API
+  E->>A: POST /clock { employeeId, requestedAction, location }
+  A->>A: classify (haversine vs store lat/lng)
+  A-->>E: 200 { action, timestamp }
+  Note over A: timelog row stores location_status
+```

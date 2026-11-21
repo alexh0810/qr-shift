@@ -10,6 +10,7 @@ import { displayRoutes } from "./routes/display.js";
 import { managerRoutes } from "./routes/manager.js";
 import { ownerRoutes } from "./routes/owner.js";
 import { publicRoutes } from "./routes/public.js";
+import { qrRoutes } from "./routes/qr.js";
 import { sessionRoutes } from "./session.js";
 
 export function buildApp({
@@ -79,6 +80,7 @@ export function buildApp({
   publicRoutes(app, { db, now });
   managerRoutes(app, { db });
   ownerRoutes(app, { db });
+  qrRoutes(app, { db });
   displayRoutes(app, { db, now });
 
   return app;
