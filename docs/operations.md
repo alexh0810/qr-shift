@@ -170,9 +170,9 @@ npm run assign-owner
 
 It prints how many stores the email now owns. Stores created later are not covered; re-run it.
 
-## QR modes (until the owner UI exists)
+## QR modes
 
-Display mode is enabled per store through the owner QR settings endpoints (`/api/admin/stores/:storeId/qr-mode`, `qr/reissue`, `display-key/reset`). The SQL below is the break-glass path if those are unavailable; run it on Neon (replace `<store id>`). Secrets are 256-bit random values. The API generates them as base64url (43 characters); the SQL below uses 32 bytes from `gen_random_bytes` (pgcrypto), hex-encoded to 64 characters. The server treats both as opaque strings, so mixing them is fine.
+Owners manage this in `/admin`: open a store (Manage roster), choose Display QR, copy the display link to the tablet, and press Use my current location while standing in the store (the radius is editable). Reset display link cuts the old tablet link; Reissue QR invalidates every printed or displayed QR immediately. Both ask for confirmation. The printed-mode QR is the existing scan QR preview/download in the same console. Underneath, display mode is enabled per store through the owner QR settings endpoints (`/api/admin/stores/:storeId/qr-mode`, `qr/reissue`, `display-key/reset`). The SQL below is the break-glass path if those are unavailable; run it on Neon (replace `<store id>`). Secrets are 256-bit random values. The API generates them as base64url (43 characters); the SQL below uses 32 bytes from `gen_random_bytes` (pgcrypto), hex-encoded to 64 characters. The server treats both as opaque strings, so mixing them is fine.
 
 ```sql
 create extension if not exists pgcrypto;
