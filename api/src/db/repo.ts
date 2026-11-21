@@ -1,4 +1,5 @@
 import { and, asc, desc, eq } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { hashPin } from "../auth.js";
@@ -47,7 +48,7 @@ export function toQrSettings(store: Store) {
 export async function updateStoreQr(
   db: Db,
   storeId: string,
-  patch: Partial<Pick<Store, "qr_mode" | "qr_secret" | "display_key" | "lat" | "lng" | "radius_m">>,
+  patch: Partial<{ [K in "qr_mode" | "qr_secret" | "display_key" | "lat" | "lng" | "radius_m"]: Store[K] | SQL }>,
 ) {
   const [row] = await db.update(stores).set(patch).where(eq(stores.id, storeId)).returning();
   return row;

@@ -32,7 +32,9 @@ test("only an owner of the store may call the endpoints", async () => {
   assert.equal((await app.inject({ method: "GET", url })).statusCode, 401);
   for (const [method, path] of [["PUT", "qr-mode"], ["PUT", "location"], ["POST", "qr/reissue"], ["POST", "display-key/reset"]] as const) {
     const base = `/api/admin/stores/store-1/${path}`;
-    assert.equal((await call(app, method, base, { qr_mode: "display" }, BOB)).statusCode, 403, `manager ${path}`);
+    const denied = await call(app, method, base, { qr_mode: "display" }, BOB);
+    assert.equal(denied.statusCode, 403, `manager ${path}`);
+    assert.equal(denied.headers["cache-control"], "no-store");
     assert.equal((await call(app, method, base, { qr_mode: "display" }, CAROL)).statusCode, 403, `other owner ${path}`);
     const anonymous = await app.inject({ method, url: base, payload: {}, headers: JSON_HEADERS });
     assert.equal(anonymous.statusCode, 401, `anonymous ${path}`);
@@ -41,9 +43,11 @@ test("only an owner of the store may call the endpoints", async () => {
 
 test("settings expose the display key to owners but never the secret", async () => {
   const app = buildTestApp(await displayDb());
-  const settings = (await call(app, "GET", "/api/admin/stores/store-1/qr-settings")).json();
+  const response = await call(app, "GET", "/api/admin/stores/store-1/qr-settings");
+  const settings = response.json();
   assert.equal(settings.display_key, DISPLAY_KEY);
   assert.equal(settings.has_location, false);
+  assert.equal(response.headers["cache-control"], "no-store");
   assert.ok(!JSON.stringify(settings).includes(SECRET));
 });
 
@@ -63,13 +67,29 @@ test("enabling display mode creates a secret and key once and is idempotent", as
   assert.equal(again.qr_secret, row.qr_secret);
 });
 
-test("switching back to printed hides the display key and keeps the printed QR working", async () => {
-  const app = buildTestApp(await displayDb());
+test("switching to printed drops the display key, display again issues a fresh one, printed QR keeps working", async () => {
+  const db = await displayDb();
+  const app = buildTestApp(db);
   const settings = (await call(app, "PUT", "/api/admin/stores/store-1/qr-mode", { qr_mode: "printed" })).json();
   assert.equal(settings.qr_mode, "printed");
   assert.equal(settings.display_key, null);
+  const [row] = await db.select().from(stores).where(eq(stores.id, "store-1"));
+  assert.equal(row.display_key, null);
+  assert.equal(row.qr_secret, SECRET);
+  const back = (await call(app, "PUT", "/api/admin/stores/store-1/qr-mode", { qr_mode: "display" })).json();
+  assert.ok(back.display_key.length >= 43);
+  assert.notEqual(back.display_key, DISPLAY_KEY);
+  await call(app, "PUT", "/api/admin/stores/store-1/qr-mode", { qr_mode: "printed" });
   const clock = await app.inject({ method: "POST", url: "/api/stores/qr-1/clock", headers: JSON_HEADERS, payload: { employeeId: "emp-1", requestedAction: "IN" } });
   assert.equal(clock.statusCode, 200);
+});
+
+test("concurrent enables store one key and both responses show it", async () => {
+  const app = buildTestApp(await seededDb());
+  const [a, b] = await Promise.all([1, 2].map(() => call(app, "PUT", "/api/admin/stores/store-1/qr-mode", { qr_mode: "display" })));
+  assert.equal(a.json().display_key, b.json().display_key);
+  const stored = (await call(app, "GET", "/api/admin/stores/store-1/qr-settings")).json();
+  assert.equal(stored.display_key, a.json().display_key);
 });
 
 test("invalid mode is rejected", async () => {
@@ -134,9 +154,11 @@ test("resetting the display key cuts the old link", async () => {
   assert.equal((await link(reset.json().display_key)).statusCode, 200);
 });
 
-test("resetting the key of a printed store is rejected", async () => {
+test("reset and reissue on a printed store are rejected", async () => {
   const app = buildTestApp(await seededDb());
-  const response = await call(app, "POST", "/api/admin/stores/store-1/display-key/reset");
-  assert.equal(response.statusCode, 400);
-  assert.equal(response.json().error, "not_display_mode");
+  for (const path of ["display-key/reset", "qr/reissue"]) {
+    const response = await call(app, "POST", `/api/admin/stores/store-1/${path}`);
+    assert.equal(response.statusCode, 400, path);
+    assert.equal(response.json().error, "not_display_mode");
+  }
 });

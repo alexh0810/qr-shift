@@ -1,6 +1,8 @@
+import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 
 import type { Db } from "../db/client.js";
+import { stores } from "../db/schema.js";
 import { toQrSettings, updateStoreQr } from "../db/repo.js";
 import { sendError } from "../errors.js";
 import { newSecret } from "../qr.js";
@@ -12,7 +14,13 @@ const isNumberIn = (value: unknown, limit: number): value is number =>
   typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= limit;
 
 export function qrRoutes(app: FastifyInstance, { db }: { db: Db }) {
-  const owner = { preHandler: requireRole("owner") };
+  const owner = {
+    preHandler: requireRole("owner"),
+    onSend: async (_request: unknown, reply: { header: (name: string, value: string) => unknown }, payload: unknown) => {
+      reply.header("cache-control", "no-store");
+      return payload;
+    },
+  };
 
   app.get<StoreParams>("/api/admin/stores/:storeId/qr-settings", owner, async (request) => toQrSettings(request.store!));
 
@@ -21,12 +29,11 @@ export function qrRoutes(app: FastifyInstance, { db }: { db: Db }) {
     if (mode !== "display" && mode !== "printed") {
       return sendError(reply, 400, "invalid_qr_mode", "Choose display or printed.");
     }
-    const store = request.store!;
     const patch: Parameters<typeof updateStoreQr>[2] =
       mode === "display"
-        ? { qr_mode: mode, qr_secret: store.qr_secret ?? newSecret(), display_key: store.display_key ?? newSecret() }
-        : { qr_mode: mode };
-    return toQrSettings(await updateStoreQr(db, store.id, patch));
+        ? { qr_mode: mode, qr_secret: sql`coalesce(${stores.qr_secret}, ${newSecret()})`, display_key: sql`coalesce(${stores.display_key}, ${newSecret()})` }
+        : { qr_mode: mode, display_key: null };
+    return toQrSettings(await updateStoreQr(db, request.store!.id, patch));
   });
 
   app.put<StoreParams & { Body: { lat?: unknown; lng?: unknown; radius_m?: unknown } | null }>(
@@ -48,7 +55,10 @@ export function qrRoutes(app: FastifyInstance, { db }: { db: Db }) {
     },
   );
 
-  app.post<StoreParams>("/api/admin/stores/:storeId/qr/reissue", owner, async (request) => {
+  app.post<StoreParams>("/api/admin/stores/:storeId/qr/reissue", owner, async (request, reply) => {
+    if (request.store!.qr_mode !== "display") {
+      return sendError(reply, 400, "not_display_mode", "Switch the store to display mode first.");
+    }
     await updateStoreQr(db, request.store!.id, { qr_secret: newSecret() });
     return { ok: true };
   });
