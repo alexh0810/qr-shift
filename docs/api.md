@@ -62,3 +62,11 @@ Auth: cookie `qrshift_owner_session` (signed `{ kind: "owner", exp }`, same cook
 | `POST /api/admin/demo-store` | — | `{ storeId, storeName, qrToken, pin }` — a store with 4 employees and the past 7 days of shifts, one employee still clocked in | 401 |
 
 Employee names are unique per store after trimming, lowercasing and collapsing spaces.
+
+## Display routes
+
+| Method & path | Header | 200 | Errors |
+| --- | --- | --- | --- |
+| `GET /api/display/:storeId/qr` | `x-display-key: <display_key>` | `{ store_name, qr_token, window, sig, refresh_in_ms }`, `Cache-Control: no-store` | 401 `invalid_display_key` (unknown store, printed store, missing or wrong key: indistinguishable) |
+
+The display key is a bearer secret kept in the tablet page's URL fragment. It is accepted only by this endpoint and cannot read rosters, clock anyone in or reach manager/owner data.

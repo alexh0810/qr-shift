@@ -5,6 +5,7 @@ import type { FastifyError } from "fastify";
 
 import type { Db } from "./db/client.js";
 import { sendError } from "./errors.js";
+import { displayRoutes } from "./routes/display.js";
 import { managerRoutes } from "./routes/manager.js";
 import { ownerRoutes } from "./routes/owner.js";
 import { publicRoutes } from "./routes/public.js";
@@ -51,6 +52,7 @@ export function buildApp({ db, now = Date.now }: { db: Db; now?: () => number })
   publicRoutes(app, { db, now });
   managerRoutes(app, { db });
   ownerRoutes(app, { db });
+  displayRoutes(app, { db, now });
 
   return app;
 }
