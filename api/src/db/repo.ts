@@ -33,6 +33,26 @@ export async function getStoreByQrToken(db: Db, qrToken: string): Promise<Store 
   return store ?? null;
 }
 
+export function toQrSettings(store: Store) {
+  return {
+    qr_mode: store.qr_mode,
+    has_location: store.lat !== null && store.lng !== null,
+    lat: store.lat,
+    lng: store.lng,
+    radius_m: store.radius_m,
+    display_key: store.qr_mode === "display" ? store.display_key : null,
+  };
+}
+
+export async function updateStoreQr(
+  db: Db,
+  storeId: string,
+  patch: Partial<Pick<Store, "qr_mode" | "qr_secret" | "display_key" | "lat" | "lng" | "radius_m">>,
+) {
+  const [row] = await db.update(stores).set(patch).where(eq(stores.id, storeId)).returning();
+  return row;
+}
+
 export async function getStoreById(db: Db, storeId: string): Promise<Store | null> {
   const [store] = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
   return store ?? null;

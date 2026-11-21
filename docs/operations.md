@@ -180,7 +180,7 @@ It prints how many stores the email now owns. Stores created later are not cover
 
 ## QR modes (until the owner UI exists)
 
-Display mode is enabled per store. Until the owner console has controls for it, use SQL on Neon (replace `<store id>`). Secrets are 256-bit random values: 32 bytes from `gen_random_bytes` (pgcrypto), hex-encoded to 64 characters.
+Display mode is enabled per store through the owner QR settings endpoints (`/api/admin/stores/:storeId/qr-mode`, `qr/reissue`, `display-key/reset`). The SQL below is the break-glass path if those are unavailable; run it on Neon (replace `<store id>`). Secrets are 256-bit random values: 32 bytes from `gen_random_bytes` (pgcrypto), hex-encoded to 64 characters.
 
 ```sql
 create extension if not exists pgcrypto;

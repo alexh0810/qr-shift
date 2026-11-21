@@ -45,7 +45,7 @@ sequenceDiagram
 
 **Identity.** Users sign in with Firebase Authentication (email/password or Google). The browser posts the Firebase ID token to `POST /api/session`; the API verifies it, requires a verified email, and exchanges it for a Firebase **session cookie** (`__session`, 5 days, `HttpOnly; Secure; SameSite=Strict; Path=/`). Every protected route verifies the cookie with `verifySessionCookie(cookie, true)` (revocation checked), so signing out or disabling an account takes effect immediately. Signing out (`DELETE /api/session`) revokes the user's refresh tokens, which ends their sessions on every device, and then clears the cookie even if revocation fails.
 
-**Authorization.** `store_members(store_id, email, role)` is the only source of access. `requireRole('manager' | 'owner')` is a Fastify `preHandler` that resolves the store from `:storeId` or `:qr_token`, looks up the caller's role and answers **403** unless the role is sufficient (owner satisfies manager). Unknown stores are also 403. Handlers contain no role checks. `requireSession` only requires a signed-in user (used by store creation and `/api/me`).
+**Authorization.** `store_members(store_id, email, role)` is the only source of access. `requireRole('manager' | 'owner')` is a Fastify `preHandler` that resolves the store from `:storeId` or `:qr_token`, looks up the caller's role and answers **403** unless the role is sufficient (owner satisfies manager). Unknown stores are also 403. Handlers contain no role checks. `requireSession` only requires a signed-in user (used by store creation and `/api/me`). The QR controls (`api/src/routes/qr.ts`: mode, location, reissue, display-key reset) use `requireRole('owner')` with the store taken from `:storeId`, so managers cannot reach them; `qr_secret` is never returned and `display_key` only to owners.
 
 **Public routes.** Scanning needs no account: `GET /api/stores/:qr_token`, `GET …/employees`, `POST …/clock`.
 
@@ -134,6 +134,8 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `employee_not_found` | 404 | Employee missing |
 | `employee_store_mismatch`, `duplicate_employee_name`, `invalid_employee_name`, `no_employee_changes`, `employee_create_failed`, `employee_update_failed` | 400 | Employee changes rejected |
 | `not_display_mode` | 400 | Scan ticket requested for a store in printed mode |
+| `invalid_qr_mode` | 400 | Owner set a QR mode other than `display` or `printed` |
+| `invalid_location` | 400 | Owner location outside lat/lng bounds, a half-set pair, or a radius that is not an integer from 25 to 1000 |
 | `qr_required` | 403 | Clock at a display-mode store without a ticket |
 | `qr_expired` | 403 | Display QR older than 60 s or clock ticket older than 120 s, tampered, for another store, or its `w`/`sig` missing or malformed |
 | `invalid_pin` | 400 | Manager PIN is not numeric or longer than 6 digits |
