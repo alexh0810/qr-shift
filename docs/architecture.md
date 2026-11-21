@@ -77,8 +77,9 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `not_found` | 404 | Unknown route |
-| `store_not_found` | 404 | Store missing (public and manager GETs) |
-| `invalid_request` | 400 | Missing or malformed body fields |
+| `store_not_found` | 404 | Store missing (public, manager and owner employee routes) |
+| `invalid_request` | 400 | Missing or malformed body fields (clock, report correction, owner create-store); any other framework 4xx |
+| `payload_too_large` | 413 | Request body over the size limit |
 | `invalid_transition` | 400 | Clock action does not follow the employee's latest log |
 | `clock_failed` | 400 | Clock action could not be saved |
 | `invalid_range`, `future_correction_not_supported`, `report_correction_failed` | 400 | Report correction rejected |

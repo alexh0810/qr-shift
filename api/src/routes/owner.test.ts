@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import { buildApp } from "../app.js";
 import { OWNER_SESSION_COOKIE, createOwnerSessionValue } from "../auth.js";
+import type { Db } from "../db/client.js";
 import { seededDb } from "../test-support.js";
 
 const ownerCookie = () => ({ [OWNER_SESSION_COOKIE]: createOwnerSessionValue() });
@@ -100,6 +101,15 @@ test("employee PATCH updates status and maps errors", async () => {
 
   const noChange = await app.inject({ method: "PATCH", url: "/api/admin/stores/store-1/employees/emp-1", cookies: ownerCookie(), payload: {} });
   assert.deepEqual(noChange.json(), { error: "no_employee_changes", message: "No employee changes were provided." });
+});
+
+test("unexpected employee failures fall back to the generic codes", async () => {
+  const app = buildApp({ db: {} as unknown as Db });
+  const created = await app.inject({ method: "POST", url: "/api/admin/stores/store-1/employees", cookies: ownerCookie(), payload: { name: "Dana" } });
+  assert.deepEqual([created.statusCode, created.json()], [400, { error: "employee_create_failed", message: "QRShift couldn't add that employee. Try again." }]);
+
+  const updated = await app.inject({ method: "PATCH", url: "/api/admin/stores/store-1/employees/emp-1", cookies: ownerCookie(), payload: { status: "archived" } });
+  assert.deepEqual([updated.statusCode, updated.json()], [400, { error: "employee_update_failed", message: "QRShift couldn't update that employee. Try again." }]);
 });
 
 test("demo store creation returns its PIN and qr token", async () => {

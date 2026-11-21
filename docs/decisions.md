@@ -39,6 +39,8 @@ Each entry: context, options considered, decision, consequences.
 
 ## D6. Same HTTP contract for ported routes; no shared core package yet
 
+**Superseded by D8** (error shape only).
+
 - **Context:** The legacy Next.js route handlers move to the Fastify API. The client must keep working at the moment traffic switches.
 - **Options:** redesign the API (new error shape `{ error: code, message }`, new paths) and update the client in the same change; or port routes with an identical contract.
 - **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed is copied until the web server code is deleted.
@@ -56,4 +58,4 @@ Each entry: context, options considered, decision, consequences.
 - **Context:** Ported routes kept the legacy `{ error: "<message>" }` shape (D6). The client changes for accounts in this phase anyway.
 - **Options:** keep two shapes; switch every route to `{ error: <code>, message }` and have the client read `message`.
 - **Decision:** switch every surviving route; one `sendError` helper, a global error handler (4xx keep their message, 5xx become a generic `internal_error`) and a JSON `404`. User-facing messages are unchanged.
-- **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the legacy handlers and e2e mocks working.
+- **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the legacy handlers and e2e mocks working. The web app must deploy before the API, because it reads `message ?? error`; Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds. Browser tabs opened before the merge show raw codes until reloaded.

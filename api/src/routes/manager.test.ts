@@ -60,6 +60,15 @@ test("dashboard and reports require a session for that store", async () => {
   }
 });
 
+test("dashboard and reports return store_not_found for a session on a missing store", async () => {
+  const app = buildApp({ db: await seededDb() });
+  const cookies = { [MANAGER_SESSION_COOKIE]: createManagerSessionValue("store-x", "qr-missing") };
+  for (const path of ["dashboard", "reports"]) {
+    const response = await app.inject({ method: "GET", url: `/api/manager/qr-missing/${path}`, cookies });
+    assert.deepEqual([response.statusCode, response.json()], [404, { error: "store_not_found", message: "Store not found." }]);
+  }
+});
+
 test("dashboard serializes employee statuses", async () => {
   const app = buildApp({ db: await seededDb() });
   const body = (await app.inject({ method: "GET", url: "/api/manager/qr-1/dashboard", cookies: managerCookie() })).json();

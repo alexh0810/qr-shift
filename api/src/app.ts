@@ -20,10 +20,13 @@ export function buildApp({ db }: { db: Db }) {
       request.log.error(error);
       return sendError(reply, 500, "internal_error", "Something went wrong. Try again.");
     }
+    if (status === 413) {
+      return sendError(reply, 413, "payload_too_large", "Request body is too large.");
+    }
     if (status === 415) {
       return sendError(reply, 415, "unsupported_media_type", "Send the request body as JSON.");
     }
-    return sendError(reply, status, error.code ?? "bad_request", error.message);
+    return sendError(reply, 400, "invalid_request", "The request could not be processed.");
   });
   // Matches the legacy handlers' `request.json().catch(() => null)`: empty or malformed JSON reaches routes as null.
   app.removeContentTypeParser("application/json");
