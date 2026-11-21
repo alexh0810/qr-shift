@@ -59,3 +59,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** keep two shapes; switch every route to `{ error: <code>, message }` and have the client read `message`.
 - **Decision:** switch every surviving route; one `sendError` helper, a global error handler (4xx keep their message, 5xx become a generic `internal_error`) and a JSON `404`. User-facing messages are unchanged.
 - **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the legacy handlers and e2e mocks working. The web app must deploy before the API, because it reads `message ?? error`; Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds. Browser tabs opened before the merge show raw codes until reloaded.
+
+## D12. Stateless HMAC windows for the rotating QR
+
+- **Context:** In display mode a clock-in must prove the employee saw the tablet in the last minute, without a server-side session table.
+- **Options:** random one-time codes stored in Postgres; signed time windows; JWTs.
+- **Decision:** `HMAC-SHA256(qr_secret, ["w", storeId, window])` over 30 s windows, current plus previous window accepted, then a 120 s HMAC ticket for the clock call.
+- **Consequences:** nothing to store or clean up; a forwarded screenshot works for up to 60 s (documented limit); the ticket allows several clock actions within 120 s; rotating `qr_secret` is the revoke switch.
