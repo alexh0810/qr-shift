@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import type { Db } from "../db/client.js";
 import { createClockAction, getScanRoster, getStoreByQrToken, toPublicStore } from "../db/repo.js";
 import { sendError } from "../errors.js";
-import { issueTicket, verifyWindow } from "../qr.js";
+import { issueTicket, verifyTicket, verifyWindow } from "../qr.js";
 
 type QrParams = { Params: { qr_token: string } };
 
@@ -47,7 +47,7 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
     return { ticket: issueTicket(store.qr_secret, store.id, nowMs) };
   });
 
-  app.post<QrParams & { Body: { employeeId?: string; requestedAction?: string } | null }>(
+  app.post<QrParams & { Body: { employeeId?: string; requestedAction?: string; ticket?: unknown } | null }>(
     "/api/stores/:qr_token/clock",
     async (request, reply) => {
       const employeeId = request.body?.employeeId?.trim();
@@ -56,8 +56,19 @@ export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: (
         return sendError(reply, 400, "invalid_request", "Choose an employee and confirm the next action.");
       }
 
+      const store = await getStoreByQrToken(db, request.params.qr_token);
+      if (store?.qr_mode === "display") {
+        const ticket = request.body?.ticket;
+        if (!ticket) {
+          return sendError(reply, 403, "qr_required", "Scan the QR code on the display to clock in.");
+        }
+        if (!store.qr_secret || !verifyTicket(store.qr_secret, store.id, ticket, now())) {
+          return sendError(reply, 403, "qr_expired", "This QR code expired. Scan the code on the display again.");
+        }
+      }
+
       try {
-        const result = await createClockAction(db, request.params.qr_token, employeeId, requestedAction);
+        const result = await createClockAction(db, request.params.qr_token, employeeId, requestedAction, { at: new Date(now()) });
         return { action: result.action, timestamp: result.timestamp };
       } catch (error) {
         const message = error instanceof Error ? error.message : "clock_failed";
