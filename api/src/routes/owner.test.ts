@@ -45,7 +45,7 @@ test("owner routes reject requests without an owner session", async () => {
 test("lists stores newest first with ISO timestamps", async () => {
   const app = buildApp({ db: await seededDb() });
   const body = (await app.inject({ method: "GET", url: "/api/admin/stores", cookies: ownerCookie() })).json();
-  assert.deepEqual(body.stores[0], { id: "store-2", name: "Midtown", qr_token: "qr-2", created_at: "2026-04-10T00:00:00.000Z" });
+  assert.deepEqual(body.stores[0], { id: "store-2", name: "Midtown", qr_token: "qr-2", qr_mode: "printed", created_at: "2026-04-10T00:00:00.000Z" });
 });
 
 test("creates a store after validating name, PIN and employees", async () => {

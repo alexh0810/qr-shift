@@ -14,7 +14,7 @@ test("public store route returns 404 for unknown qr tokens", async () => {
 test("public store route returns the scan-safe store payload", async () => {
   const app = buildApp({ db: await seededDb() });
   const response = await app.inject({ method: "GET", url: "/api/stores/qr-1" });
-  assert.deepEqual(response.json(), { store: { id: "store-1", name: "Downtown", qr_token: "qr-1" } });
+  assert.deepEqual(response.json(), { store: { id: "store-1", name: "Downtown", qr_token: "qr-1", qr_mode: "printed" } });
 });
 
 test("scan roster returns 404 for unknown qr tokens", async () => {

@@ -7,7 +7,7 @@ import { managerRoutes } from "./routes/manager.js";
 import { ownerRoutes } from "./routes/owner.js";
 import { publicRoutes } from "./routes/public.js";
 
-export function buildApp({ db }: { db: Db }) {
+export function buildApp({ db, now = Date.now }: { db: Db; now?: () => number }) {
   const app = Fastify({ logger: process.env.NODE_ENV === "production" });
 
   app.register(cookie);
@@ -31,7 +31,7 @@ export function buildApp({ db }: { db: Db }) {
     }
   });
 
-  publicRoutes(app, { db });
+  publicRoutes(app, { db, now });
   managerRoutes(app, { db });
   ownerRoutes(app, { db });
 

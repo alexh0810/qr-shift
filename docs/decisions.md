@@ -57,3 +57,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** random one-time codes stored in Postgres; signed time windows; JWTs.
 - **Decision:** `HMAC-SHA256(qr_secret, ["w", storeId, window])` over 30 s windows, current plus previous window accepted, then a 120 s HMAC ticket for the clock call.
 - **Consequences:** nothing to store or clean up; a forwarded screenshot works for up to 60 s (documented limit); the ticket allows several clock actions within 120 s; rotating `qr_secret` is the revoke switch.
+
+## D13. New routes use the final error shape
+
+- **Context:** Ported routes return `{ error: "<message>" }`; the master plan's final shape is `{ error: "<code>", message }`, adopted by phase 3.
+- **Options:** keep the legacy shape for new routes; use the final shape now.
+- **Decision:** phase 4 routes use the final shape. New web code reads `ApiError.code` instead of the shared `readJson` message, so it works before and after phase 3 changes `readJson`.
+- **Consequences:** two shapes coexist until phase 3 converts the ported routes.

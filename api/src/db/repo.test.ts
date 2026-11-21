@@ -33,7 +33,7 @@ test("finds stores by qr token", async () => {
 
 test("public store payload exposes only id, name and qr token", async () => {
   const store = await getStoreByQrToken(await seededDb(), "qr-1");
-  assert.deepEqual(toPublicStore(store!), { id: "store-1", name: "Downtown", qr_token: "qr-1" });
+  assert.deepEqual(toPublicStore(store!), { id: "store-1", name: "Downtown", qr_token: "qr-1", qr_mode: "printed" });
 });
 
 test("builds scan roster statuses from each employee's latest log and hides archived staff", async () => {

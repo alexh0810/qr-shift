@@ -2,10 +2,11 @@ import type { FastifyInstance } from "fastify";
 
 import type { Db } from "../db/client.js";
 import { createClockAction, getScanRoster, getStoreByQrToken, toPublicStore } from "../db/repo.js";
+import { issueTicket, verifyWindow } from "../qr.js";
 
 type QrParams = { Params: { qr_token: string } };
 
-export function publicRoutes(app: FastifyInstance, { db }: { db: Db }) {
+export function publicRoutes(app: FastifyInstance, { db, now }: { db: Db; now: () => number }) {
   app.get<QrParams>("/api/stores/:qr_token", async (request, reply) => {
     const store = await getStoreByQrToken(db, request.params.qr_token);
     if (!store) {
@@ -27,6 +28,22 @@ export function publicRoutes(app: FastifyInstance, { db }: { db: Db }) {
         status: entry.status,
       })),
     };
+  });
+
+  app.get<QrParams & { Querystring: { w?: unknown; sig?: unknown } }>("/api/stores/:qr_token/scan-ticket", async (request, reply) => {
+    const store = await getStoreByQrToken(db, request.params.qr_token);
+    if (!store) {
+      return reply.code(404).send({ error: "store_not_found", message: "Store not found." });
+    }
+    if (store.qr_mode !== "display" || !store.qr_secret) {
+      return reply.code(400).send({ error: "not_display_mode", message: "This store does not use a display QR." });
+    }
+    const { w, sig } = request.query;
+    const nowMs = now();
+    if (typeof w !== "string" || !/^\d+$/.test(w) || typeof sig !== "string" || !verifyWindow(store.qr_secret, store.id, Number(w), sig, nowMs)) {
+      return reply.code(403).send({ error: "qr_expired", message: "This QR code expired. Scan the code on the display again." });
+    }
+    return { ticket: issueTicket(store.qr_secret, store.id, nowMs) };
   });
 
   app.post<QrParams & { Body: { employeeId?: string; requestedAction?: string } | null }>(

@@ -47,6 +47,9 @@ erDiagram
     text qr_token UK
     text pin_hash
     timestamptz created_at
+    qr_mode qr_mode "display or printed, default printed"
+    text qr_secret "HMAC key for the rotating QR, null until display mode is first enabled"
+    text display_key "credential of the display tablet, null until display mode is first enabled"
   }
   employees {
     text id PK
