@@ -180,7 +180,7 @@ It prints how many stores the email now owns. Stores created later are not cover
 
 ## QR modes (until the owner UI exists)
 
-Display mode is enabled per store. Until the owner console has controls for it, use SQL on Neon (replace `<store id>`). Secrets are 256-bit random values: 32 bytes from `gen_random_bytes` (pgcrypto), hex-encoded to 64 characters.
+Display mode is enabled per store through the owner QR settings endpoints (`/api/admin/stores/:storeId/qr-mode`, `qr/reissue`, `display-key/reset`). The SQL below is the break-glass path if those are unavailable; run it on Neon (replace `<store id>`). Secrets are 256-bit random values. The API generates them as base64url (43 characters); the SQL below uses 32 bytes from `gen_random_bytes` (pgcrypto), hex-encoded to 64 characters. The server treats both as opaque strings, so mixing them is fine.
 
 ```sql
 create extension if not exists pgcrypto;
@@ -195,7 +195,7 @@ returning id, display_key;
 
 Open `https://qr-shift-six.vercel.app/display/<store id>#<display_key>` on the store tablet. Treat that link like a password.
 
-- Back to printed mode: `update stores set qr_mode = 'printed' where id = '<store id>';` (the printed `/scan/<qr_token>` QR works again immediately).
+- Back to printed mode: `update stores set qr_mode = 'printed', display_key = null where id = '<store id>';` (the printed `/scan/<qr_token>` QR works again immediately).
 - Reissue the QR (invalidates every outstanding QR and ticket): `update stores set qr_secret = encode(gen_random_bytes(32), 'hex') where id = '<store id>';`
 - Reset the display link: the same statement for `display_key`, then open the new link.
 
