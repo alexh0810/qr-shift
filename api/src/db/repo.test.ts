@@ -31,7 +31,7 @@ test("finds stores by qr token", async () => {
   assert.equal(await getStoreByQrToken(db, "missing"), null);
 });
 
-test("public store payload exposes only id, name and qr token", async () => {
+test("public store payload exposes only id, name, qr token and mode", async () => {
   const store = await getStoreByQrToken(await seededDb(), "qr-1");
   assert.deepEqual(toPublicStore(store!), { id: "store-1", name: "Downtown", qr_token: "qr-1", qr_mode: "printed" });
 });

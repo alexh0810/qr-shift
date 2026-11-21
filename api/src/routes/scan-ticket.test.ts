@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { buildApp } from "../app.js";
+import { MANAGER_SESSION_COOKIE, OWNER_SESSION_COOKIE, createManagerSessionValue, createOwnerSessionValue } from "../auth.js";
 import { SECRET, displayDb } from "../qr-fixtures.js";
 import { TICKET_TTL_MS, WINDOW_MS, signWindow, verifyTicket } from "../qr.js";
 import { seededDb } from "../test-support.js";
@@ -68,12 +69,26 @@ test("unknown store is 404 and a printed store is 400", async () => {
   assert.equal(printed.json().error, "not_display_mode");
 });
 
-test("public payloads expose qr_mode but never the secret or display key", async () => {
+test("payloads expose qr_mode but never the secret or display key", async () => {
   const { app } = await setup();
   for (const url of ["/api/stores/qr-1", "/api/stores/qr-1/employees"]) {
     const body = (await app.inject({ method: "GET", url })).json();
     assert.equal(body.store.qr_mode, "display");
     assert.doesNotMatch(JSON.stringify(body), /qr_secret|display_key|test-qr-secret|test-display-key/);
+  }
+
+  const manager = { [MANAGER_SESSION_COOKIE]: createManagerSessionValue("store-1", "qr-1") };
+  const owner = { [OWNER_SESSION_COOKIE]: createOwnerSessionValue() };
+  const authed = [
+    { url: "/api/manager/qr-1/dashboard", cookies: manager },
+    { url: "/api/manager/qr-1/reports", cookies: manager },
+    { url: "/api/admin/stores", cookies: owner },
+    { url: "/api/admin/stores/store-1/employees", cookies: owner },
+  ];
+  for (const { url, cookies } of authed) {
+    const response = await app.inject({ method: "GET", url, cookies });
+    assert.equal(response.statusCode, 200, url);
+    assert.doesNotMatch(response.body, /qr_secret|display_key|test-qr-secret|test-display-key/, url);
   }
 });
 
