@@ -6,6 +6,7 @@ import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { formatPayrollDuration } from "@/lib/time-calculation";
 import { Employee } from "@/types";
 import { EditableTimeInput } from "./EditableTimeInput";
+import { LocationFlag } from "./LocationFlag";
 import { EmployeeReport, TimesheetRow } from "../types";
 import { useIsPhoneWidth } from "../useIsPhoneWidth";
 
@@ -69,6 +70,7 @@ export function EmployeeReportDetail({
                         </p>
                         <p className="mt-1 font-semibold text-foreground">
                           {format(row.clockInAt, "dd-MM-yyyy")}
+                          <LocationFlag status={row.locationStatus} />
                         </p>
                       </div>
                       <div className="text-right">
@@ -162,6 +164,7 @@ export function EmployeeReportDetail({
                       <td className="px-5 py-4 md:px-6">
                         <p className="font-semibold text-foreground">
                           {format(row.clockInAt, "dd-MM-yyyy")}
+                          <LocationFlag status={row.locationStatus} />
                         </p>
                         {row.note ? (
                           <p className={`mt-1 ${rowStatusClassName(row)}`}>
