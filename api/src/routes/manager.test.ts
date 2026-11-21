@@ -72,7 +72,7 @@ test("dashboard and reports return store_not_found for a session on a missing st
 test("dashboard serializes employee statuses", async () => {
   const app = buildApp({ db: await seededDb() });
   const body = (await app.inject({ method: "GET", url: "/api/manager/qr-1/dashboard", cookies: managerCookie() })).json();
-  assert.deepEqual(body.store, { id: "store-1", name: "Downtown", qr_token: "qr-1" });
+  assert.deepEqual(body.store, { id: "store-1", name: "Downtown", qr_token: "qr-1", qr_mode: "printed" });
   assert.deepEqual(body.employees.map((entry: { status: string }) => entry.status), ["OUT", "IN"]);
 });
 

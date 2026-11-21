@@ -79,6 +79,8 @@ Tests need no database: they run migrations on in-memory PGlite.
 2. `npm run db:generate -w api -- --name <short_name>` and commit `api/drizzle/`.
 3. Merged to `main` → `deploy-api` runs `db:migrate` against Neon, then deploys.
 
+Migration `0001_qr_modes` is additive (new `qr_mode` column defaults to `printed`, two nullable columns), so the previous revision keeps working if a deploy step fails.
+
 At most one migration per PR. If two branches both add one, rebase the second and regenerate.
 
 **Migrations must be backward compatible with the revision that is still serving.** They run before the new code deploys, and if any later step fails (image build, deploy, smoke test), the old revision keeps running against the new schema. So expand, then contract:
@@ -121,6 +123,7 @@ Rotate the database password: update it in Neon, then `printf '%s' '<url>' | gcl
 - **Replaces** all rows in `stores`, `employees` and `timelogs` in one transaction. Run it only at cutover, with Firestore writes stopped. Re-running it before the API takes traffic is safe; after that it deletes every clock-in recorded in Postgres since.
 - **Fails** once `assign-owner` has run, because `store_members` references `stores`. It is a cutover-only tool and must not be re-run after the API takes traffic anyway.
 - **Refuses** to import bad data instead of guessing: a store with only a plaintext PIN (run `npm run migrate:pins -w @qrshift/web` first), a missing or invalid timestamp, an employee status other than `active`/`archived`, a timelog type other than `IN`/`OUT`, a timelog filed under a different store than its employee, or a timelog of an employee that never existed. The error names the document.
+- **Wipes QR settings:** the import writes every store as `printed` with no secret or display key, so re-running it deletes QR settings along with the store rows. It is a cutover-only tool.
 - **Skips** employees and timelogs of deleted stores, which the app can no longer show, and prints how many it skipped per run. They stay in Firestore until phase 3.
 - **Verifies** afterwards by reading every Postgres row back and comparing it with the rows mapped from Firestore. It exits non-zero on any difference.
 

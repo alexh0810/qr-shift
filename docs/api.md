@@ -23,8 +23,9 @@ Auth: none. Used by the employee scan page.
 
 | Method & path | Body | 200 | Errors |
 | --- | --- | --- | --- |
-| `GET /api/stores/:qr_token` | — | `{ store: { id, name, qr_token } }` | 404 `Store not found.` |
-| `GET /api/stores/:qr_token/employees` | — | `{ store, employees: [{ employee, latest_log, status }] }` — active employees only; `status` is `IN` or `OUT` from the latest log | 404 `Store not found.` |
+| `GET /api/stores/:qr_token` | — | `{ store: { id, name, qr_token, qr_mode } }` | 404 `Store not found.` |
+| `GET /api/stores/:qr_token/employees` | — | `{ store: { id, name, qr_token, qr_mode }, employees: [{ employee, latest_log, status }] }` — active employees only; `status` is `IN` or `OUT` from the latest log | 404 `Store not found.` |
+| `GET /api/stores/:qr_token/scan-ticket?w&sig` | — (query: window `w`, signature `sig` from the display QR) | `{ ticket: { storeId, exp, mac } }`, valid 120 s | 404 `store_not_found` · 400 `not_display_mode` · 403 `qr_expired` (QR older than 60 s, tampered, for another store, or `w`/`sig` missing, repeated or malformed) |
 | `POST /api/stores/:qr_token/clock` | `{ employeeId, requestedAction: "IN" \| "OUT" }` | `{ action, timestamp }` | 400 `Choose an employee and confirm the next action.` · 400 `This shift status changed. Go back and try again.` · 400 `QRShift couldn't save that clock action. Try again.` |
 
 A clock action is accepted only if it is the opposite of the employee's latest log. The employee row is locked during the check, so concurrent duplicate scans record one event.
@@ -53,7 +54,7 @@ Auth: cookie `qrshift_owner_session` (signed `{ kind: "owner", exp }`, same cook
 | `GET /api/admin/session` | — | `{ authenticated }` | — |
 | `POST /api/admin/session` | `{ secret }` | `{ ok: true }` + session cookie | 400 `Enter the owner secret to continue.` · 401 `Incorrect owner secret. Please try again.` |
 | `DELETE /api/admin/session` | — | `{ ok: true }`, cookie cleared | — |
-| `GET /api/admin/stores` | — | `{ stores: [{ id, name, qr_token, created_at }] }`, newest first | 401 |
+| `GET /api/admin/stores` | — | `{ stores: [{ id, name, qr_token, qr_mode, created_at }] }`, newest first | 401 |
 | `POST /api/admin/stores` | `{ storeName, pin, employeeNames: string[] }` | `{ storeId, storeName, qrToken }` | 400 `Add a store name, manager PIN, and at least one employee.` · 400 `Manager PIN must be numeric and 6 digits or fewer.` |
 | `GET /api/admin/stores/:storeId/employees` | — | `{ store, employees }` — archived included, active first | 401 · 404 `Store not found.` |
 | `POST /api/admin/stores/:storeId/employees` | `{ name }` | `{ employee }` | 400 `Enter an employee name.` · 400 `An employee with that name already exists for this store.` · 404 `Store not found.` |

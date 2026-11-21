@@ -11,7 +11,7 @@ export type Employee = typeof employees.$inferSelect;
 export type Timelog = typeof timelogs.$inferSelect;
 
 export function toPublicStore(store: Store) {
-  return { id: store.id, name: store.name, qr_token: store.qr_token };
+  return { id: store.id, name: store.name, qr_token: store.qr_token, qr_mode: store.qr_mode };
 }
 
 export function toOwnerStoreSummary(store: Store) {

@@ -45,6 +45,9 @@ export function toRows(snapshot: FirestoreSnapshot): ImportRows & { skipped: Ski
       qr_token: requireString(data.qr_token, `${where}.qr_token`),
       pin_hash: typeof data.pin_hash === "string" ? data.pin_hash : null,
       created_at: toDate(data.created_at, `${where}.created_at`),
+      qr_mode: "printed" as const,
+      qr_secret: null,
+      display_key: null,
     };
   });
   const storeIds = new Set(storeRows.map((store) => store.id));

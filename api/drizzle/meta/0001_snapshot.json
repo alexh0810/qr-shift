@@ -1,5 +1,5 @@
 {
-  "id": "3b558ed0-1b8d-4b4a-83e1-3fe31a535a64",
+  "id": "2b535fa8-8fb8-48ea-bbec-1aeaf6bcdf2e",
   "prevId": "eb8c4423-f399-44f3-9b34-9794ef35e5b1",
   "version": "7",
   "dialect": "postgresql",
@@ -80,76 +80,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.store_members": {
-      "name": "store_members",
-      "schema": "",
-      "columns": {
-        "store_id": {
-          "name": "store_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role": {
-          "name": "role",
-          "type": "member_role",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "store_members_email_idx": {
-          "name": "store_members_email_idx",
-          "columns": [
-            {
-              "expression": "email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "store_members_store_id_stores_id_fk": {
-          "name": "store_members_store_id_stores_id_fk",
-          "tableFrom": "store_members",
-          "tableTo": "stores",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "store_members_store_id_email_pk": {
-          "name": "store_members_store_id_email_pk",
-          "columns": [
-            "store_id",
-            "email"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.stores": {
       "name": "stores",
       "schema": "",
@@ -184,6 +114,26 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "qr_mode": {
+          "name": "qr_mode",
+          "type": "qr_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'printed'"
+        },
+        "qr_secret": {
+          "name": "qr_secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "display_key": {
+          "name": "display_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -326,12 +276,12 @@
         "archived"
       ]
     },
-    "public.member_role": {
-      "name": "member_role",
+    "public.qr_mode": {
+      "name": "qr_mode",
       "schema": "public",
       "values": [
-        "owner",
-        "manager"
+        "display",
+        "printed"
       ]
     },
     "public.timelog_type": {

@@ -2,6 +2,7 @@ import { index, pgEnum, pgTable, primaryKey, text, timestamp } from "drizzle-orm
 
 export const employeeStatus = pgEnum("employee_status", ["active", "archived"]);
 export const timelogType = pgEnum("timelog_type", ["IN", "OUT"]);
+export const qrMode = pgEnum("qr_mode", ["display", "printed"]);
 
 export const stores = pgTable("stores", {
   id: text().primaryKey(),
@@ -9,6 +10,9 @@ export const stores = pgTable("stores", {
   qr_token: text().notNull().unique(),
   pin_hash: text(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  qr_mode: qrMode().notNull().default("printed"),
+  qr_secret: text(),
+  display_key: text(),
 });
 
 export const employees = pgTable(
