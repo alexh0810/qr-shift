@@ -71,3 +71,21 @@ test("a ticket that expired mid-session shows the scan-again panel", async ({ pa
   await page.getByRole("button", { name: "Clock In Now" }).click();
   await expect(page.getByRole("heading", { name: "QR code expired" })).toBeVisible();
 });
+
+test("a transient ticket failure keeps the signature and blocks clocking", async ({ page }) => {
+  await page.context().route("**/api/**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/stores/qr-d/employees") {
+      await route.fulfill({ json: roster });
+    } else if (pathname === "/api/stores/qr-d/scan-ticket") {
+      await route.fulfill({ status: 500, json: { error: "internal_error", message: "boom" } });
+    } else {
+      await route.abort();
+    }
+  });
+
+  await page.goto("/scan/qr-d?w=1&sig=good");
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Dana/i })).toHaveCount(0);
+  expect(page.url()).toContain("sig=good");
+});

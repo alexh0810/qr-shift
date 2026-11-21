@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, Loader2, QrCode } from "lucide-react";
 
 import { BrandMark } from "@/components/BrandMark";
@@ -23,6 +23,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [ticket, setTicket] = useState<ClockTicket | null>(null);
   const [qrExpired, setQrExpired] = useState(false);
+  const qrParams = useRef<{ w: string | null; sig: string | null } | null>(null);
 
   const clearSelection = () => {
     setSelectedEmployee(null);
@@ -51,9 +52,11 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
         if (loadedStore.qr_mode !== "display") {
           return;
         }
-        const query = new URLSearchParams(window.location.search);
-        const w = query.get("w");
-        const sig = query.get("sig");
+        if (!qrParams.current) {
+          const query = new URLSearchParams(window.location.search);
+          qrParams.current = { w: query.get("w"), sig: query.get("sig") };
+        }
+        const { w, sig } = qrParams.current;
         if (!w || !sig) {
           setQrExpired(true);
           return;
@@ -65,9 +68,8 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
             throw error;
           }
           setQrExpired(true);
-        } finally {
-          window.history.replaceState(window.history.state, "", window.location.pathname);
         }
+        window.history.replaceState(window.history.state, "", window.location.pathname);
       })
       .catch(() => {
         setError(
@@ -187,7 +189,7 @@ export default function ScanPage({ params }: { params: { qr_token: string } }) {
               Scan the code on the store display again to clock in or out.
             </p>
           </div>
-        ) : selectedEmployee ? (
+        ) : store?.qr_mode === "display" && !ticket ? null : selectedEmployee ? (
           <ScanActionPanel
             employeeName={selectedEmployee.employee.name}
             nextAction={nextAction ?? "IN"}
