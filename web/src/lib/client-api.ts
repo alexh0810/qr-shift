@@ -15,10 +15,19 @@ import {
 import type { TimesheetRow } from "@/features/reports/types";
 import { DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
 
+export class ApiError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
-    throw new Error(payload?.message ?? payload?.error ?? "Request failed");
+    throw new ApiError(payload?.error ?? "request_failed", payload?.message ?? payload?.error ?? "Request failed");
   }
 
   return (await response.json()) as T;
@@ -295,4 +304,21 @@ export async function saveReportCorrection(
   });
 
   return readJson<{ ok: true; clockOutLogId: string }>(response);
+}
+
+export interface DisplayQr {
+  store_name: string;
+  qr_token: string;
+  window: number;
+  sig: string;
+  refresh_in_ms: number;
+}
+
+export async function getDisplayQr(storeId: string, displayKey: string): Promise<DisplayQr> {
+  const response = await fetch(`/api/display/${encodeURIComponent(storeId)}/qr`, {
+    headers: { "x-display-key": displayKey },
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  return readJson<DisplayQr>(response);
 }

@@ -62,7 +62,7 @@ sequenceDiagram
 
 | Path | Responsibility |
 | --- | --- |
-| `web/` | UI routes: `/` landing, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, `/admin` |
+| `web/` | UI routes: `/` landing, `/display/[storeId]`, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, `/admin` |
 | `api/` | Fastify REST API; `buildApp()` in `src/app.ts` is the entry used by both the server and tests |
 
 ## Data model
@@ -149,6 +149,10 @@ Display-mode QR codes carry no state on the server. For a store with `qr_secret`
 
 Code: `api/src/qr.ts`.
 
+### Display page
+
+The tablet opens `/display/[storeId]#<display_key>`. The key is read from the URL fragment, so the browser never sends it to a server except in the `x-display-key` header of `GET /api/display/:storeId/qr`, and it does not appear in logs or `Referer`. The page renders `/scan/{qr_token}?w&sig` as a QR with `qrcode.react` and re-fetches at each window boundary (`refresh_in_ms`). A 401 `invalid_display_key` shows a "link is no longer valid" message and stops polling; network errors keep retrying every 5 s while the last QR stays on screen.
+
 ### Clock-in sequences
 
 ```mermaid
@@ -156,7 +160,7 @@ sequenceDiagram
   participant T as Display tablet
   participant E as Employee phone
   participant A as API
-  T->>A: GET /api/display/:storeId/qr (x-display-key, display endpoint, separate PR)
+  T->>A: GET /api/display/:storeId/qr (x-display-key)
   A-->>T: { qr_token, window, sig }
   T-->>E: QR /scan/{qr_token}?w&sig
   E->>A: GET scan-ticket?w&sig

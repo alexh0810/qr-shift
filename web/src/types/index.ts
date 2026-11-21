@@ -11,6 +11,7 @@ export interface PublicStore {
   id: string;
   name: string;
   qr_token: string;
+  qr_mode?: "display" | "printed";
 }
 
 export interface OwnerStoreSummary {
