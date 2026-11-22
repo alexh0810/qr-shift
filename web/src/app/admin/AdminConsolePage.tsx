@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import AuthGuard from "@/components/AuthGuard";
+import StoreMembersPanel from "@/components/StoreMembersPanel";
 import {
   createDemoStore,
   createStore,
@@ -949,6 +950,8 @@ export default function AdminConsolePage() {
                                   Add employee
                                 </button>
                               </div>
+
+                              <StoreMembersPanel storeId={store.id} />
 
                               <div className="mt-4">
                                 {rosterLoading ? (
