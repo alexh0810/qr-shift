@@ -74,12 +74,12 @@ Each entry: context, options considered, decision, consequences.
 - **Decision:** three independent layers (see the security model): `SameSite=Strict`, JSON-only bodies (the `text/plain` parser is removed so every non-JSON type gets 415) with no CORS, and a global Origin check against `APP_ORIGIN`. The hook is `onRequest` (before body parsing) and also rejects a missing `Origin` on non-GET.
 - **Consequences:** no token plumbing in the client. Non-browser clients must send an `Origin`. Vercel previews cannot write to the production API (they fail the Origin check).
 
-## D10. CSRF: Strict cookie, JSON-only bodies, Origin check
+## D11. PINs removed; rollback window to the legacy app closed
 
-- **Context:** Cookie sessions make state-changing endpoints CSRF targets.
-- **Options:** CSRF tokens; Origin check only; layered defences without per-request tokens.
-- **Decision:** three independent layers (see the security model): `SameSite=Strict`, JSON-only bodies (the `text/plain` parser is removed so every non-JSON type gets 415) with no CORS, and a global Origin check against `APP_ORIGIN`. The hook is `onRequest` (before body parsing) and also rejects a missing `Origin` on non-GET.
-- **Consequences:** no token plumbing in the client. Non-browser clients must send an `Origin`. Vercel previews cannot write to the production API (they fail the Origin check).
+- **Context:** With accounts live, the PIN column, PIN hashing, the owner secret and the migration script have no readers.
+- **Options:** keep the column "just in case"; drop it in the same release as the code change; drop it in a later PR after the code stopped using it.
+- **Decision:** expand/contract: the role-routes release removed every use (and the Drizzle column) without a migration; migration `0004` drops the column once that revision is serving. The Secret Manager secrets `manager-session-secret` and `owner-setup-secret` are deleted afterwards.
+- **Consequences:** the previous revision keeps working against the old schema until the contract migration ships. After accounts went live the legacy Next.js handlers and PIN sessions cannot be restored by a rewrite switch; rollback is Vercel Instant Rollback plus a Cloud Run revision rollback. Dropped data (PIN hashes) is not recoverable.
 
 ## D12. Stateless HMAC windows for the rotating QR
 
