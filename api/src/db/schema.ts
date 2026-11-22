@@ -9,7 +9,6 @@ export const stores = pgTable("stores", {
   id: text().primaryKey(),
   name: text().notNull(),
   qr_token: text().notNull().unique(),
-  pin_hash: text(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   qr_mode: qrMode().notNull().default("printed"),
   qr_secret: text(),

@@ -15,7 +15,11 @@ Auth: none.
 
 ## Error format
 
-Every error is `{ "error": "<code>", "message": "<user-facing text>" }`; the client shows `message`. The tables below list the `message`; codes are in the error-code table in [architecture](architecture.md#error-codes). Exceptions until phase 3 finishes: the PIN and owner-secret session routes and the 401 guard responses, which still return `{ "error": "<message>" }`.
+Every error is `{ "error": "<code>", "message": "<user-facing text>" }`; the client shows `message`. The tables below list the `message`; codes are in the error-code table in [architecture](architecture.md#error-codes).
+
+## Request rules
+
+Requests that change state (`POST`, `PATCH`, `DELETE`) must send `Content-Type: application/json` (or no body) and an `Origin` header equal to the site origin; otherwise the API answers 415 `unsupported_media_type` or 403 `forbidden_origin` (`Request not allowed from this origin.`). Browsers send `Origin` automatically.
 
 ## Request rules
 
@@ -48,34 +52,29 @@ Cookie `__session`: Firebase session cookie, 5 days, `HttpOnly`, `Secure` in pro
 
 ## Manager routes
 
-Auth: cookie `qrshift_manager_session` — an HMAC-SHA256-signed payload `{ kind: "manager", storeId, qrToken, exp }` valid for 7 days, `HttpOnly`, `SameSite=Lax`, `Secure` in production, issued after a correct store PIN (scrypt-hashed). A session only authorizes routes for its own `qr_token`.
+Auth: session cookie plus membership in the store named by `:qr_token`; owners of the store qualify too. 401 `unauthenticated` without a session; 403 `forbidden` (`You don't have access to this store.`) without access to that store, also for unknown stores.
 
 | Method & path | Body | 200 | Errors |
 | --- | --- | --- | --- |
-| `GET /api/manager/session?qr_token=` | — | `{ authenticated }` (for that store, or any store when `qr_token` is omitted) | — |
-| `POST /api/manager/session` | `{ qr_token, pin }` | `{ ok: true }` + session cookie | 400 `Enter the manager PIN to continue.` · 400 `This store is not ready for secure manager access yet.` · 401 `Incorrect PIN. Please try again.` |
-| `DELETE /api/manager/session` | — | `{ ok: true }`, cookie cleared | — |
-| `GET /api/manager/:qr_token/dashboard` | — | `{ store, employees: [{ employee, latest_log, status }] }` | 401 `Manager access is required.` · 404 `Store not found.` |
-| `GET /api/manager/:qr_token/reports` | — | `{ store, employees, timelogs }` — all employees including archived; timelogs oldest first, each with `location_status` | 401 · 404 |
-| `POST /api/manager/:qr_token/reports` | `{ employeeId, clockInLogId, clockOutLogId \| null, clockInAt, clockOutAt }` (ISO times) | `{ ok: true, clockOutLogId }` | 401 · 400 `Invalid report correction.` · 400 `Clock-out must be after clock-in.` · 400 `Only completed shifts can be saved right now.` · 400 `QRShift couldn't save that report correction. Try again.` |
-
-A correction overwrites the shift's IN and OUT timestamps in one transaction; with `clockOutLogId: null` it creates the missing OUT log.
+| `GET /api/manager/:qr_token/dashboard` | — | `{ store, employees: [{ employee, latest_log, status }] }` | 401 · 403 |
+| `GET /api/manager/:qr_token/reports` | — | `{ store, employees, timelogs }` — all employees including archived; timelogs oldest first, each with `location_status` | 401 · 403 |
+| `POST /api/manager/:qr_token/reports` | `{ employeeId, clockInLogId, clockOutLogId \| null, clockInAt, clockOutAt }` (ISO times) | `{ ok: true, clockOutLogId }` | 401 · 403 · 400 `Invalid report correction.` · 400 `Clock-out must be after clock-in.` · 400 `Only completed shifts can be saved right now.` · 400 `QRShift couldn't save that report correction. Try again.` |
 
 ## Owner routes
 
-Auth: cookie `qrshift_owner_session` (signed `{ kind: "owner", exp }`, same cookie attributes as the manager session), issued after the correct `OWNER_SETUP_SECRET`. Every route except `/api/admin/session` returns 401 `Owner access is required.` without it.
+Auth: session cookie. Listing and creating stores need only a signed-in user; everything under `/api/admin/stores/:storeId/…` needs the `owner` role on that store. 401 `unauthenticated` without a session; 403 `forbidden` for managers, owners of other stores and unknown stores.
 
 | Method & path | Body | 200 | Errors |
 | --- | --- | --- | --- |
-| `GET /api/admin/session` | — | `{ authenticated }` | — |
-| `POST /api/admin/session` | `{ secret }` | `{ ok: true }` + session cookie | 400 `Enter the owner secret to continue.` · 401 `Incorrect owner secret. Please try again.` |
-| `DELETE /api/admin/session` | — | `{ ok: true }`, cookie cleared | — |
-| `GET /api/admin/stores` | — | `{ stores: [{ id, name, qr_token, qr_mode, created_at }] }`, newest first | 401 |
-| `POST /api/admin/stores` | `{ storeName, pin, employeeNames: string[] }` | `{ storeId, storeName, qrToken }` | 400 `Add a store name, manager PIN, and at least one employee.` · 400 `Manager PIN must be numeric and 6 digits or fewer.` |
-| `GET /api/admin/stores/:storeId/employees` | — | `{ store, employees }` — archived included, active first | 401 · 404 `Store not found.` |
-| `POST /api/admin/stores/:storeId/employees` | `{ name }` | `{ employee }` | 400 `Enter an employee name.` · 400 `An employee with that name already exists for this store.` · 404 `Store not found.` |
-| `PATCH /api/admin/stores/:storeId/employees/:employeeId` | `{ name?, status?: "active" \| "archived" }` | `{ employee }` | 404 `Store not found.` / `Employee not found.` · 400 `This employee does not belong to the selected store.` · 400 duplicate / empty name · 400 `No employee changes were provided.` |
-| `POST /api/admin/demo-store` | — | `{ storeId, storeName, qrToken, pin }` — a store with 4 employees and the past 7 days of shifts, one employee still clocked in | 401 |
+| `GET /api/admin/stores` | — | `{ stores: [{ id, name, qr_token, qr_mode, created_at }] }` — stores the caller owns, newest first | 401 |
+| `POST /api/admin/stores` | `{ storeName, employeeNames: string[] }` | `{ storeId, storeName, qrToken }`; the caller becomes owner | 401 · 400 `Add a store name and at least one employee.` |
+| `GET /api/admin/stores/:storeId/employees` | — | `{ store, employees }` — archived included, active first | 401 · 403 |
+| `POST /api/admin/stores/:storeId/employees` | `{ name }` | `{ employee }` | 400 `Enter an employee name.` · 400 `An employee with that name already exists for this store.` · 401 · 403 |
+| `PATCH /api/admin/stores/:storeId/employees/:employeeId` | `{ name?, status?: "active" \| "archived" }` | `{ employee }` | 404 `Employee not found.` · 400 `This employee does not belong to the selected store.` · 400 duplicate / empty name · 400 `No employee changes were provided.` · 401 · 403 |
+| `GET /api/admin/stores/:storeId/members` | — | `{ members: [{ email, role }] }` — owners first | 401 · 403 |
+| `POST /api/admin/stores/:storeId/members` | `{ email }` | `{ member: { email, role: "manager" } }` | 400 `Enter a valid email address.` · 400 `That person already has access to this store.` · 403 |
+| `DELETE /api/admin/stores/:storeId/members/:email` | — | `{ ok: true }` | 404 `No manager with that email.` · 400 `Owners can't be removed.` · 403 |
+| `POST /api/admin/demo-store` | — | `{ storeId, storeName, qrToken }` — a store with 4 employees and the past 7 days of shifts, one employee still clocked in; the caller becomes owner | 401 |
 
 Employee names are unique per store after trimming, lowercasing and collapsing spaces.
 

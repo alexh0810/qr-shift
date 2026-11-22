@@ -1,15 +1,9 @@
 import type { FastifyInstance } from "fastify";
 
-import {
-  clearManagerSessionCookie,
-  getManagerSession,
-  isManagerSessionAuthorized,
-  setManagerSessionCookie,
-  verifyPin,
-} from "../auth.js";
 import type { Db } from "../db/client.js";
-import { getReportsSnapshot, getScanRoster, getStoreByQrToken, saveReportCorrection } from "../db/repo.js";
+import { getReportsSnapshot, getScanRoster, saveReportCorrection } from "../db/repo.js";
 import { sendError } from "../errors.js";
+import { requireRole } from "../roles.js";
 
 type QrParams = { Params: { qr_token: string } };
 type CorrectionBody = {
@@ -26,40 +20,7 @@ const CORRECTION_ERRORS: Record<string, string> = {
 };
 
 export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
-  app.get<{ Querystring: { qr_token?: string } }>("/api/manager/session", async (request) => {
-    const session = getManagerSession(request);
-    const qrToken = request.query.qr_token;
-    return { authenticated: qrToken ? isManagerSessionAuthorized(session, qrToken) : Boolean(session) };
-  });
-
-  app.post<{ Body: { qr_token?: string; pin?: string } | null }>("/api/manager/session", async (request, reply) => {
-    const qrToken = request.body?.qr_token?.trim();
-    const pin = request.body?.pin?.trim();
-    if (!qrToken || !pin) {
-      return reply.code(400).send({ error: "Enter the manager PIN to continue." });
-    }
-
-    const store = await getStoreByQrToken(db, qrToken);
-    if (!store || !store.pin_hash) {
-      return reply.code(400).send({ error: "This store is not ready for secure manager access yet." });
-    }
-    if (!(await verifyPin(pin, store.pin_hash))) {
-      return reply.code(401).send({ error: "Incorrect PIN. Please try again." });
-    }
-
-    setManagerSessionCookie(reply, store.id, store.qr_token);
-    return { ok: true };
-  });
-
-  app.delete("/api/manager/session", async (_request, reply) => {
-    clearManagerSessionCookie(reply);
-    return { ok: true };
-  });
-
-  app.get<QrParams>("/api/manager/:qr_token/dashboard", async (request, reply) => {
-    if (!isManagerSessionAuthorized(getManagerSession(request), request.params.qr_token)) {
-      return reply.code(401).send({ error: "Manager access is required." });
-    }
+  app.get<QrParams>("/api/manager/:qr_token/dashboard", { preHandler: requireRole("manager") }, async (request, reply) => {
     const roster = await getScanRoster(db, request.params.qr_token);
     if (!roster) {
       return sendError(reply, 404, "store_not_found", "Store not found.");
@@ -74,10 +35,7 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     };
   });
 
-  app.get<QrParams>("/api/manager/:qr_token/reports", async (request, reply) => {
-    if (!isManagerSessionAuthorized(getManagerSession(request), request.params.qr_token)) {
-      return reply.code(401).send({ error: "Manager access is required." });
-    }
+  app.get<QrParams>("/api/manager/:qr_token/reports", { preHandler: requireRole("manager") }, async (request, reply) => {
     const snapshot = await getReportsSnapshot(db, request.params.qr_token);
     if (!snapshot) {
       return sendError(reply, 404, "store_not_found", "Store not found.");
@@ -85,11 +43,7 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     return snapshot;
   });
 
-  app.post<QrParams & { Body: CorrectionBody }>("/api/manager/:qr_token/reports", async (request, reply) => {
-    if (!isManagerSessionAuthorized(getManagerSession(request), request.params.qr_token)) {
-      return reply.code(401).send({ error: "Manager access is required." });
-    }
-
+  app.post<QrParams & { Body: CorrectionBody }>("/api/manager/:qr_token/reports", { preHandler: requireRole("manager") }, async (request, reply) => {
     const body = request.body;
     const employeeId = body?.employeeId?.trim();
     const clockInLogId = body?.clockInLogId?.trim();

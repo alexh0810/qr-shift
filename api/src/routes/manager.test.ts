@@ -1,71 +1,30 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { MANAGER_SESSION_COOKIE, createManagerSessionValue } from "../auth.js";
-import { buildTestApp, seededDb } from "../test-support.js";
+import { buildTestApp, seededDb, sessionFor } from "../test-support.js";
 
-const managerCookie = () => ({ [MANAGER_SESSION_COOKIE]: createManagerSessionValue("store-1", "qr-1") });
+const managerCookie = () => sessionFor("bob@example.com");
 
-test("manager login rejects missing input, stores without a PIN, and wrong PINs", async () => {
+test("dashboard and reports need a session and membership in that store", async () => {
   const app = buildTestApp(await seededDb());
-  const missing = await app.inject({ method: "POST", url: "/api/manager/session", payload: { qr_token: "qr-1" } });
-  assert.equal(missing.statusCode, 400);
-  assert.deepEqual(missing.json(), { error: "Enter the manager PIN to continue." });
-
-  const noPin = await app.inject({ method: "POST", url: "/api/manager/session", payload: { qr_token: "qr-2", pin: "1234" } });
-  assert.equal(noPin.statusCode, 400);
-  assert.deepEqual(noPin.json(), { error: "This store is not ready for secure manager access yet." });
-
-  const wrong = await app.inject({ method: "POST", url: "/api/manager/session", payload: { qr_token: "qr-1", pin: "0000" } });
-  assert.equal(wrong.statusCode, 401);
-  assert.deepEqual(wrong.json(), { error: "Incorrect PIN. Please try again." });
-});
-
-test("manager login sets a session cookie scoped to the store", async () => {
-  const app = buildTestApp(await seededDb());
-  const login = await app.inject({ method: "POST", url: "/api/manager/session", payload: { qr_token: "qr-1", pin: "1234" } });
-  assert.deepEqual(login.json(), { ok: true });
-  const cookie = login.cookies.find((entry) => entry.name === MANAGER_SESSION_COOKIE);
-  assert.ok(cookie?.value);
-  assert.equal(cookie?.httpOnly, true);
-  assert.equal(cookie?.sameSite, "Lax");
-
-  const cookies = { [MANAGER_SESSION_COOKIE]: cookie!.value };
-  const own = await app.inject({ method: "GET", url: "/api/manager/session?qr_token=qr-1", cookies });
-  const other = await app.inject({ method: "GET", url: "/api/manager/session?qr_token=qr-2", cookies });
-  const any = await app.inject({ method: "GET", url: "/api/manager/session", cookies });
-  assert.deepEqual([own.json(), other.json(), any.json()], [
-    { authenticated: true },
-    { authenticated: false },
-    { authenticated: true },
-  ]);
-});
-
-test("manager logout clears the cookie", async () => {
-  const app = buildTestApp(await seededDb());
-  const response = await app.inject({ method: "DELETE", url: "/api/manager/session" });
-  assert.deepEqual(response.json(), { ok: true });
-  const cookie = response.cookies.find((entry) => entry.name === MANAGER_SESSION_COOKIE);
-  assert.equal(cookie?.value, "");
-  assert.equal(cookie?.maxAge, 0);
-});
-
-test("dashboard and reports require a session for that store", async () => {
-  const app = buildTestApp(await seededDb());
-  for (const url of ["/api/manager/qr-1/dashboard", "/api/manager/qr-1/reports", "/api/manager/qr-2/dashboard"]) {
-    const response = await app.inject({ method: "GET", url, cookies: url.includes("qr-2") ? managerCookie() : {} });
-    assert.equal(response.statusCode, 401);
-    assert.deepEqual(response.json(), { error: "Manager access is required." });
+  for (const url of ["/api/manager/qr-1/dashboard", "/api/manager/qr-1/reports"]) {
+    const anonymous = await app.inject({ method: "GET", url });
+    assert.deepEqual([anonymous.statusCode, anonymous.json().error], [401, "unauthenticated"]);
   }
+  for (const url of ["/api/manager/qr-2/dashboard", "/api/manager/qr-2/reports", "/api/manager/missing/dashboard"]) {
+    const denied = await app.inject({ method: "GET", url, cookies: managerCookie() });
+    assert.deepEqual([denied.statusCode, denied.json().error], [403, "forbidden"]);
+  }
+  const correction = await app.inject({ method: "POST", url: "/api/manager/qr-2/reports", cookies: managerCookie(), payload: {} });
+  assert.equal(correction.statusCode, 403);
 });
 
-test("dashboard and reports return store_not_found for a session on a missing store", async () => {
+test("owners can use manager routes of their own stores only", async () => {
   const app = buildTestApp(await seededDb());
-  const cookies = { [MANAGER_SESSION_COOKIE]: createManagerSessionValue("store-x", "qr-missing") };
-  for (const path of ["dashboard", "reports"]) {
-    const response = await app.inject({ method: "GET", url: `/api/manager/qr-missing/${path}`, cookies });
-    assert.deepEqual([response.statusCode, response.json()], [404, { error: "store_not_found", message: "Store not found." }]);
-  }
+  const own = await app.inject({ method: "GET", url: "/api/manager/qr-1/dashboard", cookies: sessionFor("alice@example.com") });
+  assert.equal(own.statusCode, 200);
+  const other = await app.inject({ method: "GET", url: "/api/manager/qr-1/dashboard", cookies: sessionFor("carol@example.com") });
+  assert.equal(other.statusCode, 403);
 });
 
 test("dashboard serializes employee statuses", async () => {
@@ -80,7 +39,6 @@ test("reports GET returns employees and ISO timelogs", async () => {
   const body = (await app.inject({ method: "GET", url: "/api/manager/qr-1/reports", cookies: managerCookie() })).json();
   assert.equal(body.employees.length, 3);
   assert.equal(body.timelogs[0].timestamp, "2026-04-20T08:00:00.000Z");
-  assert.equal("pin_hash" in body.store, false);
 });
 
 test("reports POST validates payloads and maps errors", async () => {

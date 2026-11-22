@@ -1,15 +1,11 @@
 import type { InjectOptions, LightMyRequestResponse } from "fastify";
 
 import { buildApp } from "./app.js";
-import { hashPin } from "./auth.js";
 import type { Db } from "./db/client.js";
 import { employees, storeMembers, stores, timelogs } from "./db/schema.js";
 import { createTestDb } from "./db/test-db.js";
 import type { AuthVerifier } from "./identity.js";
 import { SESSION_COOKIE } from "./roles.js";
-
-process.env.MANAGER_SESSION_SECRET ??= "test-manager-secret";
-process.env.OWNER_SETUP_SECRET ??= "test-owner-secret";
 
 export const TEST_ORIGIN = "https://app.test";
 
@@ -18,8 +14,8 @@ export const at = (value: string) => new Date(value);
 export async function seededDb(): Promise<Db> {
   const db = await createTestDb();
   await db.insert(stores).values([
-    { id: "store-1", name: "Downtown", qr_token: "qr-1", pin_hash: await hashPin("1234"), created_at: at("2026-04-01T00:00:00Z") },
-    { id: "store-2", name: "Midtown", qr_token: "qr-2", pin_hash: null, created_at: at("2026-04-10T00:00:00Z") },
+    { id: "store-1", name: "Downtown", qr_token: "qr-1", created_at: at("2026-04-01T00:00:00Z") },
+    { id: "store-2", name: "Midtown", qr_token: "qr-2", created_at: at("2026-04-10T00:00:00Z") },
   ]);
   await db.insert(employees).values([
     { id: "emp-1", store_id: "store-1", name: "Alex", status: "active", created_at: at("2026-04-01T00:00:00Z") },

@@ -63,7 +63,7 @@ jobs:
           fi
           gcloud run deploy qrshift-api --image "$IMAGE" --region "$REGION" \
             --allow-unauthenticated --max-instances 3 \
-            --set-secrets DATABASE_URL=database-url:latest,MANAGER_SESSION_SECRET=manager-session-secret:latest,OWNER_SETUP_SECRET=owner-setup-secret:latest \
+            --set-secrets DATABASE_URL=database-url:latest \
             --update-env-vars "FIREBASE_PROJECT_ID=qr-shift-f2063,APP_ORIGIN=$APP_ORIGIN" $STAGED
         env:
           REGION: ${{ vars.GCP_REGION }}

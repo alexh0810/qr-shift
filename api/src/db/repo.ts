@@ -2,7 +2,6 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
-import { hashPin } from "../auth.js";
 import { buildDemoStoreSeed } from "../demo-data.js";
 import type { LocationStatus } from "../location.js";
 import type { Db } from "./client.js";
@@ -59,9 +58,14 @@ export async function getStoreById(db: Db, storeId: string): Promise<Store | nul
   return store ?? null;
 }
 
-export async function getOwnerStoreSummaries(db: Db) {
-  const rows = await db.select().from(stores).orderBy(desc(stores.created_at), asc(stores.id));
-  return rows.map(toOwnerStoreSummary);
+export async function getOwnerStoreSummaries(db: Db, email: string) {
+  const rows = await db
+    .select({ store: stores })
+    .from(storeMembers)
+    .innerJoin(stores, eq(stores.id, storeMembers.store_id))
+    .where(and(eq(storeMembers.email, normalizeEmail(email)), eq(storeMembers.role, "owner")))
+    .orderBy(desc(stores.created_at), asc(stores.id));
+  return rows.map((row) => toOwnerStoreSummary(row.store));
 }
 
 export async function getEmployeesByStoreId(db: Db, storeId: string) {
@@ -242,15 +246,15 @@ export async function saveReportCorrection(
   });
 }
 
-export async function createStoreAndEmployees(db: Db, storeName: string, pin: string, employeeNames: string[]) {
+export async function createStoreAndEmployees(db: Db, storeName: string, ownerEmail: string, employeeNames: string[]) {
   const storeId = nanoid();
   const qrToken = nanoid(16);
   const createdAt = new Date();
   const names = employeeNames.map((name) => name.trim()).filter(Boolean);
-  const pinHash = await hashPin(pin.trim());
 
   await db.transaction(async (tx) => {
-    await tx.insert(stores).values({ id: storeId, name: storeName.trim(), qr_token: qrToken, pin_hash: pinHash, created_at: createdAt });
+    await tx.insert(stores).values({ id: storeId, name: storeName.trim(), qr_token: qrToken, created_at: createdAt });
+    await tx.insert(storeMembers).values({ store_id: storeId, email: normalizeEmail(ownerEmail), role: "owner" });
     if (names.length > 0) {
       await tx.insert(employees).values(
         names.map((name) => ({ id: nanoid(), store_id: storeId, name, status: "active" as const, created_at: createdAt })),
@@ -261,16 +265,16 @@ export async function createStoreAndEmployees(db: Db, storeName: string, pin: st
   return { storeId, storeName: storeName.trim(), qrToken };
 }
 
-export async function createDemoStoreWithTimelogs(db: Db) {
+export async function createDemoStoreWithTimelogs(db: Db, ownerEmail: string) {
   const seed = buildDemoStoreSeed();
   const storeId = nanoid();
   const qrToken = nanoid(16);
   const createdAt = new Date();
   const employeeIdByName = new Map(seed.employeeNames.map((name) => [name, nanoid()]));
-  const pinHash = await hashPin(seed.pin);
 
   await db.transaction(async (tx) => {
-    await tx.insert(stores).values({ id: storeId, name: seed.storeName, qr_token: qrToken, pin_hash: pinHash, created_at: createdAt });
+    await tx.insert(stores).values({ id: storeId, name: seed.storeName, qr_token: qrToken, created_at: createdAt });
+    await tx.insert(storeMembers).values({ store_id: storeId, email: normalizeEmail(ownerEmail), role: "owner" });
     await tx.insert(employees).values(
       seed.employeeNames.map((name) => ({
         id: employeeIdByName.get(name)!,
@@ -291,7 +295,7 @@ export async function createDemoStoreWithTimelogs(db: Db) {
     );
   });
 
-  return { storeId, storeName: seed.storeName, qrToken, pin: seed.pin };
+  return { storeId, storeName: seed.storeName, qrToken };
 }
 
 export async function createEmployeeForStore(db: Db, storeId: string, name: string) {
@@ -387,4 +391,42 @@ export async function assignOwnerToAllStores(db: Db, email: string) {
     .values(rows.map((row) => ({ store_id: row.id, email: normalizeEmail(email), role: "owner" as const })))
     .onConflictDoUpdate({ target: [storeMembers.store_id, storeMembers.email], set: { role: "owner" } });
   return rows.length;
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function listMembers(db: Db, storeId: string) {
+  return db
+    .select({ email: storeMembers.email, role: storeMembers.role })
+    .from(storeMembers)
+    .where(eq(storeMembers.store_id, storeId))
+    .orderBy(asc(storeMembers.role), asc(storeMembers.email));
+}
+
+export async function addManager(db: Db, storeId: string, email: string) {
+  const normalized = normalizeEmail(email);
+  if (!EMAIL_PATTERN.test(normalized)) {
+    throw new Error("invalid_email");
+  }
+  const inserted = await db
+    .insert(storeMembers)
+    .values({ store_id: storeId, email: normalized, role: "manager" })
+    .onConflictDoNothing()
+    .returning();
+  if (inserted.length === 0) {
+    throw new Error("already_member");
+  }
+  return { email: normalized, role: "manager" as const };
+}
+
+export async function removeManager(db: Db, storeId: string, email: string) {
+  const normalized = normalizeEmail(email);
+  const role = await getMemberRole(db, storeId, normalized);
+  if (!role) {
+    throw new Error("member_not_found");
+  }
+  if (role === "owner") {
+    throw new Error("cannot_remove_owner");
+  }
+  await db.delete(storeMembers).where(and(eq(storeMembers.store_id, storeId), eq(storeMembers.email, normalized)));
 }

@@ -24,12 +24,6 @@ test("maps Firestore documents to rows, defaulting legacy employees to active", 
   assert.equal(rows.timelogs[0].type, "IN");
 });
 
-test("refuses stores that only have a plaintext PIN", () => {
-  const input = snapshot();
-  input.stores[0].data = { ...input.stores[0].data, pin_hash: undefined, pin: "1234" };
-  assert.throws(() => toRows(input), /plaintext PIN.*migrate:pins/);
-});
-
 test("refuses missing timestamps instead of inventing them", () => {
   const input = snapshot();
   input.timelogs[0].data = { ...input.timelogs[0].data, timestamp: undefined };
