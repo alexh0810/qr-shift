@@ -46,3 +46,17 @@ test("owner adds and removes a manager", async ({ page }) => {
   await expect(page.getByText("mia@example.com")).toHaveCount(0);
   expect(removedPath).toBe("/api/admin/stores/s1/members/mia%40example.com");
 });
+
+test("signed-out visitors see the sign-in form on the admin page without loading stores", async ({ page }) => {
+  const requested: string[] = [];
+  await page.context().route("**/api/**", async (route) => {
+    requested.push(new URL(route.request().url()).pathname);
+    await route.fulfill({ status: 401, json: { error: "unauthenticated", message: "Sign in to continue." } });
+  });
+
+  await page.goto("/admin");
+
+  await expect(page.getByRole("heading", { name: "Sign in to QRShift" })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(requested).not.toContain("/api/admin/stores");
+});
