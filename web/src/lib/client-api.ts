@@ -349,3 +349,33 @@ export async function removeStoreManager(storeId: string, email: string) {
 
   return readJson<{ ok: true }>(response);
 }
+
+export interface QrSettings {
+  qr_mode: "display" | "printed";
+  has_location: boolean;
+  lat: number | null;
+  lng: number | null;
+  radius_m: number;
+  display_key?: string | null;
+}
+
+async function qrCall<T>(storeId: string, path: string, method: "GET" | "PUT" | "POST", body: object = {}) {
+  const response = await fetch(`/api/admin/stores/${encodeURIComponent(storeId)}/${path}`, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    cache: "no-store",
+    body: method === "GET" ? undefined : JSON.stringify(body),
+  });
+  return readJson<T>(response);
+}
+
+export const getQrSettings = (storeId: string) => qrCall<QrSettings>(storeId, "qr-settings", "GET");
+export const setQrMode = (storeId: string, qr_mode: QrSettings["qr_mode"]) =>
+  qrCall<QrSettings>(storeId, "qr-mode", "PUT", { qr_mode });
+export const setStoreLocation = (storeId: string, lat: number, lng: number, radius_m?: number) =>
+  qrCall<QrSettings>(storeId, "location", "PUT", { lat, lng, radius_m });
+export const reissueQr = async (storeId: string) => {
+  await qrCall<{ ok: true }>(storeId, "qr/reissue", "POST");
+};
+export const resetDisplayKey = (storeId: string) => qrCall<QrSettings>(storeId, "display-key/reset", "POST");

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import AuthGuard from "@/components/AuthGuard";
+import QrSettingsPanel from "@/components/QrSettingsPanel";
 import StoreMembersPanel from "@/components/StoreMembersPanel";
 import {
   createDemoStore,
@@ -960,6 +961,7 @@ function AdminConsole() {
                               </div>
 
                               <StoreMembersPanel storeId={store.id} />
+                              <QrSettingsPanel storeId={store.id} />
 
                               <div className="mt-4">
                                 {rosterLoading ? (
