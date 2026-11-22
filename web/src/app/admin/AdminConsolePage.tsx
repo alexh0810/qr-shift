@@ -87,6 +87,14 @@ function formatTokenPreview(token: string) {
 }
 
 export default function AdminConsolePage() {
+  return (
+    <AuthGuard>
+      <AdminConsole />
+    </AuthGuard>
+  );
+}
+
+function AdminConsole() {
   const [storeName, setStoreName] = useState("");
   const [employeesInput, setEmployeesInput] = useState("");
   const [registryQuery, setRegistryQuery] = useState("");
@@ -472,7 +480,7 @@ export default function AdminConsolePage() {
   const statusIconClass = previewStatus?.tone === "demo" ? "text-[color:#c98512]" : "text-[color:#1ed7b5]";
 
   return (
-    <AuthGuard>
+    <>
       <div className="min-h-screen bg-[var(--background)] px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 py-2">
           <header className="rounded-[20px] border border-surfacestroke bg-surface px-5 py-4 shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:px-6">
@@ -1081,6 +1089,6 @@ export default function AdminConsolePage() {
           />
         ) : null}
       </div>
-    </AuthGuard>
+    </>
   );
 }
