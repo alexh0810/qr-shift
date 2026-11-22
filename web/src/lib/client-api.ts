@@ -3,6 +3,7 @@
 import type { ScanLocation } from "@/lib/geolocation";
 import {
   DashboardSnapshotDto,
+  MeDto,
   OwnerStoreRosterDto,
   OwnerStoreListDto,
   ReportsSnapshotDto,
@@ -28,6 +29,9 @@ export class ApiError extends Error {
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+    if (response.status === 401 && payload?.error === "unauthenticated" && typeof window !== "undefined") {
+      window.location.reload();
+    }
     throw new ApiError(payload?.error ?? "request_failed", payload?.message ?? payload?.error ?? "Request failed");
   }
 
@@ -121,47 +125,6 @@ export async function submitClockAction(
   return readJson<{ action: "IN" | "OUT"; timestamp: string }>(response);
 }
 
-export async function getManagerSession(qrToken: string) {
-  const response = await fetch(`/api/manager/session?qr_token=${encodeURIComponent(qrToken)}`, {
-    credentials: "same-origin",
-    cache: "no-store",
-  });
-  return readJson<{ authenticated: boolean }>(response);
-}
-
-export async function loginManager(qrToken: string, pin: string) {
-  const response = await fetch("/api/manager/session", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "same-origin",
-    body: JSON.stringify({
-      qr_token: qrToken,
-      pin,
-    }),
-  });
-
-  return readJson<{ ok: true }>(response);
-}
-
-export async function logoutManager() {
-  const response = await fetch("/api/manager/session", {
-    method: "DELETE",
-    credentials: "same-origin",
-  });
-
-  return readJson<{ ok: true }>(response);
-}
-
-export async function getOwnerSession() {
-  const response = await fetch("/api/admin/session", {
-    credentials: "same-origin",
-    cache: "no-store",
-  });
-  return readJson<{ authenticated: boolean }>(response);
-}
-
 export async function getOwnerStores() {
   const response = await fetch("/api/admin/stores", {
     credentials: "same-origin",
@@ -169,21 +132,6 @@ export async function getOwnerStores() {
   });
   const payload = await readJson<OwnerStoreListDto>(response);
   return payload.stores.map(parseOwnerStoreSummary);
-}
-
-export async function loginOwner(secret: string) {
-  const response = await fetch("/api/admin/session", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "same-origin",
-    body: JSON.stringify({
-      secret,
-    }),
-  });
-
-  return readJson<{ ok: true }>(response);
 }
 
 export async function logoutOwner() {
@@ -195,22 +143,14 @@ export async function logoutOwner() {
   return readJson<{ ok: true }>(response);
 }
 
-export async function createStore(
-  storeName: string,
-  pin: string,
-  employeeNames: string[],
-) {
+export async function createStore(storeName: string, employeeNames: string[]) {
   const response = await fetch("/api/admin/stores", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     credentials: "same-origin",
-    body: JSON.stringify({
-      storeName,
-      pin,
-      employeeNames,
-    }),
+    body: JSON.stringify({ storeName, employeeNames }),
   });
 
   return readJson<{ storeId: string; storeName: string; qrToken: string }>(response);
@@ -219,10 +159,46 @@ export async function createStore(
 export async function createDemoStore() {
   const response = await fetch("/api/admin/demo-store", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     credentials: "same-origin",
   });
 
-  return readJson<{ storeId: string; storeName: string; qrToken: string; pin: string }>(response);
+  return readJson<{ storeId: string; storeName: string; qrToken: string }>(response);
+}
+
+export async function createSession(idToken: string) {
+  const response = await fetch("/api/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({ idToken }),
+  });
+
+  return readJson<{ ok: true; email: string }>(response);
+}
+
+export async function getMe(): Promise<MeDto | null> {
+  const response = await fetch("/api/me", {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  if (response.status === 401) {
+    return null;
+  }
+  return readJson<MeDto>(response);
+}
+
+export async function logout() {
+  const response = await fetch("/api/session", {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  return readJson<{ ok: true }>(response);
 }
 
 export async function getOwnerStoreRoster(storeId: string): Promise<{

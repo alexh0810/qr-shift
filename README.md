@@ -12,7 +12,7 @@ QRShift is a browser-based time clock for small businesses. Employees clock in a
 
 ## Quick start
 
-Requirements: Node 22+, npm 10+, a Firebase project with Firestore enabled.
+Requirements: Node 22+, npm 10+, a Firebase project with Firestore and Authentication enabled (Email/Password and Google).
 
 ```bash
 npm install
@@ -51,8 +51,8 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 ## How it works
 
 - **Clock in/out:** each store has a unique QR code. Employees scan it, pick their name, and the scan page decides whether the next action is `IN` or `OUT`.
-- **Dashboard and reports:** managers open `/dashboard/[qr_token]` or `/reports/[qr_token]`. A manager PIN is checked by a server route, which sets a 7-day `HttpOnly` store session. Reports give per-employee and all-staff totals in decimal hours, with CSV export.
-- **Demo data:** the owner-protected `/admin` page creates demo stores with realistic fake timelogs for walkthroughs.
+- **Dashboard and reports:** managers open `/dashboard/[qr_token]` or `/reports/[qr_token]`. Managers and owners sign in with an email/password or Google account (the sign-in form appears inline); access is per store (`owner` or `manager`). Reports give per-employee and all-staff totals in decimal hours, with CSV export.
+- **Demo data:** the owner console at `/admin` (any signed-in user can create a store and becomes its owner) creates demo stores with realistic fake timelogs for walkthroughs.
 
 ## Configuration notes
 

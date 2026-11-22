@@ -48,3 +48,8 @@ export interface OwnerStoreRosterDto {
   store: SerializedOwnerStoreSummary;
   employees: SerializedEmployee[];
 }
+
+export interface MeDto {
+  email: string;
+  stores: { id: string; name: string; qr_token: string; role: "owner" | "manager" }[];
+}

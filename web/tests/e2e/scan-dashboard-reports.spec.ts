@@ -10,7 +10,6 @@ type TimelogRecord = {
 };
 
 const qrToken = "e2e-qr-token";
-const managerPin = "1234";
 const store = {
   id: "store-1",
   name: "Demo Store",
@@ -23,6 +22,11 @@ const employee = {
   created_at: "2026-04-26T06:00:00.000Z",
 };
 
+const me = {
+  email: "manager@example.com",
+  stores: [{ id: store.id, name: store.name, qr_token: qrToken, role: "manager" }],
+};
+
 function todayAt(hour: number, minute: number) {
   const value = new Date();
   value.setHours(hour, minute, 0, 0);
@@ -30,7 +34,6 @@ function todayAt(hour: number, minute: number) {
 }
 
 test("employee can clock in, manager can verify dashboard, and reports can export csv", async ({ page }) => {
-  let managerAuthenticated = false;
   const timelogs: TimelogRecord[] = [];
 
   const latestLogForEmployee = () => timelogs.at(-1) ?? null;
@@ -66,7 +69,7 @@ test("employee can clock in, manager can verify dashboard, and reports can expor
   await page.context().route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const { pathname, searchParams } = url;
+    const { pathname } = url;
 
     if (pathname === `/api/stores/${qrToken}`) {
       await route.fulfill({ json: { store } });
@@ -109,47 +112,17 @@ test("employee can clock in, manager can verify dashboard, and reports can expor
       return;
     }
 
-    if (pathname === "/api/manager/session" && searchParams.get("qr_token") === qrToken) {
-      await route.fulfill({ json: { authenticated: managerAuthenticated } });
+    if (pathname === "/api/me") {
+      await route.fulfill({ json: me });
       return;
     }
 
-    if (pathname === "/api/manager/session") {
-      if (request.method() === "POST") {
-        const body = request.postDataJSON() as { qr_token?: string; pin?: string };
-        if (body.qr_token === qrToken && body.pin === managerPin) {
-          managerAuthenticated = true;
-          await route.fulfill({ json: { ok: true } });
-          return;
-        }
-
-        await route.fulfill({ status: 401, json: { error: "Incorrect PIN. Please try again." } });
-        return;
-      }
-
-      if (request.method() === "DELETE") {
-        managerAuthenticated = false;
-        await route.fulfill({ json: { ok: true } });
-        return;
-      }
-    }
-
     if (pathname === `/api/manager/${qrToken}/dashboard`) {
-      if (!managerAuthenticated) {
-        await route.fulfill({ status: 401, json: { error: "Manager access is required." } });
-        return;
-      }
-
       await route.fulfill({ json: buildDashboardPayload() });
       return;
     }
 
     if (pathname === `/api/manager/${qrToken}/reports`) {
-      if (!managerAuthenticated) {
-        await route.fulfill({ status: 401, json: { error: "Manager access is required." } });
-        return;
-      }
-
       await route.fulfill({ json: buildReportsPayload() });
       return;
     }
@@ -167,8 +140,6 @@ test("employee can clock in, manager can verify dashboard, and reports can expor
 
   await page.goto(`/dashboard/${qrToken}`);
 
-  await page.getByLabel("Manager PIN").fill(managerPin);
-  await page.getByRole("button", { name: "Open dashboard" }).click();
 
   await expect(page.getByRole("heading", { name: "Demo Store" })).toBeVisible();
   await expect(page.getByText("1 on shift")).toBeVisible();
@@ -194,4 +165,66 @@ test("employee can clock in, manager can verify dashboard, and reports can expor
   );
   expect(csvContent).toContain("\"Alex\"");
   expect(csvContent).toContain("\"Ongoing\"");
+});
+
+test("signed-out visitors see the sign-in form instead of the dashboard", async ({ page }) => {
+  await page.context().route("**/api/**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/me") {
+      await route.fulfill({ status: 401, json: { error: "unauthenticated", message: "Sign in to continue." } });
+      return;
+    }
+    await route.abort();
+  });
+
+  await page.goto(`/dashboard/${qrToken}`);
+
+  await expect(page.getByRole("heading", { name: "Sign in to QRShift" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  await page.getByRole("button", { name: "New here? Create an account" }).click();
+  await expect(page.getByRole("heading", { name: "Create your QRShift account" })).toBeVisible();
+});
+
+test("signed-in users without membership of the store see no dashboard", async ({ page }) => {
+  await page.context().route("**/api/**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/me") {
+      await route.fulfill({ json: { email: "stranger@example.com", stores: [] } });
+      return;
+    }
+    await route.abort();
+  });
+
+  await page.goto(`/dashboard/${qrToken}`);
+
+  await expect(page.getByText("You don't have access to this store.")).toBeVisible();
+  await expect(page.getByText("stranger@example.com")).toBeVisible();
+});
+
+test("signing out returns to the sign-in form", async ({ page }) => {
+  let signedIn = true;
+  await page.context().route("**/api/**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === "/api/session") {
+      signedIn = false;
+      await route.fulfill({ json: { ok: true } });
+      return;
+    }
+    if (pathname === "/api/me") {
+      await route.fulfill(
+        signedIn ? { json: me } : { status: 401, json: { error: "unauthenticated", message: "Sign in to continue." } },
+      );
+      return;
+    }
+    if (pathname === `/api/manager/${qrToken}/dashboard`) {
+      await route.fulfill({ json: { store, employees: [] } });
+      return;
+    }
+    await route.abort();
+  });
+
+  await page.goto(`/dashboard/${qrToken}`);
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  await expect(page.getByRole("heading", { name: "Sign in to QRShift" })).toBeVisible();
 });
