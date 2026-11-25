@@ -130,7 +130,7 @@ export default function QrSettingsPanel({ storeId }: { storeId: string }) {
                   className={button}
                   onClick={() =>
                     confirmThen(
-                      "Reissue the QR? Every printed or displayed QR stops working immediately.",
+                      "Reissue the QR? The display QR changes immediately; printed QR codes keep working.",
                       () => reissueQr(storeId),
                       "QR reissued.",
                     )
