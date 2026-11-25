@@ -29,6 +29,7 @@ const ongoingReport: EmployeeReport = {
     name: "Alex",
     store_id: "store-1",
     created_at: localAt(2026, 0, 1),
+    status: "active",
   },
   name: "Alex",
   totalMinutes: 180,

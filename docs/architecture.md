@@ -1,14 +1,14 @@
 # Architecture
 
-QRShift is moving from a single Next.js app (client + route handlers + Firestore) to a client-server split: a Next.js client, a standalone Fastify API, and PostgreSQL. This document describes both the current state and the target, and is updated as each part lands.
+QRShift is a client-server split: a Next.js client, a standalone Fastify API, and PostgreSQL. The client contains no server code.
 
 ## Status
 
 | Component | Current | Target |
 | --- | --- | --- |
 | Client | Next.js on Vercel (`web/`) | Same, with no server code |
-| API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes once `API_ORIGIN` is set; legacy Next.js handlers kept for rollback until phase 3 | Fastify on Cloud Run (`api/`) |
-| Database | PostgreSQL on Neon once `API_ORIGIN` is set (Firestore kept read-only for rollback) | PostgreSQL on Neon |
+| API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes | Fastify on Cloud Run (`api/`) |
+| Database | PostgreSQL on Neon | PostgreSQL on Neon |
 | Auth | Firebase Authentication session cookies + store roles | Firebase Authentication + roles |
 
 ## Target system
@@ -63,14 +63,14 @@ Direct calls to the `*.run.app` URL carry no session cookie, so they are unauthe
 | `DATABASE_URL` | API | Neon connection string |
 | `FIREBASE_PROJECT_ID` | API | Firebase project for token and session-cookie verification (`qr-shift-f2063`); credentials come from the runtime service account (Application Default Credentials) |
 | `APP_ORIGIN` | API | The site's origin (`https://…`, no path); state-changing requests from any other origin are refused. The API refuses to start without it |
-| `API_ORIGIN` | Web (Vercel) | Cloud Run URL the `/api/*` rewrite forwards to |
+| `API_ORIGIN` | Web (Vercel) | Cloud Run URL the `/api/*` rewrite forwards to; required in production and previews, defaults to `http://127.0.0.1:8080` locally |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_APP_ID` | Web | Firebase web SDK config (public values) |
 
 ## Repository layout
 
 | Path | Responsibility |
 | --- | --- |
-| `web/` | UI routes: `/` landing, `/display/[storeId]`, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, `/admin` (owner console also manages who can sign in per store via `StoreMembersPanel`, and the QR mode, display link, store location and QR reissue via `QrSettingsPanel`, which calls the owner QR endpoints; the display key lives in component state only, never in storage or a query string); sign-in via the Firebase web SDK (`LoginPanel`, `AuthGuard`) |
+| `web/` | UI only, no server code. Routes: `/` landing, `/display/[storeId]`, `/scan/[qr_token]`, `/dashboard/[qr_token]`, `/reports/[qr_token]`, `/admin` (owner console also manages who can sign in per store via `StoreMembersPanel`, and the QR mode, display link, store location and QR reissue via `QrSettingsPanel`, which calls the owner QR endpoints; the display key lives in component state only, never in storage or a query string); sign-in via the Firebase web SDK (`LoginPanel`, `AuthGuard`) |
 | `api/` | Fastify REST API; `buildApp()` in `src/app.ts` is the entry used by both the server and tests |
 
 ## Data model
@@ -117,11 +117,9 @@ erDiagram
   }
 ```
 
-Primary keys are text so existing Firestore document IDs (and printed QR tokens) carry over unchanged. Column names are snake_case to match the domain types in the web app.
+Primary keys are text so the IDs that came from the original Firestore data (and printed QR tokens) carry over unchanged. Column names are snake_case to match the domain types in the web app.
 
 `store_members` grants a signed-in email a role on a store: `owner` or `manager`. Emails are stored trimmed and lowercase (`normalizeEmail`), the primary key is `(store_id, email)` and an index on `email` serves the "my stores" lookup. Queries live in `api/src/db/repo.ts`: `getMemberRole`, `getMemberships` (newest store first) and `assignOwnerToAllStores`. The table is added by an expand-only migration, so the running revision ignores it.
-
-At cutover, `npm run import:firestore -w @qrshift/api` copies Firestore into these tables once, rejecting invalid documents and checking every row after the write. See [operations](operations.md#firestore-import).
 
 ## Deployment
 

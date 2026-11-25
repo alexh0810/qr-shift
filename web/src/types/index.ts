@@ -1,10 +1,8 @@
 export interface Store {
-  id: string; // Firestore Document ID
+  id: string;
   name: string;
   qr_token: string;
   created_at: Date;
-  pin?: string; // Legacy plaintext PIN kept only for migration tooling
-  pin_hash?: string;
 }
 
 export interface PublicStore {
@@ -22,7 +20,7 @@ export interface OwnerStoreSummary {
 }
 
 export interface Employee {
-  id: string; // Firestore Document ID
+  id: string;
   name: string;
   store_id: string;
   created_at: Date;
@@ -32,7 +30,7 @@ export interface Employee {
 export type LocationStatus = "inside" | "outside" | "unknown";
 
 export interface Timelog {
-  id: string; // Firestore Document ID
+  id: string;
   employee_id: string;
   store_id: string;
   type: "IN" | "OUT";

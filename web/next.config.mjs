@@ -1,14 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    const apiOrigin = process.env.API_ORIGIN?.replace(/\/+$/, "");
-    if (!apiOrigin) {
-      return [];
-    }
-    // beforeFiles makes the API win over the legacy route handlers that still exist under src/app/api.
-    return {
-      beforeFiles: [{ source: "/api/:path*", destination: `${apiOrigin}/api/:path*` }],
-    };
+    const apiOrigin = (process.env.API_ORIGIN ?? "http://127.0.0.1:8080").replace(/\/+$/, "");
+    return [{ source: "/api/:path*", destination: `${apiOrigin}/api/:path*` }];
   },
 };
 

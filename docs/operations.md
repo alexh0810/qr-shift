@@ -60,8 +60,9 @@ Region for both: Frankfurt (`europe-west3` on GCP, `aws-eu-central-1` on Neon). 
 
 ```bash
 npm install
-npm run dev               # web on :3000
+gcloud auth application-default login   # once: credentials for the Firebase Admin SDK
 APP_ORIGIN=http://localhost:3000 FIREBASE_PROJECT_ID=qr-shift-f2063 DATABASE_URL=<url> npm run dev -w api   # api on :8080
+npm run dev               # web on :3000, forwards /api/* to :8080
 ```
 Tests need no database: they run migrations on in-memory PGlite.
 
@@ -104,7 +105,7 @@ A failed smoke test fails the job and leaves the previous revision serving. On t
 | `database-url` | Secret Manager | Cloud Run runtime env `DATABASE_URL` |
 | `APP_ORIGIN` | GitHub variable, passed to Cloud Run env | Site origin for the CSRF check; set with `gh variable set APP_ORIGIN --body "https://<domain>"`. The deploy fails if it is empty and the API refuses to start without it |
 | `FIREBASE_PROJECT_ID` | Cloud Run env (set in `deploy-api`) | Firebase Admin SDK project; the runtime service account needs `roles/firebaseauth.admin` and `identitytoolkit.googleapis.com` enabled |
-| `API_ORIGIN` | Vercel env var | `web/next.config.mjs` rewrite of `/api/*` to Cloud Run |
+| `API_ORIGIN` | Vercel env var | `web/next.config.mjs` rewrite of `/api/*` to Cloud Run; required in production and previews, defaults to `http://127.0.0.1:8080` locally |
 | `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT` | GitHub variables | `deploy-api` |
 
 Rotate the database password: update it in Neon, then `printf '%s' '<url>' | gcloud secrets versions add database-url --data-file=-`, `gh secret set DATABASE_URL`, and redeploy.
@@ -122,40 +123,6 @@ Rotate the database password: update it in Neon, then `printf '%s' '<url>' | gcl
 3. **Vercel:** set `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID` and `NEXT_PUBLIC_FIREBASE_APP_ID` from the Firebase web app config (public values), then redeploy.
 
 The API reads `FIREBASE_PROJECT_ID` (set by `deploy-api`) and authenticates to Firebase with the Cloud Run service account; there are no key files.
-
-## Firestore import
-
-`npm run import:firestore -w @qrshift/api` copies every store, employee and timelog from Firestore into Postgres, keeping document IDs as primary keys.
-
-- **Replaces** all rows in `stores`, `employees` and `timelogs` in one transaction. Run it only at cutover, with Firestore writes stopped. Re-running it before the API takes traffic is safe; after that it deletes every clock-in recorded in Postgres since.
-- **Fails** once `assign-owner` has run, because `store_members` references `stores`. It is a cutover-only tool and must not be re-run after the API takes traffic anyway.
-- **Refuses** to import bad data instead of guessing: a missing or invalid timestamp, an employee status other than `active`/`archived`, a timelog type other than `IN`/`OUT`, a timelog filed under a different store than its employee, or a timelog of an employee that never existed. The error names the document.
-- **Wipes QR settings:** the import writes every store as `printed` with no secret or display key, so re-running it deletes QR settings along with the store rows. It is a cutover-only tool.
-- **Skips** employees and timelogs of deleted stores, which the app can no longer show, and prints how many it skipped per run. They stay in Firestore until phase 3.
-- **Verifies** afterwards by reading every Postgres row back and comparing it with the rows mapped from Firestore. It exits non-zero on any difference.
-
-Env: `DATABASE_URL` (Neon, `sslmode=verify-full`) and the `FIREBASE_ADMIN_*` values from `web/.env.local`:
-
-```bash
-cd api
-set -a && source ../web/.env.local && set +a
-read -rs DATABASE_URL && export DATABASE_URL
-npm run import:firestore
-```
-
-## Cutover from Firestore
-
-The web app forwards `/api/*` to Cloud Run only when the Vercel env var `API_ORIGIN` is set (`web/next.config.mjs`). Switching and rolling back are env changes plus a redeploy.
-
-1. Confirm the latest `deploy-api` run on `main` is green and `GET <cloud run url>/api/health` returns `{"status":"ok"}`.
-2. **Preview first:** in Vercel → Settings → Environment Variables, add `API_ORIGIN = <cloud run url>` for **Preview** only, then deploy a preview of current main: `git push origin main:cutover-preview`. This preview reads and writes the **production** Neon database; the demo store and clock-ins created here are wiped by the import in step 3. Require `<preview url>/api/health` → `{"status":"ok"}` (the legacy app has no health route and returns 404, so this proves the rewrite is live). Then: open `/admin`, sign in, create a demo store, scan its QR page, clock in, sign in as manager, check the dashboard and reports, save one correction. Afterwards delete the Preview `API_ORIGIN` and the branch (`git push origin --delete cutover-preview`) so PR previews don't hit the production database.
-3. **Import:** do steps 3–4 outside shift hours: Firestore writes cannot be stopped from here, and a clock-in between the import and the switch is not copied. Note the import start time, then run the [Firestore import](#firestore-import). It must end with `Parity check passed`.
-4. **Switch production:** add `API_ORIGIN` for **Production**, then redeploy production. Require `<production url>/api/health` → `{"status":"ok"}`. Smoke-test writes (clock-in, correction) on a demo store only; on real stores only open the dashboard and reports. Then check Firestore has no timelog newer than the import start time. If it does, re-run the import before any new Postgres clock-ins (safe until then) or re-enter them by hand.
-5. **Watch:** Cloud Run logs and the dashboard for an hour.
-
-**Rollback:** first use Vercel Instant Rollback to the previous production deployment (built without `API_ORIGIN`, takes seconds). Then delete `API_ORIGIN` from Production so the next deploy doesn't switch back. Writes made to Postgres after the switch are not copied back; re-enter them by hand if a rollback happens.
-
-Firestore stays unused (not deleted) for 7 days after the switch. Phase 3 then deletes `web/src/app/api`, `web/src/lib/server-*.ts`, `firebase-admin` in web and `firestore.rules`.
 
 ## Assign owner
 

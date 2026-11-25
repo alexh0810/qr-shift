@@ -43,22 +43,22 @@ Each entry: context, options considered, decision, consequences.
 
 - **Context:** The legacy Next.js route handlers move to the Fastify API. The client must keep working at the moment traffic switches.
 - **Options:** redesign the API (new error shape `{ error: code, message }`, new paths) and update the client in the same change; or port routes with an identical contract.
-- **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed is copied until the web server code is deleted.
+- **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed was copied until the web server code was deleted.
 - **Consequences:** the cutover is a rewrite switch with no client change and a one-step rollback. Two error shapes exist until phase 3 updates the client (health uses `{ error, message }`).
 
 ## D7. Cutover by rewrite, controlled by one env var
 
 - **Context:** Production must move from the Next.js handlers + Firestore to the API + Postgres without client changes, with a fast way back.
 - **Options:** delete the Next.js handlers and deploy; proxy per route group; a single `beforeFiles` rewrite gated on `API_ORIGIN`.
-- **Decision:** one rewrite of `/api/*`, active only when `API_ORIGIN` is set; tried on Vercel Preview before Production.
-- **Consequences:** switching or rolling back is an env change plus redeploy. The legacy handlers stay in the codebase until phase 3, and writes made after the switch are lost on rollback unless re-entered.
+- **Decision:** one rewrite of `/api/*` to `API_ORIGIN` (default `http://127.0.0.1:8080`); during cutover it was gated on `API_ORIGIN` and tried on Preview first.
+- **Consequences:** cutover was an env change plus redeploy, with a rewrite-switch rollback; that path is now closed (see D11). Legacy handlers, Firestore code, `firestore.rules`, `firebase-admin` in web and the web copy of the demo seed were deleted in phase 3 (T9); Firestore data is untouched but unused, and the rewrite is now unconditional (`API_ORIGIN` defaults to `http://127.0.0.1:8080`).
 
 ## D8. One error shape: `{ error: code, message }`
 
 - **Context:** Ported routes kept the legacy `{ error: "<message>" }` shape (D6). The client changes for accounts in this phase anyway.
 - **Options:** keep two shapes; switch every route to `{ error: <code>, message }` and have the client read `message`.
 - **Decision:** switch every surviving route; one `sendError` helper, a global error handler (4xx keep their message, 5xx become a generic `internal_error`) and a JSON `404`. User-facing messages are unchanged.
-- **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the legacy handlers and e2e mocks working. The web app must deploy before the API, because it reads `message ?? error`; Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds. Browser tabs opened before the merge show raw codes until reloaded.
+- **Consequences:** clients and tests can branch on stable codes; unexpected errors never leak internals. The client falls back to `error` when `message` is absent, which keeps the e2e mocks working. The web app must deploy before the API, because it reads `message ?? error`; Vercel finishes about 2 minutes after merge and `deploy-api` about 8, so the order holds. Browser tabs opened before the merge show raw codes until reloaded.
 
 ## D9. Firebase session cookies and `store_members` roles
 

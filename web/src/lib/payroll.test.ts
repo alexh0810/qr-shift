@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 
 import { buildEmployeePayrollReports, buildPayrollTimesheet, calculatePayrollFromLogs, updateRowTime } from "./payroll";
-import { buildDemoStoreSeed } from "./demoData";
 import { Employee, Timelog } from "../types";
 
 type TestCase = {
@@ -34,6 +33,7 @@ const employee: Employee = {
   name: "Alex",
   store_id: "store-1",
   created_at: at("2026-01-01T00:00:00"),
+  status: "active",
 };
 
 const secondEmployee: Employee = {
@@ -41,6 +41,7 @@ const secondEmployee: Employee = {
   name: "Kim",
   store_id: "store-1",
   created_at: at("2026-01-01T00:00:00"),
+  status: "active",
 };
 
 const tests: TestCase[] = [
@@ -328,29 +329,6 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "builds deterministic demo seed data for reports",
-    run: () => {
-      const demoSeed = buildDemoStoreSeed(at("2026-04-06T12:00:00"));
-
-      assert.equal(demoSeed.storeName, "Demo Payroll Store");
-      assert.equal(demoSeed.pin, "1234");
-      assert.deepEqual(demoSeed.employeeNames, ["Kim", "Alex", "Maria", "Noah"]);
-      assert.ok(demoSeed.timelogs.length > 20);
-      assert.equal(demoSeed.timelogs[0]?.type, "IN");
-      assert.ok(demoSeed.timelogs.some((log) => log.employeeName === "Alex" && log.type === "IN"));
-      assert.ok(demoSeed.timelogs.some((log) => log.employeeName === "Alex" && log.type === "OUT"));
-      assert.equal(
-        demoSeed.timelogs.filter((log) => log.employeeName === "Alex" && log.type === "IN").length,
-        demoSeed.timelogs.filter((log) => log.employeeName === "Alex" && log.type === "OUT").length + 1,
-      );
-      assert.ok(
-        demoSeed.timelogs.some(
-          (log) => log.employeeName === "Noah" && log.timestamp.getHours() === 22,
-        ),
-      );
-    },
-  },
-  {
     name: "handles a large dataset efficiently",
     run: () => {
       const employees: Employee[] = Array.from({ length: 200 }, (_, index) => ({
@@ -358,6 +336,7 @@ const tests: TestCase[] = [
         name: `Employee ${index}`,
         store_id: "store-1",
         created_at: at("2026-01-01T00:00:00"),
+        status: "active",
       }));
 
       const logs: Timelog[] = employees.flatMap((currentEmployee, index) => {
