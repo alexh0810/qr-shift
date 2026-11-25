@@ -90,12 +90,12 @@ Session cookie, role `owner` of the store (`requireRole('owner')`). Managers, ow
 | `POST /api/admin/stores/:storeId/qr/reissue` | `{}` | `{ ok: true }`; new `qr_secret` | 400 `not_display_mode` |
 | `POST /api/admin/stores/:storeId/display-key/reset` | `{}` | `settings` with the new `display_key` | 400 `not_display_mode` |
 
-Reissue invalidates every outstanding display QR and clock ticket within seconds. The printed `qr_token` is not rotated because manager dashboard links depend on it. Resetting the display key cuts the old tablet link.
+Reissue rotates only `qr_secret`: it invalidates every outstanding display QR and clock ticket immediately and affects display mode only. The `qr_token` is never rotated (manager dashboard links depend on it), so printed QR codes keep working; a printed-mode store has no signed QR to reissue and gets 400 `not_display_mode`. Resetting the display key cuts the old tablet link and leaves the QR and tickets valid.
 
 ## Display routes
 
 | Method & path | Header | 200 | Errors |
 | --- | --- | --- | --- |
-| `GET /api/display/:storeId/qr` | `x-display-key: <display_key>` | `{ store_name, qr_token, window, sig, refresh_in_ms }`, `Cache-Control: no-store` | 401 `invalid_display_key` (unknown store, printed store, missing or wrong key: indistinguishable) |
+| `GET /api/display/:storeId/qr` | `x-display-key: <display_key>` | `{ store_name, qr_token, window, sig, refresh_in_ms }`, `Cache-Control: no-store` | 401 `invalid_display_key` (`This display link is no longer valid. Ask the owner for a new one.`; unknown store, printed store, missing or wrong key: indistinguishable) |
 
 The display key is a bearer secret kept in the tablet page's URL fragment. It is accepted only by this endpoint and cannot read rosters, clock anyone in or reach manager/owner data.
