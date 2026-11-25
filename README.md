@@ -46,7 +46,6 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 | `npm test` | Unit tests in all workspaces |
 | `npm run build` | Production builds |
 | `npm run test:e2e -w web` | Playwright end-to-end tests |
-| `npm run migrate:pins -w web` | Hash legacy plaintext manager PINs (see below) |
 
 ## How it works
 
@@ -57,7 +56,6 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 ## Configuration notes
 
 - **Landing page CTAs:** `web/src/lib/site-config.ts` reads `NEXT_PUBLIC_DEMO_BOOKING_URL` (Calendly "Request a Demo") and `NEXT_PUBLIC_CONTACT_EMAIL` (`mailto:` contact link).
-- **PIN migration:** stores with a plaintext `stores.pin` must be migrated before rollout. `npm run migrate:pins -w web` writes `stores.pin_hash` and removes the plaintext field.
 
 ## Documentation
 

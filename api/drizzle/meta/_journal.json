@@ -29,6 +29,13 @@
       "when": 1795280199716,
       "tag": "0003_location_status",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795353073049,
+      "tag": "0004_drop_pin_hash",
+      "breakpoints": true
     }
   ]
 }
