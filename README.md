@@ -55,7 +55,7 @@ NEXT_PUBLIC_CONTACT_EMAIL=
 ## Known limits
 
 - **Display mode:** a screenshot of the QR forwarded off-site works for up to 60 s.
-- **Both modes:** neither mode stops in-store buddy-punching (a coworker picking an absent colleague's name). They stop remote clock-ins.
+- **Both modes:** neither mode stops in-store buddy-punching (a coworker picking an absent colleague's name). Display mode stops remote clock-ins after 60 s; printed mode only flags them.
 - **Printed mode:** the printed QR can be photographed and reused, which is why every clock-in is location-flagged. The flag is advisory and never blocks: location comes from the phone's browser and can be spoofed, denied or inaccurate, and a store without coordinates records nothing.
 - **Display tablet:** needs power, a connection and a screen that stays awake; a leaked display link can show the QR from anywhere until the owner resets it.
 - **Reissue:** reissuing the QR affects display mode only; printed QR codes keep working.

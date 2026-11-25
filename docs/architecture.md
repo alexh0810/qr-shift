@@ -2,7 +2,7 @@
 
 QRShift is a client-server split: a Next.js client, a standalone Fastify API, and PostgreSQL. The client contains no server code.
 
-## Status
+## Components
 
 | Component | Where |
 | --- | --- |
@@ -120,7 +120,7 @@ erDiagram
 
 Primary keys are text so the IDs and printed QR tokens that came from the original data carry over unchanged. Column names are snake_case to match the domain types in the web app.
 
-`store_members` grants a signed-in email a role on a store: `owner` or `manager`. Emails are stored trimmed and lowercase (`normalizeEmail`), the primary key is `(store_id, email)` and an index on `email` serves the "my stores" lookup. Queries live in `api/src/db/repo.ts`: `getMemberRole`, `getMemberships` (newest store first) and `assignOwnerToAllStores`. 
+`store_members` grants a signed-in email a role on a store: `owner` or `manager`. Emails are stored trimmed and lowercase (`normalizeEmail`), the primary key is `(store_id, email)` and an index on `email` serves the "my stores" lookup. Queries live in `api/src/db/repo.ts`: `getMemberRole`, `getMemberships` (newest store first) and `assignOwnerToAllStores`.
 
 ## Deployment
 
