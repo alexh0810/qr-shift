@@ -4,14 +4,14 @@ QRShift is a client-server split: a Next.js client, a standalone Fastify API, an
 
 ## Status
 
-| Component | Current | Target |
-| --- | --- | --- |
-| Client | Next.js on Vercel (`web/`) | Same, with no server code |
-| API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes | Fastify on Cloud Run (`api/`) |
-| Database | PostgreSQL on Neon | PostgreSQL on Neon |
-| Auth | Firebase Authentication session cookies + store roles | Firebase Authentication + roles |
+| Component | Where |
+| --- | --- |
+| Client | Next.js on Vercel (`web/`), no server code |
+| API | Fastify on Cloud Run (`api/`), serving all `/api/*` routes |
+| Database | PostgreSQL on Neon |
+| Auth | Firebase Authentication session cookies + store roles |
 
-## Target system
+## System overview
 
 ```mermaid
 flowchart LR
@@ -54,7 +54,7 @@ sequenceDiagram
 
 Direct calls to the `*.run.app` URL carry no session cookie, so they are unauthenticated. Limit: a single `APP_ORIGIN` means Vercel preview deployments can read through the API but cannot write.
 
-**Public routes.** Scanning needs no account: `GET /api/stores/:qr_token`, `GET …/employees`, `POST …/clock`.
+**Public routes.** Scanning needs no account: `GET /api/stores/:qr_token`, `GET …/employees`, `GET …/scan-ticket`, `POST …/clock`. In display mode the clock call needs a ticket (see [QR signing](#qr-signing)). `GET /api/display/:storeId/qr` is also unauthenticated but needs the store's `display_key` in the `x-display-key` header; it answers 401 `invalid_display_key` for an unknown store, a printed store, or a missing or wrong key, so it reveals nothing about which case applies. Secrets are compared with `timingSafeEqual`.
 
 ## Environment variables
 
@@ -65,6 +65,7 @@ Direct calls to the `*.run.app` URL carry no session cookie, so they are unauthe
 | `APP_ORIGIN` | API | The site's origin (`https://…`, no path); state-changing requests from any other origin are refused. The API refuses to start without it |
 | `API_ORIGIN` | Web (Vercel) | Cloud Run URL the `/api/*` rewrite forwards to; required in production and previews, defaults to `http://127.0.0.1:8080` locally |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_APP_ID` | Web | Firebase web SDK config (public values) |
+| `NEXT_PUBLIC_DEMO_BOOKING_URL`, `NEXT_PUBLIC_CONTACT_EMAIL` | Web | Landing page links: demo booking (Calendly) and `mailto:` contact (`web/src/lib/site-config.ts`) |
 
 ## Repository layout
 
@@ -117,9 +118,9 @@ erDiagram
   }
 ```
 
-Primary keys are text so the IDs that came from the original Firestore data (and printed QR tokens) carry over unchanged. Column names are snake_case to match the domain types in the web app.
+Primary keys are text so the IDs and printed QR tokens that came from the original data carry over unchanged. Column names are snake_case to match the domain types in the web app.
 
-`store_members` grants a signed-in email a role on a store: `owner` or `manager`. Emails are stored trimmed and lowercase (`normalizeEmail`), the primary key is `(store_id, email)` and an index on `email` serves the "my stores" lookup. Queries live in `api/src/db/repo.ts`: `getMemberRole`, `getMemberships` (newest store first) and `assignOwnerToAllStores`. The table is added by an expand-only migration, so the running revision ignores it.
+`store_members` grants a signed-in email a role on a store: `owner` or `manager`. Emails are stored trimmed and lowercase (`normalizeEmail`), the primary key is `(store_id, email)` and an index on `email` serves the "my stores" lookup. Queries live in `api/src/db/repo.ts`: `getMemberRole`, `getMemberships` (newest store first) and `assignOwnerToAllStores`. 
 
 ## Deployment
 
@@ -138,7 +139,8 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `invalid_range`, `future_correction_not_supported`, `report_correction_failed` | 400 | Report correction rejected |
 | `employee_not_found` | 404 | Employee missing |
 | `employee_store_mismatch`, `duplicate_employee_name`, `invalid_employee_name`, `no_employee_changes`, `employee_create_failed`, `employee_update_failed` | 400 | Employee changes rejected |
-| `not_display_mode` | 400 | Scan ticket requested for a store in printed mode |
+| `not_display_mode` | 400 | Scan ticket requested for a store in printed mode, or an owner reissue or display-key reset on a printed store |
+| `invalid_display_key` | 401 | Display QR requested with an unknown store, a printed store, or a missing or wrong `x-display-key` |
 | `invalid_qr_mode` | 400 | Owner set a QR mode other than `display` or `printed` |
 | `invalid_location` | 400 | Owner location outside lat/lng bounds, a half-set pair, or a radius that is not an integer from 25 to 1000 |
 | `qr_required` | 403 | Clock at a display-mode store without a ticket |
@@ -162,7 +164,7 @@ Display-mode QR codes carry no state on the server. For a store with `qr_secret`
 - `scan-ticket` accepts the current or previous window, so a QR works for at most 60 s after it first appears on the display. Older or future windows, tampered signatures and other stores' signatures are rejected.
 - A ticket is `{ storeId, exp = now + 120 s, mac = HMAC(qr_secret, JSON.stringify(["t", storeId, exp])) }`. The `w`/`t` tags and JSON encoding keep tickets and window signatures from being interchangeable, whatever characters a store id contains.
 - All comparisons use `timingSafeEqual`; only the server clock is used; an empty secret never verifies.
-- Reissuing the QR (new `qr_secret`) invalidates every outstanding QR and ticket at once.
+- Reissuing the QR (new `qr_secret`) invalidates every outstanding display QR and ticket at once. It touches only the display QR: the printed `/scan/{qr_token}` URL is not signed and `qr_token` never changes, so printed codes are unaffected. While a store is in display mode, a printed code (no `w`/`sig`) cannot clock in; it works again when the owner switches back to printed.
 
 Code: `api/src/qr.ts`.
 
