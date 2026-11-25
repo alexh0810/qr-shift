@@ -43,7 +43,7 @@ Each entry: context, options considered, decision, consequences.
 
 - **Context:** The legacy Next.js route handlers move to the Fastify API. The client must keep working at the moment traffic switches.
 - **Options:** redesign the API (new error shape `{ error: code, message }`, new paths) and update the client in the same change; or port routes with an identical contract.
-- **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed is copied until the web server code is deleted.
+- **Decision:** identical paths, bodies, status codes, `{ "error": "<message>" }` errors and session cookies. Repository functions keep the Firestore layer's names and error codes. No `packages/core`: payroll and report math run only in the browser, so the server shares no runtime code with the client; the 75-line demo seed was copied until the web server code was deleted.
 - **Consequences:** the cutover is a rewrite switch with no client change and a one-step rollback. Two error shapes exist until phase 3 updates the client (health uses `{ error, message }`).
 
 ## D7. Cutover by rewrite, controlled by one env var
@@ -51,7 +51,7 @@ Each entry: context, options considered, decision, consequences.
 - **Context:** Production must move from the Next.js handlers + Firestore to the API + Postgres without client changes, with a fast way back.
 - **Options:** delete the Next.js handlers and deploy; proxy per route group; a single `beforeFiles` rewrite gated on `API_ORIGIN`.
 - **Decision:** one rewrite of `/api/*`, active only when `API_ORIGIN` is set; tried on Vercel Preview before Production.
-- **Consequences:** switching or rolling back is an env change plus redeploy. The legacy handlers stay in the codebase until phase 3, and writes made after the switch are lost on rollback unless re-entered.
+- **Consequences:** switching or rolling back is an env change plus redeploy. Writes made after the switch are lost on rollback unless re-entered. Legacy handlers, Firestore code, `firestore.rules`, `firebase-admin` in web and the web copy of the demo seed were deleted in phase 3 (T9); Firestore data is untouched but unused, and the rewrite is now unconditional (`API_ORIGIN` defaults to `http://127.0.0.1:8080`).
 
 ## D8. One error shape: `{ error: code, message }`
 

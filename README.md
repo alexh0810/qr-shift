@@ -12,11 +12,12 @@ QRShift is a browser-based time clock for small businesses. Employees clock in a
 
 ## Quick start
 
-Requirements: Node 22+, npm 10+, a Firebase project with Firestore and Authentication enabled (Email/Password and Google).
+Requirements: Node 22+, npm 10+, a Firebase project with Authentication enabled (Email/Password and Google).
 
 ```bash
 npm install
-npm run dev     # http://localhost:3000
+npm run dev -w api   # API on :8080 (needs `DATABASE_URL`, `APP_ORIGIN`, see operations)
+npm run dev          # web on http://localhost:3000, forwards /api/* to :8080
 ```
 
 The web app reads `web/.env.local`:
@@ -25,16 +26,9 @@ The web app reads `web/.env.local`:
 NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_DEMO_BOOKING_URL=
 NEXT_PUBLIC_CONTACT_EMAIL=
-MANAGER_SESSION_SECRET=
-OWNER_SETUP_SECRET=
-FIREBASE_ADMIN_PROJECT_ID=
-FIREBASE_ADMIN_CLIENT_EMAIL=
-FIREBASE_ADMIN_PRIVATE_KEY=
 ```
 
 | Command | Runs |
