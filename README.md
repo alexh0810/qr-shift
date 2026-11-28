@@ -46,6 +46,7 @@ NEXT_PUBLIC_CONTACT_EMAIL=
 - **Clock in/out:** each store has a unique QR code. Employees scan it, pick their name, and the scan page decides whether the next action is `IN` or `OUT`.
 - **QR modes:** owners choose per store. *Printed* (default): a fixed QR on paper; each clock-in is flagged `inside` / `outside` / `unknown` against the store's location, and reports show a warning and a CSV `Location` column. *Display*: a tablet in the store shows a QR that rotates every 30 s (`/display/[storeId]`); a scan is valid for 60 s, so clocking in needs someone to see the screen. Owners manage the mode, location, display link and QR reissue in `/admin`.
 - **Dashboard and reports:** managers open `/dashboard/[qr_token]` or `/reports/[qr_token]`. Managers and owners sign in with an email/password or Google account (the sign-in form appears inline); access is per store (`owner` or `manager`). Reports give per-employee and all-staff totals in decimal hours, with CSV export.
+- **Corrections:** managers change completed shifts in Reports and must give a reason; every change is kept as an audit row, shown as an Edited badge and a CSV `Edited` column.
 - **Demo data:** the owner console at `/admin` (any signed-in user can create a store and becomes its owner) creates demo stores with realistic fake timelogs for walkthroughs.
 
 ## Configuration notes

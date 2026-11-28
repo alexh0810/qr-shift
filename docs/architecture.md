@@ -134,6 +134,12 @@ Primary keys are text so the IDs and printed QR tokens that came from the origin
 
 `corrections` is append-only (no update or delete route): one row per timelog whose timestamp changed, written in the same transaction as the timelog update (`saveReportCorrection`). An added OUT is a row with `old_timestamp` null and the new OUT's id. The foreign key has no cascade, so deleting an audited timelog fails instead of dropping history.
 
+## Reports page
+
+Managers edit clock-in and clock-out times inline on `/reports/[qr_token]`. An edit commits on blur or Enter and shows immediately, then the reason dialog opens. Save posts the correction with the reason and the page refetches the snapshot; Cancel and save errors also refetch, which reverts the optimistic row (an error stays in the banner). Same-day future clock-out edits remain device-local drafts: they never ask for a reason and write no audit rows.
+
+`attachCorrections` maps the snapshot's correction rows to timesheet rows by timelog id (the row's clock-in and clock-out logs), oldest first. A row with at least one edit shows an Edited badge, a native `<details>` that lists every edit: original and new time, who, when and why. The CSV `Edited` column is `Yes` for shifts with at least one edit and empty otherwise. Tailwind scans `src/features` as well as `src/app` and `src/components`.
+
 ## Deployment
 
 The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cloud Run in `europe-west3`, next to Neon in Frankfurt. Cloud Run scales to zero when idle and is capped at 3 instances, which keeps it inside the free tier and under Neon's connection limit. See [operations](operations.md).
@@ -233,7 +239,7 @@ Printed stores can carry `lat`, `lng` and `radius_m` (default 150). `POST /clock
 
 The scan page asks for geolocation on load, in printed mode only, and waits at most 5 s. It sends `{ lat, lng, accuracy }` or nothing; denial or timeout never blocks clocking, and coordinates are kept in memory only. Browsers require HTTPS for geolocation (Vercel provides it).
 
-Reports show a warning icon next to the date of a shift when its clock-in or clock-out was `outside` or `unknown`, and the CSV has a last `Location` column (`Inside`, `Outside`, `Unknown` or empty). A shift takes the worst status of its two events (`outside` > `unknown` > `inside`); shifts without a recorded status (display mode, stores without coordinates, rows from before this feature) show nothing and export an empty cell.
+Reports show a warning icon next to the date of a shift when its clock-in or clock-out was `outside` or `unknown`, and the CSV has a `Location` column (`Inside`, `Outside`, `Unknown` or empty). A shift takes the worst status of its two events (`outside` > `unknown` > `inside`); shifts without a recorded status (display mode, stores without coordinates, rows from before this feature) show nothing and export an empty cell.
 
 The flag never blocks a clock action. The migration is expand-only (nullable columns, `radius_m` has a default).
 

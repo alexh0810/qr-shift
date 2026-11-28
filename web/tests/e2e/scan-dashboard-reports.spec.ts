@@ -64,6 +64,7 @@ test("employee can clock in, manager can verify dashboard, and reports can expor
     store,
     employees: [employee],
     timelogs,
+    corrections: [],
   });
 
   await page.context().route("**/api/**", async (route) => {
@@ -161,7 +162,7 @@ test("employee can clock in, manager can verify dashboard, and reports can expor
 
   const csvContent = await readFile(downloadPath as string, "utf8");
   expect(csvContent).toContain(
-    "\"Employee Name\",\"Work Day\",\"Clock In\",\"Clock Out\",\"Shift Duration\",\"Total Hours Worked\",\"Days Worked\",\"Location\"",
+    "\"Employee Name\",\"Work Day\",\"Clock In\",\"Clock Out\",\"Shift Duration\",\"Total Hours Worked\",\"Days Worked\",\"Location\",\"Edited\"",
   );
   expect(csvContent).toContain("\"Alex\"");
   expect(csvContent).toContain("\"Ongoing\"");

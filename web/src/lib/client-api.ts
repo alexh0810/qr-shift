@@ -8,6 +8,7 @@ import {
   OwnerStoreListDto,
   ReportsSnapshotDto,
   ScanRosterDto,
+  SerializedCorrection,
   SerializedEmployee,
   SerializedOwnerStoreSummary,
   SerializedScanEmployeeStatus,
@@ -16,7 +17,7 @@ import {
   StoreMember,
 } from "@/lib/api-types";
 import type { TimesheetRow } from "@/features/reports/types";
-import { DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
+import { Correction, DashboardEmployeeStatus, Employee, OwnerStoreSummary, PublicStore, ScanEmployeeStatus, Timelog } from "@/types";
 
 export class ApiError extends Error {
   constructor(
@@ -43,6 +44,15 @@ function parseEmployee(employee: SerializedEmployee): Employee {
   return {
     ...employee,
     created_at: new Date(employee.created_at),
+  };
+}
+
+function parseCorrection(correction: SerializedCorrection): Correction {
+  return {
+    ...correction,
+    old_timestamp: correction.old_timestamp ? new Date(correction.old_timestamp) : null,
+    new_timestamp: new Date(correction.new_timestamp),
+    created_at: new Date(correction.created_at),
   };
 }
 
@@ -266,22 +276,29 @@ export async function getReportsSnapshot(qrToken: string): Promise<{
   store: PublicStore;
   employees: Employee[];
   timelogs: Timelog[];
+  corrections: Correction[];
 }> {
   const response = await fetch(`/api/manager/${qrToken}/reports`, {
     credentials: "same-origin",
     cache: "no-store",
   });
-  const payload = await readJson<ReportsSnapshotDto>(response);
+  return parseReportsSnapshot(await readJson<ReportsSnapshotDto>(response));
+}
+
+export function parseReportsSnapshot(payload: ReportsSnapshotDto) {
   return {
     store: payload.store,
     employees: payload.employees.map(parseEmployee),
     timelogs: payload.timelogs.map(parseTimelog),
+    // Optional so the web can deploy before the API that adds corrections.
+    corrections: (payload.corrections ?? []).map(parseCorrection),
   };
 }
 
 export async function saveReportCorrection(
   qrToken: string,
   row: TimesheetRow,
+  reason: string,
 ) {
   const response = await fetch(`/api/manager/${qrToken}/reports`, {
     method: "POST",
@@ -296,6 +313,7 @@ export async function saveReportCorrection(
       clockInAt: row.clockInAt.toISOString(),
       clockOutAt: row.clockOutAt.toISOString(),
       shiftState: row.shiftState,
+      reason,
     }),
   });
 
