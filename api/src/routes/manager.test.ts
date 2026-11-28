@@ -42,6 +42,24 @@ test("reports GET returns employees and ISO timelogs", async () => {
   assert.equal(body.timelogs[0].timestamp, "2026-04-20T08:00:00.000Z");
 });
 
+test("reports GET returns the correction history with ISO timestamps", async () => {
+  const app = buildTestApp(await seededDb());
+  await app.inject({
+    method: "POST",
+    url: "/api/manager/qr-1/reports",
+    cookies: managerCookie(),
+    payload: { employeeId: "emp-2", clockInLogId: "log-3", clockOutLogId: null, clockInAt: "2026-04-21T08:00:00Z", clockOutAt: "2026-04-21T15:00:00Z", reason: "Forgot to clock out" },
+  });
+  const body = (await app.inject({ method: "GET", url: "/api/manager/qr-1/reports", cookies: managerCookie() })).json();
+  assert.equal(body.corrections.length, 1);
+  const [row] = body.corrections;
+  assert.deepEqual(
+    [row.old_timestamp, row.new_timestamp, row.changed_by, row.reason],
+    [null, "2026-04-21T15:00:00.000Z", "bob@example.com", "Forgot to clock out"],
+  );
+  assert.match(row.created_at, /^\d{4}-\d{2}-\d{2}T/);
+});
+
 test("reports POST validates payloads and maps errors", async () => {
   const app = buildTestApp(await seededDb());
   const invalid = await app.inject({

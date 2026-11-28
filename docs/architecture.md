@@ -222,6 +222,8 @@ sequenceDiagram
   A-->>M: 200 { ok, clockOutLogId }
 ```
 
+The reports snapshot (`GET`) returns the correction history next to the timelogs, and the web attaches it to timesheet rows by timelog id.
+
 ### Location flag
 
 Printed stores can carry `lat`, `lng` and `radius_m` (default 150). `POST /clock` accepts an optional `location { lat, lng, accuracy }` and the API stores a `location_status` on the new timelog:

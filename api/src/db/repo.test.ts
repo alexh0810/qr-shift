@@ -18,12 +18,13 @@ import {
   getReportsSnapshot,
   getScanRoster,
   getStoreByQrToken,
+  getStoreCorrections,
   getStoreTimelogs,
   saveReportCorrection,
   toPublicStore,
   updateEmployeeForStore,
 } from "./repo.js";
-import { corrections } from "./schema.js";
+import { corrections, timelogs } from "./schema.js";
 import { createTestDb } from "./test-db.js";
 
 test("lists owner store summaries for the owner only, newest first", async () => {
@@ -101,6 +102,20 @@ test("concurrent identical clock-ins only record one", async () => {
 });
 
 const who = { reason: "Forgot to clock", changedBy: "bob@example.com" };
+
+test("reports snapshot carries the store's corrections oldest first and no other store's", async () => {
+  const db = await seededDb();
+  await saveReportCorrection(db, {
+    qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2",
+    clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), ...who,
+  });
+  await db.insert(timelogs).values({ id: "log-9", employee_id: "emp-9", store_id: "store-2", type: "IN", timestamp: at("2026-04-20T08:00:00Z") });
+  await db.insert(corrections).values({ id: "other", timelog_id: "log-9", old_timestamp: null, new_timestamp: at("2026-04-20T08:00:00Z"), changed_by: "carol@example.com", reason: "Other store" });
+
+  const snapshot = await getReportsSnapshot(db, "qr-1");
+  assert.deepEqual(snapshot?.corrections.map((row) => row.timelog_id).sort(), ["log-1", "log-2"]);
+  assert.deepEqual((await getStoreCorrections(db, "store-2")).map((row) => row.id), ["other"]);
+});
 
 test("correction writes one audit row per changed timelog in the same transaction", async () => {
   const db = await seededDb();

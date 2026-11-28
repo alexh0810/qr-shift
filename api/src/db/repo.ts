@@ -84,6 +84,16 @@ export async function getStoreTimelogs(db: Db, storeId: string) {
   return db.select().from(timelogs).where(eq(timelogs.store_id, storeId)).orderBy(asc(timelogs.timestamp), asc(timelogs.id));
 }
 
+export async function getStoreCorrections(db: Db, storeId: string) {
+  const rows = await db
+    .select({ correction: corrections })
+    .from(corrections)
+    .innerJoin(timelogs, eq(corrections.timelog_id, timelogs.id))
+    .where(eq(timelogs.store_id, storeId))
+    .orderBy(asc(corrections.created_at), asc(corrections.id));
+  return rows.map((row) => row.correction);
+}
+
 export async function getScanRoster(db: Db, qrToken: string) {
   const store = await getStoreByQrToken(db, qrToken);
   if (!store) {
@@ -115,11 +125,12 @@ export async function getReportsSnapshot(db: Db, qrToken: string) {
   if (!store) {
     return null;
   }
-  const [storeEmployees, storeTimelogs] = await Promise.all([
+  const [storeEmployees, storeTimelogs, storeCorrections] = await Promise.all([
     getEmployeesByStoreId(db, store.id),
     getStoreTimelogs(db, store.id),
+    getStoreCorrections(db, store.id),
   ]);
-  return { store: toPublicStore(store), employees: storeEmployees, timelogs: storeTimelogs };
+  return { store: toPublicStore(store), employees: storeEmployees, timelogs: storeTimelogs, corrections: storeCorrections };
 }
 
 function normalizeEmployeeName(value: string) {

@@ -108,3 +108,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** keep full timelog versions; log the whole request as JSON; one row per changed timelog (old and new timestamp).
 - **Decision:** table `corrections` (`timelog_id`, `old_timestamp` (null when the OUT was added), `new_timestamp`, `changed_by` from the session, `reason`, `created_at`), one row per timelog whose timestamp changed, inserted in the same transaction as the update. No update or delete route. The FK has no cascade, and a `CHECK` mirrors the API's 3 to 500 character reason rule.
 - **Consequences:** history can be reconstructed per timelog and cannot be lost by a failed or partial save. No-op saves write nothing. The correction route never deletes timelogs, so no delete case exists today; deleting an audited timelog by hand fails on the FK. A shift row clamped to the report range sends the clamped clock-in, so editing the clock-out of a shift that starts before the range also records a clock-in change; a later fix is to send only the changed field.
+
+## D16. Reports expose full correction history; CSV `Edited` is the last column
+
+- **Context:** Managers need to see why a payroll row differs from the scan times, and exports are opened in spreadsheets that may rely on column positions.
+- **Options:** latest correction only; all corrections per timelog; a separate history endpoint. CSV: new column first, last, or a per-edit text column.
+- **Decision:** the existing reports snapshot returns all correction rows of the store (it already returns the store's whole timelog history), and the web lists every edit of a shift in an Edited badge. The CSV gains an `Edited` column at the end (`Yes` or empty), after `Location`.
+- **Consequences:** one request, no pagination; fine for demo-scale stores (`shortcut: whole-store history per load, add a date range to the snapshot if a store exceeds a few thousand timelogs`). Appending keeps older consumers that read columns by position working.
