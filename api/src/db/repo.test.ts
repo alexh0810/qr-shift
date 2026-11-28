@@ -23,6 +23,7 @@ import {
   toPublicStore,
   updateEmployeeForStore,
 } from "./repo.js";
+import { corrections, timelogs } from "./schema.js";
 import { createTestDb } from "./test-db.js";
 
 test("lists owner store summaries for the owner only, newest first", async () => {
@@ -99,11 +100,60 @@ test("concurrent identical clock-ins only record one", async () => {
   assert.equal(ins.length, 2);
 });
 
+const who = { reason: "Forgot to clock", changedBy: "bob@example.com" };
+
+test("correction writes one audit row per changed timelog in the same transaction", async () => {
+  const db = await seededDb();
+  await saveReportCorrection(db, {
+    qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2",
+    clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), ...who,
+  });
+  const rows = (await db.select().from(corrections)).sort((a, b) => a.timelog_id.localeCompare(b.timelog_id));
+  assert.deepEqual(
+    rows.map((row) => [row.timelog_id, row.old_timestamp?.toISOString(), row.new_timestamp.toISOString(), row.changed_by, row.reason]),
+    [
+      ["log-1", "2026-04-20T08:00:00.000Z", "2026-04-20T09:00:00.000Z", "bob@example.com", "Forgot to clock"],
+      ["log-2", "2026-04-20T16:00:00.000Z", "2026-04-20T17:00:00.000Z", "bob@example.com", "Forgot to clock"],
+    ],
+  );
+});
+
+test("correction records only the timelog whose timestamp changed", async () => {
+  const db = await seededDb();
+  await saveReportCorrection(db, {
+    qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2",
+    clockInAt: at("2026-04-20T08:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), ...who,
+  });
+  assert.deepEqual((await db.select().from(corrections)).map((row) => row.timelog_id), ["log-2"]);
+});
+
+test("added OUT is audited with a null old timestamp and the new log id", async () => {
+  const db = await seededDb();
+  const result = await saveReportCorrection(db, {
+    qrToken: "qr-1", employeeId: "emp-2", clockInLogId: "log-3", clockOutLogId: null,
+    clockInAt: at("2026-04-21T08:00:00Z"), clockOutAt: at("2026-04-21T15:00:00Z"), ...who,
+  });
+  const rows = await db.select().from(corrections);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].timelog_id, result.clockOutLogId);
+  assert.equal(rows[0].old_timestamp, null);
+  assert.equal(rows[0].new_timestamp.toISOString(), "2026-04-21T15:00:00.000Z");
+});
+
+test("a correction that changes nothing writes no audit row", async () => {
+  const db = await seededDb();
+  await saveReportCorrection(db, {
+    qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2",
+    clockInAt: at("2026-04-20T08:00:00Z"), clockOutAt: at("2026-04-20T16:00:00Z"), ...who,
+  });
+  assert.equal((await db.select().from(corrections)).length, 0);
+});
+
 test("correction updates existing IN and OUT logs", async () => {
   const db = await seededDb();
   const result = await saveReportCorrection(db, {
     qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2",
-    clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"),
+    clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), ...who,
   });
   assert.deepEqual(result, { ok: true, clockOutLogId: "log-2" });
   const logs = await getStoreTimelogs(db, "store-1");
@@ -115,7 +165,7 @@ test("correction creates the missing OUT log", async () => {
   const db = await seededDb();
   const result = await saveReportCorrection(db, {
     qrToken: "qr-1", employeeId: "emp-2", clockInLogId: "log-3", clockOutLogId: null,
-    clockInAt: at("2026-04-21T08:00:00Z"), clockOutAt: at("2026-04-21T15:00:00Z"),
+    clockInAt: at("2026-04-21T08:00:00Z"), clockOutAt: at("2026-04-21T15:00:00Z"), ...who,
   });
   const created = (await getStoreTimelogs(db, "store-1")).find((log) => log.id === result.clockOutLogId);
   assert.equal(created?.type, "OUT");
@@ -124,7 +174,7 @@ test("correction creates the missing OUT log", async () => {
 
 test("correction rejects bad ranges, future times and mismatched logs", async () => {
   const db = await seededDb();
-  const base = { qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2" };
+  const base = { qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2", ...who };
   await assert.rejects(
     saveReportCorrection(db, { ...base, clockInAt: at("2026-04-20T10:00:00Z"), clockOutAt: at("2026-04-20T09:00:00Z") }),
     /invalid_range/,
@@ -205,12 +255,13 @@ test("correction rolls back the IN update when the OUT log is invalid", async ()
   await assert.rejects(
     saveReportCorrection(db, {
       qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-1",
-      clockInAt: at("2026-04-20T07:00:00Z"), clockOutAt: at("2026-04-20T12:00:00Z"),
+      clockInAt: at("2026-04-20T07:00:00Z"), clockOutAt: at("2026-04-20T12:00:00Z"), ...who,
     }),
     /invalid_clock_out/,
   );
   const logIn = (await getStoreTimelogs(db, "store-1")).find((log) => log.id === "log-1");
   assert.equal(logIn?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
+  assert.equal((await db.select().from(corrections)).length, 0);
 });
 
 test("member roles resolve per store and ignore email case", async () => {
@@ -243,4 +294,33 @@ test("assignOwnerToAllStores returns 0 without stores and keeps existing owners"
   const db = await seededDb();
   assert.equal(await assignOwnerToAllStores(db, "alice@example.com"), 2);
   assert.equal(await getMemberRole(db, "store-1", "alice@example.com"), "owner");
+});
+
+test("correction rolls back the timelog update when the audit insert fails", async () => {
+  const db = await seededDb();
+  await assert.rejects(
+    saveReportCorrection(db, {
+      qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2",
+      clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), reason: "ab", changedBy: "bob@example.com",
+    }),
+  );
+  const logs = await getStoreTimelogs(db, "store-1");
+  assert.equal(logs.find((log) => log.id === "log-1")?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
+  assert.equal(logs.find((log) => log.id === "log-2")?.timestamp.toISOString(), "2026-04-20T16:00:00.000Z");
+  assert.equal((await db.select().from(corrections)).length, 0);
+});
+
+test("correction rejects another store's clock-in log and writes nothing", async () => {
+  const db = await seededDb();
+  await db.insert(timelogs).values({ id: "log-x", employee_id: "emp-1", store_id: "store-2", type: "IN", timestamp: at("2026-04-20T08:00:00Z") });
+  await assert.rejects(
+    saveReportCorrection(db, {
+      qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-x", clockOutLogId: "log-2",
+      clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), ...who,
+    }),
+    /invalid_clock_in/,
+  );
+  assert.equal((await db.select().from(corrections)).length, 0);
+  const other = (await db.select().from(timelogs)).find((log) => log.id === "log-x");
+  assert.equal(other?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
 });

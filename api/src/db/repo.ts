@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { buildDemoStoreSeed } from "../demo-data.js";
 import type { LocationStatus } from "../location.js";
 import type { Db } from "./client.js";
-import { employees, storeMembers, stores, timelogs } from "./schema.js";
+import { corrections, employees, storeMembers, stores, timelogs } from "./schema.js";
 
 export type Store = typeof stores.$inferSelect;
 export type Employee = typeof employees.$inferSelect;
@@ -191,6 +191,8 @@ export async function saveReportCorrection(
     clockOutLogId: string | null;
     clockInAt: Date;
     clockOutAt: Date;
+    reason: string;
+    changedBy: string;
   },
 ) {
   const store = await getStoreByQrToken(db, input.qrToken);
@@ -213,6 +215,16 @@ export async function saveReportCorrection(
       throw new Error("employee_store_mismatch");
     }
 
+    // Audit rows share the transaction with the timelog updates, so a correction cannot exist without its history.
+    const changes: { timelog_id: string; old_timestamp: Date | null; new_timestamp: Date }[] = [];
+    const moveTimelog = async (log: Timelog, to: Date) => {
+      if (log.timestamp.getTime() === to.getTime()) {
+        return;
+      }
+      await tx.update(timelogs).set({ timestamp: to }).where(eq(timelogs.id, log.id));
+      changes.push({ timelog_id: log.id, old_timestamp: log.timestamp, new_timestamp: to });
+    };
+
     const [clockIn] = await tx.select().from(timelogs).where(eq(timelogs.id, input.clockInLogId)).for("update");
     if (!clockIn) {
       throw new Error("clock_in_not_found");
@@ -220,8 +232,9 @@ export async function saveReportCorrection(
     if (clockIn.employee_id !== input.employeeId || clockIn.store_id !== store.id || clockIn.type !== "IN") {
       throw new Error("invalid_clock_in");
     }
-    await tx.update(timelogs).set({ timestamp: input.clockInAt }).where(eq(timelogs.id, clockIn.id));
+    await moveTimelog(clockIn, input.clockInAt);
 
+    let clockOutLogId: string;
     if (input.clockOutLogId) {
       const [clockOut] = await tx.select().from(timelogs).where(eq(timelogs.id, input.clockOutLogId)).for("update");
       if (!clockOut) {
@@ -230,18 +243,25 @@ export async function saveReportCorrection(
       if (clockOut.employee_id !== input.employeeId || clockOut.store_id !== store.id || clockOut.type !== "OUT") {
         throw new Error("invalid_clock_out");
       }
-      await tx.update(timelogs).set({ timestamp: input.clockOutAt }).where(eq(timelogs.id, clockOut.id));
-      return { ok: true as const, clockOutLogId: clockOut.id };
+      await moveTimelog(clockOut, input.clockOutAt);
+      clockOutLogId = clockOut.id;
+    } else {
+      clockOutLogId = nanoid();
+      await tx.insert(timelogs).values({
+        id: clockOutLogId,
+        employee_id: input.employeeId,
+        store_id: store.id,
+        type: "OUT",
+        timestamp: input.clockOutAt,
+      });
+      changes.push({ timelog_id: clockOutLogId, old_timestamp: null, new_timestamp: input.clockOutAt });
     }
 
-    const clockOutLogId = nanoid();
-    await tx.insert(timelogs).values({
-      id: clockOutLogId,
-      employee_id: input.employeeId,
-      store_id: store.id,
-      type: "OUT",
-      timestamp: input.clockOutAt,
-    });
+    if (changes.length > 0) {
+      await tx.insert(corrections).values(
+        changes.map((change) => ({ id: nanoid(), ...change, changed_by: input.changedBy, reason: input.reason })),
+      );
+    }
     return { ok: true as const, clockOutLogId };
   });
 }

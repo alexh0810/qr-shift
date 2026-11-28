@@ -12,7 +12,11 @@ type CorrectionBody = {
   clockOutLogId?: string | null;
   clockInAt?: string;
   clockOutAt?: string;
+  reason?: unknown;
 } | null;
+
+const REASON_MIN = 3;
+const REASON_MAX = 500;
 
 const CORRECTION_ERRORS: Record<string, string> = {
   invalid_range: "Clock-out must be after clock-in.",
@@ -50,6 +54,8 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     const clockOutLogId = typeof body?.clockOutLogId === "string" ? body.clockOutLogId.trim() : null;
     const clockInAt = body?.clockInAt ? new Date(body.clockInAt) : null;
     const clockOutAt = body?.clockOutAt ? new Date(body.clockOutAt) : null;
+    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+    const reasonLength = [...reason].length;
 
     if (
       !employeeId ||
@@ -62,6 +68,13 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
       return sendError(reply, 400, "invalid_request", "Invalid report correction.");
     }
 
+    if (reasonLength < REASON_MIN) {
+      return sendError(reply, 400, "reason_required", "Add a reason of at least 3 characters.");
+    }
+    if (reasonLength > REASON_MAX) {
+      return sendError(reply, 400, "reason_too_long", "Reason must be 500 characters or fewer.");
+    }
+
     try {
       return await saveReportCorrection(db, {
         qrToken: request.params.qr_token,
@@ -70,6 +83,8 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
         clockOutLogId,
         clockInAt,
         clockOutAt,
+        reason,
+        changedBy: request.user!.email,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "report_correction_failed";

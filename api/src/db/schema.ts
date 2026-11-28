@@ -1,4 +1,5 @@
-import { doublePrecision, index, integer, pgEnum, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, doublePrecision, index, integer, pgEnum, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 export const employeeStatus = pgEnum("employee_status", ["active", "archived"]);
 export const timelogType = pgEnum("timelog_type", ["IN", "OUT"]);
@@ -56,4 +57,21 @@ export const storeMembers = pgTable(
     role: memberRole().notNull(),
   },
   (t) => [primaryKey({ columns: [t.store_id, t.email] }), index("store_members_email_idx").on(t.email)],
+);
+
+export const corrections = pgTable(
+  "corrections",
+  {
+    id: text().primaryKey(),
+    timelog_id: text().notNull().references(() => timelogs.id),
+    old_timestamp: timestamp({ withTimezone: true }),
+    new_timestamp: timestamp({ withTimezone: true }).notNull(),
+    changed_by: text().notNull(),
+    reason: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("corrections_timelog_idx").on(t.timelog_id),
+    check("corrections_reason_length", sql`char_length(btrim(${t.reason})) between 3 and 500`),
+  ],
 );
