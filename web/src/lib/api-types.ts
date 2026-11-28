@@ -1,4 +1,4 @@
-import { Employee, OwnerStoreSummary, PublicStore, Timelog } from "@/types";
+import { Correction, Employee, OwnerStoreSummary, PublicStore, Timelog } from "@/types";
 
 export interface SerializedEmployee extends Omit<Employee, "created_at"> {
   created_at: string;
@@ -6,6 +6,12 @@ export interface SerializedEmployee extends Omit<Employee, "created_at"> {
 
 export interface SerializedTimelog extends Omit<Timelog, "timestamp"> {
   timestamp: string;
+}
+
+export interface SerializedCorrection extends Omit<Correction, "old_timestamp" | "new_timestamp" | "created_at"> {
+  old_timestamp: string | null;
+  new_timestamp: string;
+  created_at: string;
 }
 
 export interface SerializedOwnerStoreSummary extends Omit<OwnerStoreSummary, "created_at"> {
@@ -29,6 +35,7 @@ export interface ReportsSnapshotDto {
   store: PublicStoreDto;
   employees: SerializedEmployee[];
   timelogs: SerializedTimelog[];
+  corrections: SerializedCorrection[];
 }
 
 export interface StoreLookupDto {

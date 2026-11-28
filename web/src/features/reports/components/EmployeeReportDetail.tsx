@@ -6,6 +6,7 @@ import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { formatPayrollDuration } from "@/lib/time-calculation";
 import { Employee } from "@/types";
 import { EditableTimeInput } from "./EditableTimeInput";
+import { EditedBadge } from "./EditedBadge";
 import { LocationFlag } from "./LocationFlag";
 import { EmployeeReport, TimesheetRow } from "../types";
 import { useIsPhoneWidth } from "../useIsPhoneWidth";
@@ -68,10 +69,11 @@ export function EmployeeReportDetail({
                         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
                           Date
                         </p>
-                        <p className="mt-1 font-semibold text-foreground">
+                        <div className="mt-1 font-semibold text-foreground">
                           {format(row.clockInAt, "dd-MM-yyyy")}
                           <LocationFlag status={row.locationStatus} />
-                        </p>
+                          <EditedBadge row={row} />
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
@@ -162,10 +164,11 @@ export function EmployeeReportDetail({
                       className="transition-colors hover:bg-background"
                     >
                       <td className="px-5 py-4 md:px-6">
-                        <p className="font-semibold text-foreground">
+                        <div className="font-semibold text-foreground">
                           {format(row.clockInAt, "dd-MM-yyyy")}
                           <LocationFlag status={row.locationStatus} />
-                        </p>
+                          <EditedBadge row={row} />
+                        </div>
                         {row.note ? (
                           <p className={`mt-1 ${rowStatusClassName(row)}`}>
                             {row.note}

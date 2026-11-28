@@ -38,6 +38,16 @@ export interface Timelog {
   location_status?: LocationStatus | null;
 }
 
+export interface Correction {
+  id: string;
+  timelog_id: string;
+  old_timestamp: Date | null;
+  new_timestamp: Date;
+  changed_by: string;
+  reason: string;
+  created_at: Date;
+}
+
 export interface ScanEmployeeStatus {
   employee: Employee;
   latestLog: Timelog | null;
