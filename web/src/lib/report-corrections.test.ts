@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { parseReportsSnapshot } from "./client-api";
 import { attachCorrections, describeEdit, validateReason } from "../features/reports/corrections";
 import type { EmployeeReport, TimesheetRow } from "../features/reports/types";
 import type { Correction } from "../types";
@@ -56,6 +57,22 @@ const tests = [
       assert.equal(validateReason("abc"), null);
       assert.equal(validateReason("x".repeat(500)), null);
       assert.ok(validateReason("x".repeat(501)));
+    },
+  },
+  {
+    name: "validateReason counts code points, not UTF-16 units",
+    run: () => {
+      assert.ok(validateReason("😀😀"));
+      assert.equal(validateReason("😀😀😀"), null);
+      assert.equal(validateReason("😀".repeat(500)), null);
+      assert.ok(validateReason("😀".repeat(501)));
+    },
+  },
+  {
+    name: "parseReportsSnapshot tolerates a payload without corrections",
+    run: () => {
+      const snapshot = parseReportsSnapshot({ store: { id: "s", name: "S", qr_token: "t" }, employees: [], timelogs: [] } as never);
+      assert.deepEqual(snapshot.corrections, []);
     },
   },
   {

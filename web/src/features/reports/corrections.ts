@@ -7,11 +7,11 @@ export const REASON_MIN = 3;
 export const REASON_MAX = 500;
 
 export function validateReason(raw: string): string | null {
-  const reason = raw.trim();
-  if (reason.length < REASON_MIN) {
+  const length = Array.from(raw.trim()).length;
+  if (length < REASON_MIN) {
     return "Add a reason of at least 3 characters.";
   }
-  if (reason.length > REASON_MAX) {
+  if (length > REASON_MAX) {
     return "Reason must be 500 characters or fewer.";
   }
   return null;

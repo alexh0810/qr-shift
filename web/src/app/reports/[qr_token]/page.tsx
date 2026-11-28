@@ -221,6 +221,11 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
     [drafts, syncDrafts],
   );
 
+  const refetchAfterCorrection = useCallback(
+    () => fetchSnapshot().catch(() => setSaveError("Failed to load store data. Refresh to see the saved times.")),
+    [fetchSnapshot],
+  );
+
   const confirmCorrection = useCallback(
     async (reason: string) => {
       const row = pendingRow;
@@ -237,15 +242,15 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
           failure instanceof Error ? failure.message : "QRShift couldn't save that report correction. Try again.",
         );
       }
-      await fetchSnapshot();
+      await refetchAfterCorrection();
     },
-    [fetchSnapshot, pendingRow, qrToken],
+    [pendingRow, qrToken, refetchAfterCorrection],
   );
 
   const cancelCorrection = useCallback(async () => {
     setPendingRow(null);
-    await fetchSnapshot();
-  }, [fetchSnapshot]);
+    await refetchAfterCorrection();
+  }, [refetchAfterCorrection]);
 
   const downloadCsv = useCallback(() => {
     const csv = buildReportsCsv(
@@ -311,7 +316,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
 
   return (
     <ManagerWorkspaceShell qrToken={qrToken} currentPath={`/reports/${qrToken}`}>
-      <div className="space-y-5 px-0">
+      <div className="space-y-5 px-0" {...(pendingRow ? ({ inert: "" } as object) : {})}>
         <ManagerWorkspaceHeader
           eyebrow="Reports"
           title={store?.name ?? "QRShift"}

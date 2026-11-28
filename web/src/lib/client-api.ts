@@ -282,12 +282,16 @@ export async function getReportsSnapshot(qrToken: string): Promise<{
     credentials: "same-origin",
     cache: "no-store",
   });
-  const payload = await readJson<ReportsSnapshotDto>(response);
+  return parseReportsSnapshot(await readJson<ReportsSnapshotDto>(response));
+}
+
+export function parseReportsSnapshot(payload: ReportsSnapshotDto) {
   return {
     store: payload.store,
     employees: payload.employees.map(parseEmployee),
     timelogs: payload.timelogs.map(parseTimelog),
-    corrections: payload.corrections.map(parseCorrection),
+    // Optional so the web can deploy before the API that adds corrections.
+    corrections: (payload.corrections ?? []).map(parseCorrection),
   };
 }
 

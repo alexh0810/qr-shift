@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { REASON_MAX, validateReason } from "../corrections";
+import { validateReason } from "../corrections";
 
 interface ReasonDialogProps {
   onConfirm: (reason: string) => void;
@@ -48,7 +48,6 @@ export function ReasonDialog({ onConfirm, onCancel }: ReasonDialogProps) {
             id="correction-reason"
             ref={inputRef}
             value={reason}
-            maxLength={REASON_MAX}
             onChange={(event) => setReason(event.target.value)}
             aria-invalid={touched && !!error}
             aria-describedby={touched && error ? "correction-reason-error" : undefined}

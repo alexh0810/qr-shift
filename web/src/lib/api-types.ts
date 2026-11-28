@@ -35,7 +35,7 @@ export interface ReportsSnapshotDto {
   store: PublicStoreDto;
   employees: SerializedEmployee[];
   timelogs: SerializedTimelog[];
-  corrections: SerializedCorrection[];
+  corrections?: SerializedCorrection[];
 }
 
 export interface StoreLookupDto {
