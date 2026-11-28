@@ -23,7 +23,7 @@ import {
   toPublicStore,
   updateEmployeeForStore,
 } from "./repo.js";
-import { corrections } from "./schema.js";
+import { corrections, timelogs } from "./schema.js";
 import { createTestDb } from "./test-db.js";
 
 test("lists owner store summaries for the owner only, newest first", async () => {
@@ -294,4 +294,33 @@ test("assignOwnerToAllStores returns 0 without stores and keeps existing owners"
   const db = await seededDb();
   assert.equal(await assignOwnerToAllStores(db, "alice@example.com"), 2);
   assert.equal(await getMemberRole(db, "store-1", "alice@example.com"), "owner");
+});
+
+test("correction rolls back the timelog update when the audit insert fails", async () => {
+  const db = await seededDb();
+  await assert.rejects(
+    saveReportCorrection(db, {
+      qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-1", clockOutLogId: "log-2",
+      clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), reason: "ab", changedBy: "bob@example.com",
+    }),
+  );
+  const logs = await getStoreTimelogs(db, "store-1");
+  assert.equal(logs.find((log) => log.id === "log-1")?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
+  assert.equal(logs.find((log) => log.id === "log-2")?.timestamp.toISOString(), "2026-04-20T16:00:00.000Z");
+  assert.equal((await db.select().from(corrections)).length, 0);
+});
+
+test("correction rejects another store's clock-in log and writes nothing", async () => {
+  const db = await seededDb();
+  await db.insert(timelogs).values({ id: "log-x", employee_id: "emp-1", store_id: "store-2", type: "IN", timestamp: at("2026-04-20T08:00:00Z") });
+  await assert.rejects(
+    saveReportCorrection(db, {
+      qrToken: "qr-1", employeeId: "emp-1", clockInLogId: "log-x", clockOutLogId: "log-2",
+      clockInAt: at("2026-04-20T09:00:00Z"), clockOutAt: at("2026-04-20T17:00:00Z"), ...who,
+    }),
+    /invalid_clock_in/,
+  );
+  assert.equal((await db.select().from(corrections)).length, 0);
+  const other = (await db.select().from(timelogs)).find((log) => log.id === "log-x");
+  assert.equal(other?.timestamp.toISOString(), "2026-04-20T08:00:00.000Z");
 });

@@ -55,6 +55,7 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
     const clockInAt = body?.clockInAt ? new Date(body.clockInAt) : null;
     const clockOutAt = body?.clockOutAt ? new Date(body.clockOutAt) : null;
     const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+    const reasonLength = [...reason].length;
 
     if (
       !employeeId ||
@@ -67,10 +68,10 @@ export function managerRoutes(app: FastifyInstance, { db }: { db: Db }) {
       return sendError(reply, 400, "invalid_request", "Invalid report correction.");
     }
 
-    if (reason.length < REASON_MIN) {
+    if (reasonLength < REASON_MIN) {
       return sendError(reply, 400, "reason_required", "Add a reason of at least 3 characters.");
     }
-    if (reason.length > REASON_MAX) {
+    if (reasonLength > REASON_MAX) {
       return sendError(reply, 400, "reason_too_long", "Reason must be 500 characters or fewer.");
     }
 

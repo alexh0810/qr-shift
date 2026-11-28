@@ -115,6 +115,9 @@ test("reports POST requires a reason of 3 to 500 characters", async () => {
     const response = await send(reason);
     assert.deepEqual([response.statusCode, response.json().error], [400, "reason_required"]);
   }
+  const emoji = await send("😀😀");
+  assert.deepEqual([emoji.statusCode, emoji.json().error], [400, "reason_required"]);
+  assert.equal((await send("😀😀😀")).statusCode, 200);
   const long = await send("x".repeat(501));
   assert.deepEqual([long.statusCode, long.json().error], [400, "reason_too_long"]);
 });
