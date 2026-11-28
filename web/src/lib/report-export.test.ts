@@ -176,19 +176,19 @@ const tests: TestCase[] = [
 
       assert.equal(
         lines[0],
-        '"Employee Name","Work Day","Clock In","Clock Out","Shift Duration","Total Hours Worked","Days Worked","Location"',
+        '"Employee Name","Work Day","Clock In","Clock Out","Shift Duration","Total Hours Worked","Days Worked","Location","Edited"',
       );
       assert.equal(
         lines[1],
-        '"Kim","22-04-2026","19:30","19:35","0.08 h (0h 5m)","","",""',
+        '"Kim","22-04-2026","19:30","19:35","0.08 h (0h 5m)","","","",""',
       );
       assert.equal(
         lines[2],
-        '"Kim","22-04-2026","19:38","21:50","2.20 h (2h 12m)","","",""',
+        '"Kim","22-04-2026","19:38","21:50","2.20 h (2h 12m)","","","",""',
       );
       assert.equal(
         lines[3],
-        '"Kim","Summary","","","","2.28 h (2h 17m)","1",""',
+        '"Kim","Summary","","","","2.28 h (2h 17m)","1","",""',
       );
       assert.ok(!result!.content.includes("SUBTOTAL"));
       assert.ok(!result!.content.includes(" TOTAL"));
@@ -209,11 +209,11 @@ const tests: TestCase[] = [
       assert.ok(result);
       const lines = result!.content.split("\n");
 
-      assert.ok(lines.includes('"Kim","Summary","","","","2.28 h (2h 17m)","1",""'));
-      assert.ok(lines.includes('"Alex","Summary","","","","8.00 h (8h 0m)","1",""'));
+      assert.ok(lines.includes('"Kim","Summary","","","","2.28 h (2h 17m)","1","",""'));
+      assert.ok(lines.includes('"Alex","Summary","","","","8.00 h (8h 0m)","1","",""'));
       assert.equal(
         lines[lines.length - 1],
-        '"All Employees","Summary","","","","10.28 h (10h 17m)","",""',
+        '"All Employees","Summary","","","","10.28 h (10h 17m)","","",""',
       );
     },
   },
@@ -239,12 +239,12 @@ const tests: TestCase[] = [
 
       assert.equal(
         lines[1],
-        '"Alex","25-04-2026","12:00","Ongoing","3.00 h (3h 0m)","","",""',
+        '"Alex","25-04-2026","12:00","Ongoing","3.00 h (3h 0m)","","","",""',
       );
     },
   },
   {
-    name: "CSV marks the worst location of each shift and keeps eight columns",
+    name: "CSV marks the worst location of each shift and keeps nine columns",
     run: () => {
       const employee = { id: "emp-9", name: "Lia", store_id: "store-1", created_at: at("2026-01-01T00:00:00"), status: "active" as const };
       const log = (id: string, type: "IN" | "OUT", time: string, location_status: "inside" | "outside" | null) => ({
@@ -269,9 +269,40 @@ const tests: TestCase[] = [
       assert.equal(reports[0].timesheetRows[1].locationStatus, null);
       const csv = buildReportsCsv(reports, globalSummary, "ALL", "Store", "2026-04-22", "2026-04-23");
       const lines = csv!.content.split("\n");
-      assert.ok(lines[0].endsWith(',"Days Worked","Location"'));
-      assert.ok(lines[1].endsWith(',"Outside"'));
+      assert.ok(lines[0].endsWith(',"Days Worked","Location","Edited"'));
+      assert.ok(lines[1].endsWith(',"Outside",""'));
       assert.ok(lines[2].endsWith(',""'));
+    },
+  },
+  {
+    name: "CSV marks edited shifts in a last Edited column",
+    run: () => {
+      const edited = {
+        ...kimReport,
+        timesheetRows: kimReport.timesheetRows.map((row, index) =>
+          index === 0
+            ? {
+                ...row,
+                edits: [
+                  {
+                    id: "c1",
+                    timelog_id: row.clockInLogId,
+                    old_timestamp: at("2026-04-22T19:00:00"),
+                    new_timestamp: at("2026-04-22T19:30:00"),
+                    changed_by: "bob@example.com",
+                    reason: "Late scan",
+                    created_at: at("2026-04-23T10:00:00"),
+                  },
+                ],
+              }
+            : row,
+        ),
+      };
+      const csv = buildReportsCsv([edited], globalSummary, "ALL", "Store", "2026-04-22", "2026-04-22");
+      const lines = csv!.content.split("\n");
+      assert.ok(lines[0].endsWith(',"Location","Edited"'));
+      assert.ok(lines[1].endsWith(',"Yes"'));
+      assert.ok(lines.every((line) => line.split('","').length === 9));
     },
   },
 ];

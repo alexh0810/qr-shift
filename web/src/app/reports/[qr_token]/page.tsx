@@ -10,6 +10,8 @@ import { ManagerWorkspaceShell } from "@/components/manager/ManagerWorkspaceShel
 import { WorkspacePanel } from "@/components/manager/WorkspacePanel";
 import { AllEmployeesTimesheetTable } from "@/features/reports/components/AllEmployeesTimesheetTable";
 import { EmployeeReportDetail } from "@/features/reports/components/EmployeeReportDetail";
+import { ReasonDialog } from "@/features/reports/components/ReasonDialog";
+import { attachCorrections } from "@/features/reports/corrections";
 import { useIsPhoneWidth } from "@/features/reports/useIsPhoneWidth";
 import {
   buildReportData,
@@ -29,7 +31,7 @@ import {
 import type { ReportDraft, TimesheetRow } from "@/features/reports/types";
 import { buildReportsCsv } from "@/features/reports/export";
 import { getReportsSnapshot, logout, saveReportCorrection } from "@/lib/client-api";
-import { Employee, PublicStore, Timelog } from "@/types";
+import { Correction, Employee, PublicStore, Timelog } from "@/types";
 
 export default function ReportsPage({ params }: { params: { qr_token: string } }) {
   return (
@@ -46,6 +48,9 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
   const [store, setStore] = useState<PublicStore | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [allLogs, setAllLogs] = useState<Timelog[]>([]);
+  const [corrections, setCorrections] = useState<Correction[]>([]);
+  const [pendingRow, setPendingRow] = useState<TimesheetRow | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +74,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
     setStore(snapshot.store);
     setEmployees(snapshot.employees);
     setAllLogs(snapshot.timelogs);
+    setCorrections(snapshot.corrections);
   }, [qrToken]);
 
   const fetchAndCalculate = useCallback(async () => {
@@ -97,13 +103,13 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
         syncDrafts(prunedDrafts);
       }
 
-      setReportData(mergedReports);
+      setReportData(attachCorrections(mergedReports, corrections));
     } catch {
       setError("Failed to fetch and calculate reports.");
     } finally {
       setCalculating(false);
     }
-  }, [allLogs, dateStrEnd, dateStrStart, drafts, employees, store, syncDrafts]);
+  }, [allLogs, corrections, dateStrEnd, dateStrStart, drafts, employees, store, syncDrafts]);
 
   useEffect(() => {
     setDrafts(readStoredReportDrafts(qrToken));
@@ -210,32 +216,41 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
         return;
       }
 
-      try {
-        const saved = await saveReportCorrection(qrToken, committedRow);
-        setReportData((currentReports) =>
-          currentReports.map((report) => {
-            if (report.employee.id !== employeeId) {
-              return report;
-            }
-
-            const nextRows = report.timesheetRows.map((row, index) =>
-              index === rowIndex ? { ...row, clockOutLogId: saved.clockOutLogId } : row,
-            );
-
-            return rebuildEmployeeReport(report.employee, nextRows);
-          }),
-        );
-      } catch (saveError) {
-        setError(
-          saveError instanceof Error
-            ? saveError.message
-            : "QRShift couldn't save that report correction. Try again.",
-        );
-        await fetchSnapshot();
-      }
+      setPendingRow(committedRow);
     },
-    [drafts, fetchSnapshot, qrToken, syncDrafts],
+    [drafts, syncDrafts],
   );
+
+  const refetchAfterCorrection = useCallback(
+    () => fetchSnapshot().catch(() => setSaveError("Failed to load store data. Refresh to see the saved times.")),
+    [fetchSnapshot],
+  );
+
+  const confirmCorrection = useCallback(
+    async (reason: string) => {
+      const row = pendingRow;
+      setPendingRow(null);
+      if (!row) {
+        return;
+      }
+
+      setSaveError(null);
+      try {
+        await saveReportCorrection(qrToken, row, reason);
+      } catch (failure) {
+        setSaveError(
+          failure instanceof Error ? failure.message : "QRShift couldn't save that report correction. Try again.",
+        );
+      }
+      await refetchAfterCorrection();
+    },
+    [pendingRow, qrToken, refetchAfterCorrection],
+  );
+
+  const cancelCorrection = useCallback(async () => {
+    setPendingRow(null);
+    await refetchAfterCorrection();
+  }, [refetchAfterCorrection]);
 
   const downloadCsv = useCallback(() => {
     const csv = buildReportsCsv(
@@ -301,7 +316,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
 
   return (
     <ManagerWorkspaceShell qrToken={qrToken} currentPath={`/reports/${qrToken}`}>
-      <div className="space-y-5 px-0">
+      <div className="space-y-5 px-0" {...(pendingRow ? ({ inert: "" } as object) : {})}>
         <ManagerWorkspaceHeader
           eyebrow="Reports"
           title={store?.name ?? "QRShift"}
@@ -440,9 +455,9 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
           </div>
         ) : null}
 
-        {error ? (
+        {error || saveError ? (
           <div className="rounded-[22px] border border-[color:color-mix(in_srgb,var(--error)_24%,var(--color-border-soft))] bg-error/10 px-4 py-4 text-sm font-semibold text-error">
-            {error}
+            {error ?? saveError}
           </div>
         ) : null}
 
@@ -465,6 +480,7 @@ function ReportsWorkspace({ qrToken }: { qrToken: string }) {
           )}
         </div>
       </div>
+      {pendingRow ? <ReasonDialog onConfirm={confirmCorrection} onCancel={cancelCorrection} /> : null}
     </ManagerWorkspaceShell>
   );
 }

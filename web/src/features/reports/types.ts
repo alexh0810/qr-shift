@@ -1,4 +1,4 @@
-import { Employee, LocationStatus } from "../../types";
+import { Correction, Employee, LocationStatus } from "../../types";
 
 export type MissingOutStrategy = "endOfDay" | "currentTime";
 export type ShiftState = "closed" | "autoClosed" | "ongoing" | "managerOverride";
@@ -47,6 +47,7 @@ export interface TimesheetRow {
   shiftState: ShiftState;
   note?: string;
   locationStatus?: LocationStatus | null;
+  edits?: Correction[];
 }
 
 export interface EmployeeReport extends Summary {
