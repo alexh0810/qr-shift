@@ -101,3 +101,10 @@ Each entry: context, options considered, decision, consequences.
 - **Options:** block clock-ins outside a geofence; flag them; ignore location.
 - **Decision:** record `inside` / `outside` / `unknown` per clock event and expose it to managers only (reports show a warning and a CSV `Location` column). Tolerance is `min(accuracy, 100 m)`, accuracy above 200 m is `unknown`. A store without coordinates records nothing, so owners who skip setup see no noise.
 - **Consequences:** honest employees with bad GPS are never locked out; the flag deters, it does not prevent. Spoofed coordinates pass (documented limit).
+
+## D15. Corrections are append-only audit rows written with the timelog update
+
+- **Context:** Managers edit completed shifts, which changes pay. Editing timestamps in place leaves no record of who changed what, when and why.
+- **Options:** keep full timelog versions; log the whole request as JSON; one row per changed timelog (old and new timestamp).
+- **Decision:** table `corrections` (`timelog_id`, `old_timestamp` (null when the OUT was added), `new_timestamp`, `changed_by` from the session, `reason`, `created_at`), one row per timelog whose timestamp changed, inserted in the same transaction as the update. No update or delete route. The FK has no cascade, and a `CHECK` mirrors the API's 3 to 500 character reason rule.
+- **Consequences:** history can be reconstructed per timelog and cannot be lost by a failed or partial save. No-op saves write nothing. The correction route never deletes timelogs, so no delete case exists today; deleting an audited timelog by hand fails on the FK. A shift row clamped to the report range sends the clamped clock-in, so editing the clock-out of a shift that starts before the range also records a clock-in change; a later fix is to send only the changed field.

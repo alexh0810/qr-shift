@@ -58,7 +58,9 @@ Auth: session cookie plus membership in the store named by `:qr_token`; owners o
 | --- | --- | --- | --- |
 | `GET /api/manager/:qr_token/dashboard` | — | `{ store, employees: [{ employee, latest_log, status }] }` | 401 · 403 |
 | `GET /api/manager/:qr_token/reports` | — | `{ store, employees, timelogs }` — all employees including archived; timelogs oldest first, each with `location_status` | 401 · 403 |
-| `POST /api/manager/:qr_token/reports` | `{ employeeId, clockInLogId, clockOutLogId \| null, clockInAt, clockOutAt }` (ISO times) | `{ ok: true, clockOutLogId }` | 401 · 403 · 400 `Invalid report correction.` · 400 `Clock-out must be after clock-in.` · 400 `Only completed shifts can be saved right now.` · 400 `QRShift couldn't save that report correction. Try again.` |
+| `POST /api/manager/:qr_token/reports` | `{ employeeId, clockInLogId, clockOutLogId \| null, clockInAt, clockOutAt, reason }` (ISO times; `reason` 3 to 500 characters after trimming) | `{ ok: true, clockOutLogId }` | 401 · 403 · 400 `Invalid report correction.` · 400 `Add a reason of at least 3 characters.` · 400 `Reason must be 500 characters or fewer.` · 400 `Clock-out must be after clock-in.` · 400 `Only completed shifts can be saved right now.` · 400 `QRShift couldn't save that report correction. Try again.` |
+
+The editor's email comes from the session (a `changedBy` in the body is ignored) and each changed timelog gets one `corrections` row.
 
 ## Owner routes
 

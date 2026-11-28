@@ -84,6 +84,7 @@ erDiagram
   stores ||--o{ timelogs : records
   employees ||--o{ timelogs : clocks
   stores ||--o{ store_members : grants
+  timelogs ||--o{ corrections : "audited by"
   stores {
     text id PK
     text name
@@ -116,11 +117,22 @@ erDiagram
     text email PK
     member_role role
   }
+  corrections {
+    text id PK
+    text timelog_id FK
+    timestamptz old_timestamp "null when the OUT was added by the correction"
+    timestamptz new_timestamp
+    text changed_by "email of the manager, from the session"
+    text reason "3 to 500 chars, enforced by the API and a CHECK"
+    timestamptz created_at
+  }
 ```
 
 Primary keys are text so the IDs and printed QR tokens that came from the original data carry over unchanged. Column names are snake_case to match the domain types in the web app.
 
 `store_members` grants a signed-in email a role on a store: `owner` or `manager`. Emails are stored trimmed and lowercase (`normalizeEmail`), the primary key is `(store_id, email)` and an index on `email` serves the "my stores" lookup. Queries live in `api/src/db/repo.ts`: `getMemberRole`, `getMemberships` (newest store first) and `assignOwnerToAllStores`.
+
+`corrections` is append-only (no update or delete route): one row per timelog whose timestamp changed, written in the same transaction as the timelog update (`saveReportCorrection`). An added OUT is a row with `old_timestamp` null and the new OUT's id. The foreign key has no cascade, so deleting an audited timelog fails instead of dropping history.
 
 ## Deployment
 
@@ -137,6 +149,7 @@ The API ships as a Docker image (`api/Dockerfile`, Node 22, non-root user) to Cl
 | `invalid_transition` | 400 | Clock action does not follow the employee's latest log |
 | `clock_failed` | 400 | Clock action could not be saved |
 | `invalid_range`, `future_correction_not_supported`, `report_correction_failed` | 400 | Report correction rejected |
+| `reason_required`, `reason_too_long` | 400 | Report correction without a usable reason |
 | `employee_not_found` | 404 | Employee missing |
 | `employee_store_mismatch`, `duplicate_employee_name`, `invalid_employee_name`, `no_employee_changes`, `employee_create_failed`, `employee_update_failed` | 400 | Employee changes rejected |
 | `not_display_mode` | 400 | Scan ticket requested for a store in printed mode, or an owner reissue or display-key reset on a printed store |
@@ -193,6 +206,21 @@ sequenceDiagram
 ```
 
 Printed mode skips the ticket: the phone posts `/clock` directly.
+
+### Report correction
+
+```mermaid
+sequenceDiagram
+  participant M as Manager browser
+  participant A as API
+  participant D as Postgres
+  M->>A: POST /api/manager/:qr/reports { times, reason }
+  A->>A: requireRole(manager), validate body and reason
+  A->>D: BEGIN, lock employee and timelogs
+  A->>D: UPDATE timelogs (changed ones), INSERT corrections (one per change)
+  D-->>A: COMMIT
+  A-->>M: 200 { ok, clockOutLogId }
+```
 
 ### Location flag
 

@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { eq } from "drizzle-orm";
+
 import { createTestDb } from "./test-db.js";
-import { employees, storeMembers, stores, timelogs } from "./schema.js";
+import { corrections, employees, storeMembers, stores, timelogs } from "./schema.js";
 
 async function seeded() {
   const db = await createTestDb();
@@ -54,4 +56,18 @@ test("store_members is unique per store and email and needs an existing store", 
   await db.insert(storeMembers).values({ store_id: "s1", email: "a@example.com", role: "owner" });
   await assert.rejects(db.insert(storeMembers).values({ store_id: "s1", email: "a@example.com", role: "manager" }));
   await assert.rejects(db.insert(storeMembers).values({ store_id: "nope", email: "a@example.com", role: "owner" }));
+});
+
+test("corrections reject short reasons and block deleting an audited timelog", async () => {
+  const db = await seeded();
+  const when = new Date("2026-11-02T08:00:00Z");
+  await db.insert(timelogs).values({ id: "t1", employee_id: "e1", store_id: "s1", type: "IN", timestamp: when });
+  const row = { timelog_id: "t1", old_timestamp: when, new_timestamp: new Date("2026-11-02T09:00:00Z"), changed_by: "bob@example.com" };
+
+  await assert.rejects(db.insert(corrections).values({ id: "c1", ...row, reason: "ab" }));
+  await assert.rejects(db.insert(corrections).values({ id: "c2", ...row, reason: "  x " }));
+  await assert.rejects(db.insert(corrections).values({ id: "c3", ...row, reason: "x".repeat(501) }));
+
+  await db.insert(corrections).values({ id: "c4", ...row, reason: "Forgot to clock" });
+  await assert.rejects(db.delete(timelogs).where(eq(timelogs.id, "t1")));
 });
