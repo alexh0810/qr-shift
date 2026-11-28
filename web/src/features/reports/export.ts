@@ -38,6 +38,7 @@ export function buildReportsCsv(
       "Total Hours Worked",
       "Days Worked",
       "Location",
+      "Edited",
     ]
       .map(escapeCsvValue)
       .join(","),
@@ -57,6 +58,7 @@ export function buildReportsCsv(
           escapeCsvValue(""),
           escapeCsvValue(""),
           escapeCsvValue(row.locationStatus ? LOCATION_LABELS[row.locationStatus] : ""),
+          escapeCsvValue(row.edits?.length ? "Yes" : ""),
         ].join(","),
       );
     }
@@ -71,9 +73,10 @@ export function buildReportsCsv(
         escapeCsvValue(formatPayrollDuration(group.totalMinutes)),
         escapeCsvValue(String(group.dailySummaries.length)),
         escapeCsvValue(""),
+        escapeCsvValue(""),
       ].join(","),
     );
-    rows.push(["", "", "", "", "", "", "", ""].map(escapeCsvValue).join(","));
+    rows.push(["", "", "", "", "", "", "", "", ""].map(escapeCsvValue).join(","));
   }
 
   if (selectedEmployeeId === "ALL") {
@@ -85,6 +88,7 @@ export function buildReportsCsv(
         escapeCsvValue(""),
         escapeCsvValue(""),
         escapeCsvValue(formatPayrollDuration(globalSummary.totalMinutes)),
+        escapeCsvValue(""),
         escapeCsvValue(""),
         escapeCsvValue(""),
       ].join(","),
